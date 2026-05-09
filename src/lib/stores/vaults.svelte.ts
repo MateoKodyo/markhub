@@ -1,13 +1,21 @@
 import * as api from '$lib/tauri/api';
 import { getFileName } from '$lib/utils/path';
 import { pickNextColor } from '$lib/utils/palette';
-import type { LastOpenedFile, Settings, Vault, VaultMode } from '$lib/tauri/types';
+import { toggleExpanded } from '$lib/utils/tree';
+import type {
+	LastOpenedFile,
+	Settings,
+	Vault,
+	VaultMode,
+	VaultState
+} from '$lib/tauri/types';
 
 class VaultsStore {
 	vaults = $state<Vault[]>([]);
 	activeVaultId = $state<string | null>(null);
 	lastOpenedFile = $state<LastOpenedFile | null>(null);
 	settings = $state<Settings>({ autoSaveDelayMs: 1500, theme: 'system' });
+	vaultStates = $state<Record<string, VaultState>>({});
 
 	activeVault = $derived(this.vaults.find((v) => v.id === this.activeVaultId));
 	isActiveVaultReadonly = $derived(this.activeVault?.mode === 'readonly');
@@ -17,6 +25,8 @@ class VaultsStore {
 		this.vaults = cfg.vaults;
 		this.lastOpenedFile = cfg.lastOpenedFile;
 		this.settings = cfg.settings;
+		// Tauri's serde may emit `null` for missing maps when older configs are loaded.
+		this.vaultStates = cfg.vaultStates ?? {};
 	}
 
 	async addVault(
@@ -51,6 +61,62 @@ class VaultsStore {
 		if (this.activeVaultId === id) {
 			this.activeVaultId = null;
 		}
+		// Clean orphaned UI state for the removed vault.
+		if (id in this.vaultStates) {
+			const next = { ...this.vaultStates };
+			delete next[id];
+			this.vaultStates = next;
+		}
+	}
+
+	expandedFoldersFor(vaultId: string): Set<string> {
+		const list = this.vaultStates[vaultId]?.expandedFolders ?? [];
+		return new Set(list);
+	}
+
+	/**
+	 * Toggle a folder's expansion in the active vault and persist immediately.
+	 * Persisting on every toggle is fine for MVP: the config is small JSON.
+	 */
+	async toggleFolderExpansion(vaultId: string, relativePath: string): Promise<void> {
+		const current = this.vaultStates[vaultId]?.expandedFolders ?? [];
+		const next = toggleExpanded(current, relativePath);
+		this.vaultStates = {
+			...this.vaultStates,
+			[vaultId]: { expandedFolders: next }
+		};
+		await this.#persistConfig();
+	}
+
+	/**
+	 * Replace the expanded list for a vault — used by the prune step that runs
+	 * after a scan to remove paths that no longer exist on disk.
+	 */
+	async setExpandedFolders(vaultId: string, paths: string[]): Promise<void> {
+		const current = this.vaultStates[vaultId]?.expandedFolders ?? [];
+		// Skip the write if nothing changed (avoids a useless config_save).
+		if (current.length === paths.length && current.every((p, i) => p === paths[i])) {
+			return;
+		}
+		this.vaultStates = {
+			...this.vaultStates,
+			[vaultId]: { expandedFolders: paths }
+		};
+		await this.#persistConfig();
+	}
+
+	async #persistConfig(): Promise<void> {
+		try {
+			await api.configSave({
+				version: 1,
+				vaults: this.vaults,
+				lastOpenedFile: this.lastOpenedFile,
+				settings: this.settings,
+				vaultStates: this.vaultStates
+			});
+		} catch (e) {
+			console.warn('[vaultsStore] Failed to persist config', e);
+		}
 	}
 
 	async updateVault(
@@ -75,17 +141,7 @@ class VaultsStore {
 	 */
 	async setLastOpenedFile(lof: LastOpenedFile | null): Promise<void> {
 		this.lastOpenedFile = lof;
-		try {
-			await api.configSave({
-				version: 1,
-				vaults: this.vaults,
-				lastOpenedFile: lof,
-				settings: this.settings
-			});
-		} catch (e) {
-			// Persistence failures shouldn't break the open flow.
-			console.warn('[vaultsStore] Failed to persist lastOpenedFile', e);
-		}
+		await this.#persistConfig();
 	}
 }
 

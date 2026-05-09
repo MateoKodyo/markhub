@@ -41,6 +41,7 @@
 		"@milkdown/preset-commonmark": "^7.20.0",
 		"@tauri-apps/api": "^2.11.0",
 		"@tauri-apps/plugin-dialog": "^2.7.1",
+		"lucide-svelte": "^1.0.1",
 		"uuid": "^14.0.0"
 	}
 }

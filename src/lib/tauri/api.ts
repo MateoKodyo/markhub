@@ -58,3 +58,6 @@ export const fileRename = (
 	oldPath: string,
 	newPath: string
 ): Promise<void> => invoke('file_rename', { vaultId, oldPath, newPath });
+
+export const folderCreate = (vaultId: string, relativePath: string): Promise<void> =>
+	invoke('folder_create', { vaultId, relativePath });

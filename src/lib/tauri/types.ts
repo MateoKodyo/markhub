@@ -28,9 +28,14 @@ export type Settings = {
 	theme: string;
 };
 
+export type VaultState = {
+	expandedFolders: string[];
+};
+
 export type Config = {
 	version: number;
 	vaults: Vault[];
 	lastOpenedFile: LastOpenedFile | null;
 	settings: Settings;
+	vaultStates: Record<string, VaultState>;
 };

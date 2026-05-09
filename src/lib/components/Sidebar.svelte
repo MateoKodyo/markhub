@@ -1,44 +1,64 @@
 <script lang="ts">
+	import { FilePlus, FolderPlus, Plus, Search } from 'lucide-svelte';
 	import VaultList from './VaultList.svelte';
-	import FileTree, { type TreeContext } from './FileTree.svelte';
+	import FileTree, { type CreatingAt, type TreeContext } from './FileTree.svelte';
 	import ContextMenu, { type MenuItem } from './ContextMenu.svelte';
 	import InputDialog from './InputDialog.svelte';
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
-	import { vaultScan, fileCreate, fileDelete, fileRename } from '$lib/tauri/api';
+	import {
+		vaultScan,
+		fileCreate,
+		fileDelete,
+		fileRename,
+		folderCreate
+	} from '$lib/tauri/api';
 	import { joinPath, getParentPath, isMarkdownFile } from '$lib/utils/path';
-	import type { FileEntry, Vault } from '$lib/tauri/types';
+	import {
+		findInsertionTarget,
+		pruneExpandedFolders
+	} from '$lib/utils/tree';
+	import type { FileEntry, Vault, VaultMode } from '$lib/tauri/types';
 
 	let fileFilter = $state('');
 	let scanRoot = $state<FileEntry | null>(null);
 	let scanError = $state<string | null>(null);
 	let topLevelError = $state<string | null>(null);
 
-	// Context menu state (shared between file tree + vault list — items differ).
+	// Selection in the file tree (drives contextual creation + visual highlight).
+	let selectedEntry = $state<FileEntry | null>(null);
+	const selectedPath = $derived<string | null>(selectedEntry?.relativePath ?? null);
+
+	// Inline-creation state — when set, FileTree renders an InlineInput at parentPath.
+	let creatingAt = $state<CreatingAt | null>(null);
+
+	// Context menu shared between file tree + vault list (items differ).
 	let ctxOpen = $state(false);
 	let ctxX = $state(0);
 	let ctxY = $state(0);
 	let ctxItems = $state<MenuItem[]>([]);
 
-	// Input dialog state (used for new file + rename file + rename vault).
+	// Modal for rename (vault + file). Inline input is for CREATION only.
 	let inputOpen = $state(false);
 	let inputTitle = $state('');
 	let inputDefault = $state('');
 	let inputPlaceholder = $state('');
 	let inputSubmit = $state<(value: string) => Promise<void>>(async () => {});
 
-	// Confirm dialog state.
+	// Confirm dialog for delete (file + vault).
 	let confirmOpen = $state(false);
 	let confirmTitle = $state('');
 	let confirmMessage = $state('');
 	let confirmHandler = $state<() => Promise<void>>(async () => {});
 
-	// Re-scan whenever the active vault changes.
+	// Re-scan whenever the active vault changes; prune stale expanded paths after.
 	$effect(() => {
 		const id = vaultsStore.activeVaultId;
 		if (!id) {
 			scanRoot = null;
+			selectedEntry = null;
+			creatingAt = null;
 			return;
 		}
 		scanError = null;
@@ -49,19 +69,31 @@
 		const id = vaultId ?? vaultsStore.activeVaultId;
 		if (!id) return;
 		try {
-			scanRoot = await vaultScan(id);
+			const root = await vaultScan(id);
+			scanRoot = root;
+			// Drop expanded paths whose folder no longer exists on disk.
+			const persisted = vaultsStore.vaultStates[id]?.expandedFolders ?? [];
+			const pruned = pruneExpandedFolders(persisted, root);
+			if (pruned.length !== persisted.length) {
+				void vaultsStore.setExpandedFolders(id, pruned);
+			}
 		} catch (e) {
 			scanError = String(e);
 			scanRoot = null;
 		}
 	}
 
-	// ----- Add vault (Phase 5 redesigned flow) -----
+	const expandedSet = $derived.by(() => {
+		const id = vaultsStore.activeVaultId;
+		if (!id) return new Set<string>();
+		return vaultsStore.expandedFoldersFor(id);
+	});
+
+	// ----- Add vault -----
 	async function handleAddVault() {
 		topLevelError = null;
 		try {
 			await vaultsStore.addVaultFromPicker();
-			// addVaultFromPicker selects the new vault — scan triggers via $effect above.
 		} catch (e) {
 			topLevelError = `Ajout vault impossible : ${String(e)}`;
 		}
@@ -69,12 +101,68 @@
 
 	function handleSelectVault(id: string) {
 		vaultsStore.selectVault(id);
+		selectedEntry = null;
 	}
 
 	function handleOpenFile(relativePath: string) {
 		const id = vaultsStore.activeVaultId;
 		if (!id) return;
 		void activeFileStore.openFile(id, relativePath);
+	}
+
+	function handleToggleFolder(relativePath: string) {
+		const id = vaultsStore.activeVaultId;
+		if (!id) return;
+		void vaultsStore.toggleFolderExpansion(id, relativePath);
+	}
+
+	// ----- File-tree creation flow -----
+	function startCreate(mode: 'file' | 'folder', overrideParent?: string) {
+		const id = vaultsStore.activeVaultId;
+		if (!id || vaultsStore.isActiveVaultReadonly) return;
+		const parentPath =
+			overrideParent !== undefined
+				? overrideParent
+				: findInsertionTarget(
+						selectedEntry
+							? {
+									relativePath: selectedEntry.relativePath,
+									isDirectory: selectedEntry.isDirectory
+								}
+							: null
+					);
+		// Auto-expand the parent so the inline input is visible.
+		if (parentPath !== '' && !expandedSet.has(parentPath)) {
+			void vaultsStore.toggleFolderExpansion(id, parentPath);
+		}
+		creatingAt = { mode, parentPath };
+	}
+
+	function cancelCreate() {
+		creatingAt = null;
+	}
+
+	async function commitCreate(rawName: string) {
+		const id = vaultsStore.activeVaultId;
+		if (!id || !creatingAt) return;
+		const { mode, parentPath } = creatingAt;
+		try {
+			if (mode === 'file') {
+				const name = isMarkdownFile(rawName) ? rawName : `${rawName}.md`;
+				const rel = parentPath ? joinPath(parentPath, name) : name;
+				await fileCreate(id, rel);
+				await refreshScan();
+				void activeFileStore.openFile(id, rel);
+			} else {
+				const rel = parentPath ? joinPath(parentPath, rawName) : rawName;
+				await folderCreate(id, rel);
+				await refreshScan();
+			}
+			creatingAt = null;
+		} catch (e) {
+			topLevelError = `Création impossible : ${String(e)}`;
+			creatingAt = null;
+		}
 	}
 
 	// ----- Vault context menu -----
@@ -109,7 +197,7 @@
 
 	async function toggleVaultMode(vault: Vault) {
 		try {
-			const newMode = vault.mode === 'edit' ? 'readonly' : 'edit';
+			const newMode: VaultMode = vault.mode === 'edit' ? 'readonly' : 'edit';
 			await vaultsStore.updateVault(vault.id, { mode: newMode });
 		} catch (e) {
 			topLevelError = `Changement de mode impossible : ${String(e)}`;
@@ -124,7 +212,6 @@
 			const wasActive = vaultsStore.activeVaultId === vault.id;
 			await vaultsStore.removeVault(vault.id);
 			confirmOpen = false;
-			// If active file was in the removed vault, close it.
 			if (
 				wasActive &&
 				activeFileStore.activeFile &&
@@ -155,28 +242,15 @@
 				];
 			case 'directory':
 				return [
-					{ label: 'Nouveau fichier', onClick: () => promptNewFile(ctx.entry.relativePath) }
+					{ label: 'Nouveau fichier', onClick: () => startCreate('file', ctx.entry.relativePath) },
+					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', ctx.entry.relativePath) }
 				];
 			case 'root':
-				return [{ label: 'Nouveau fichier', onClick: () => promptNewFile('') }];
+				return [
+					{ label: 'Nouveau fichier', onClick: () => startCreate('file', '') },
+					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', '') }
+				];
 		}
-	}
-
-	function promptNewFile(parentRel: string) {
-		inputTitle = parentRel ? `Nouveau fichier dans ${parentRel}` : 'Nouveau fichier';
-		inputPlaceholder = 'note.md';
-		inputDefault = '';
-		inputSubmit = async (raw: string) => {
-			const id = vaultsStore.activeVaultId;
-			if (!id) throw new Error('Aucun vault actif');
-			const name = isMarkdownFile(raw) ? raw : `${raw}.md`;
-			const rel = parentRel ? joinPath(parentRel, name) : name;
-			await fileCreate(id, rel);
-			inputOpen = false;
-			await refreshScan();
-			void activeFileStore.openFile(id, rel);
-		};
-		inputOpen = true;
 	}
 
 	function promptRenameFile(entry: FileEntry) {
@@ -190,7 +264,7 @@
 				inputOpen = false;
 				return;
 			}
-			const newName = isMarkdownFile(raw) ? raw : `${raw}.md`;
+			const newName = entry.isDirectory || isMarkdownFile(raw) ? raw : `${raw}.md`;
 			const parent = getParentPath(entry.relativePath);
 			const newRel = parent ? joinPath(parent, newName) : newName;
 			await fileRename(id, entry.relativePath, newRel);
@@ -250,30 +324,67 @@
 				onContextMenu={openVaultContextMenu}
 			/>
 		{/if}
-		<button class="button add-vault-btn" onclick={handleAddVault}>
-			+ Ajouter vault
+		<button class="button add-vault-btn" onclick={handleAddVault} aria-label="Ajouter un vault">
+			<Plus size={14} />
+			<span>Ajouter vault</span>
 		</button>
 	</section>
 
 	{#if vaultsStore.activeVault}
 		<section class="sidebar-section files-section">
-			<header class="section-header">
+			<header class="section-header files-header">
 				<span class="label">Fichiers</span>
+				<div class="header-actions">
+					<button
+						type="button"
+						class="icon-btn"
+						title="Nouveau fichier"
+						aria-label="Nouveau fichier"
+						disabled={vaultsStore.isActiveVaultReadonly}
+						onclick={() => startCreate('file')}
+					>
+						<FilePlus size={14} />
+					</button>
+					<button
+						type="button"
+						class="icon-btn"
+						title="Nouveau dossier"
+						aria-label="Nouveau dossier"
+						disabled={vaultsStore.isActiveVaultReadonly}
+						onclick={() => startCreate('folder')}
+					>
+						<FolderPlus size={14} />
+					</button>
+				</div>
 			</header>
-			<input
-				type="search"
-				placeholder="Filtrer…"
-				bind:value={fileFilter}
-				class="filter-input"
-			/>
+
+			<div class="filter-row">
+				<span class="filter-icon">
+					<Search size={12} />
+				</span>
+				<input
+					type="search"
+					placeholder="Filtrer…"
+					bind:value={fileFilter}
+					class="filter-input"
+				/>
+			</div>
+
 			{#if scanError}
 				<p class="scan-error">{scanError}</p>
 			{:else}
 				<FileTree
 					root={scanRoot}
 					filter={fileFilter}
+					expanded={expandedSet}
+					selectedPath={selectedPath}
+					{creatingAt}
 					onFileClick={handleOpenFile}
+					onToggle={handleToggleFolder}
 					onContextMenu={openFileContextMenu}
+					onSelectionChange={(entry) => (selectedEntry = entry)}
+					onCreateSubmit={commitCreate}
+					onCreateCancel={cancelCreate}
 				/>
 			{/if}
 		</section>
@@ -338,8 +449,44 @@
 	}
 
 	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		padding: 0 var(--space-2);
 		min-height: 18px;
+	}
+
+	.files-header {
+		gap: var(--space-2);
+	}
+
+	.header-actions {
+		display: inline-flex;
+		gap: 2px;
+	}
+
+	.icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 22px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: transparent;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+	}
+
+	.icon-btn:hover:not(:disabled) {
+		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	.icon-btn:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
 	}
 
 	.empty-vaults {
@@ -352,22 +499,40 @@
 	.add-vault-btn {
 		justify-content: flex-start;
 		margin-top: var(--space-1);
+		gap: 6px;
 	}
 
-	.filter-input {
+	.filter-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		margin: 0 var(--space-2) var(--space-2);
 		padding: 6px var(--space-3);
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
 		border-radius: var(--radius-sm);
+	}
+
+	.filter-row:focus-within {
+		border-color: var(--color-accent);
+	}
+
+	.filter-icon {
+		display: inline-flex;
+		color: var(--color-text-secondary);
+		flex-shrink: 0;
+	}
+
+	.filter-input {
+		flex: 1;
+		min-width: 0;
+		padding: 0;
+		background: transparent;
+		border: 0;
 		color: var(--color-text-primary);
 		font-family: inherit;
 		font-size: var(--text-ui);
-	}
-
-	.filter-input:focus {
 		outline: none;
-		border-color: var(--color-accent);
 	}
 
 	.scan-error {

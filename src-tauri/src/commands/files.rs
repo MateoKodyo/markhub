@@ -96,6 +96,22 @@ pub fn delete_file(vault: &Vault, relative: &str) -> Result<(), String> {
     fs::remove_file(&path).map_err(|e| format!("Failed to delete {relative}: {e}"))
 }
 
+/// Create an empty directory at `relative` inside `vault`. Idempotent for
+/// already-existing directories (no error). Refuses on readonly vaults.
+pub fn create_folder(vault: &Vault, relative: &str) -> Result<(), String> {
+    ensure_writable(vault)?;
+    let path = resolve_safe_path(vault, relative)?;
+    if path.exists() {
+        if path.is_dir() {
+            return Ok(());
+        }
+        return Err(format!(
+            "Cannot create folder — a file already exists at {relative}"
+        ));
+    }
+    fs::create_dir_all(&path).map_err(|e| format!("Failed to create folder {relative}: {e}"))
+}
+
 /// Rename `old_relative` to `new_relative` inside `vault`.
 /// Both paths must stay inside the vault. Refuses on readonly vaults.
 pub fn rename_file(vault: &Vault, old_relative: &str, new_relative: &str) -> Result<(), String> {
@@ -239,6 +255,16 @@ pub fn file_rename(
 }
 
 #[tauri::command]
+pub fn folder_create(
+    app: AppHandle,
+    vault_id: String,
+    relative_path: String,
+) -> Result<(), String> {
+    let v = vault_for(&app, &vault_id)?;
+    create_folder(&v, &relative_path)
+}
+
+#[tauri::command]
 pub fn vault_scan(app: AppHandle, vault_id: String) -> Result<FileEntry, String> {
     let v = vault_for(&app, &vault_id)?;
     scan_vault(&v)
@@ -354,6 +380,13 @@ mod tests {
     fn rename_is_rejected_on_readonly_vault() {
         let (_g, v) = make_vault(VaultMode::Readonly);
         let err = rename_file(&v, "old.md", "new.md").expect_err("readonly must reject rename");
+        assert!(err.contains("Vault is readonly"));
+    }
+
+    #[test]
+    fn create_folder_is_rejected_on_readonly_vault() {
+        let (_g, v) = make_vault(VaultMode::Readonly);
+        let err = create_folder(&v, "newdir").expect_err("readonly must reject folder create");
         assert!(err.contains("Vault is readonly"));
     }
 
@@ -547,5 +580,46 @@ mod tests {
         let result = rename_file(&v, "old.md", "../leaked.md");
         let err = result.expect_err("traversal target must error");
         assert!(err.contains("Path outside vault"));
+    }
+
+    // ============================================================
+    // A6 — folder_create
+    // ============================================================
+
+    #[test]
+    fn create_folder_makes_a_directory() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        create_folder(&v, "assets").unwrap();
+        let p = g.path().join("assets");
+        assert!(p.exists() && p.is_dir());
+    }
+
+    #[test]
+    fn create_folder_creates_intermediate_parents() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        create_folder(&v, "a/b/c").unwrap();
+        assert!(g.path().join("a/b/c").is_dir());
+    }
+
+    #[test]
+    fn create_folder_is_idempotent_when_already_exists() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        std::fs::create_dir(g.path().join("existing")).unwrap();
+        create_folder(&v, "existing").expect("idempotent");
+    }
+
+    #[test]
+    fn create_folder_rejects_path_outside_vault() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err = create_folder(&v, "../outside").expect_err("traversal must error");
+        assert!(err.contains("Path outside vault"));
+    }
+
+    #[test]
+    fn create_folder_errors_when_a_file_exists_at_same_path() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "blocker", "x"); // a file, not a dir
+        let result = create_folder(&v, "blocker");
+        assert!(result.is_err());
     }
 }

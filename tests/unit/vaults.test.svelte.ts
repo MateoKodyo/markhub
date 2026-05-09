@@ -33,7 +33,8 @@ const fixtureConfig: Config = {
 	version: 1,
 	vaults: [editVault, readonlyVault],
 	lastOpenedFile: null,
-	settings: { autoSaveDelayMs: 1500, theme: 'system' }
+	settings: { autoSaveDelayMs: 1500, theme: 'system' },
+	vaultStates: {}
 };
 
 describe('vaultsStore', () => {
@@ -42,6 +43,7 @@ describe('vaultsStore', () => {
 		// Reset store between tests — using internal state setters.
 		vaultsStore.vaults = [];
 		vaultsStore.activeVaultId = null;
+		vaultsStore.vaultStates = {};
 	});
 
 	// ------ B3.1 — initial state ------
@@ -180,5 +182,58 @@ describe('vaultsStore', () => {
 	it('isActiveVaultReadonly is false when no active selection', () => {
 		vaultsStore.vaults = [editVault, readonlyVault];
 		expect(vaultsStore.isActiveVaultReadonly).toBe(false);
+	});
+
+	// ------ B3.7 — toggleFolderExpansion + persistence ------
+	it('toggleFolderExpansion() updates state and calls configSave', async () => {
+		vaultsStore.vaults = [editVault];
+		await vaultsStore.toggleFolderExpansion('v1', 'subdir');
+		expect(vaultsStore.vaultStates['v1'].expandedFolders).toEqual(['subdir']);
+		expect(api.configSave).toHaveBeenCalledOnce();
+	});
+
+	it('toggleFolderExpansion() removes a path that was already expanded', async () => {
+		vaultsStore.vaults = [editVault];
+		vaultsStore.vaultStates = { v1: { expandedFolders: ['subdir', 'subdir/deeper'] } };
+		await vaultsStore.toggleFolderExpansion('v1', 'subdir');
+		expect(vaultsStore.vaultStates['v1'].expandedFolders).toEqual(['subdir/deeper']);
+	});
+
+	it('expandedFoldersFor() returns a Set of the persisted paths', () => {
+		vaultsStore.vaultStates = { v1: { expandedFolders: ['a', 'a/b'] } };
+		const set = vaultsStore.expandedFoldersFor('v1');
+		expect(set).toBeInstanceOf(Set);
+		expect(set.has('a')).toBe(true);
+		expect(set.has('a/b')).toBe(true);
+		expect(set.has('zzz')).toBe(false);
+	});
+
+	it('expandedFoldersFor() returns an empty Set for unknown vault id', () => {
+		expect(vaultsStore.expandedFoldersFor('unknown').size).toBe(0);
+	});
+
+	// ------ B3.8 — removeVault clears the orphaned vault state entry ------
+	it('removeVault() also removes the vault entry in vaultStates', async () => {
+		vaultsStore.vaults = [editVault, readonlyVault];
+		vaultsStore.vaultStates = { v1: { expandedFolders: ['x'] }, v2: { expandedFolders: [] } };
+		await vaultsStore.removeVault('v1');
+		expect(vaultsStore.vaultStates['v1']).toBeUndefined();
+		expect(vaultsStore.vaultStates['v2']).toBeDefined();
+	});
+
+	// ------ B3.9 — setExpandedFolders skips persistence when unchanged ------
+	it('setExpandedFolders() does NOT call configSave when the list is identical', async () => {
+		vaultsStore.vaults = [editVault];
+		vaultsStore.vaultStates = { v1: { expandedFolders: ['a', 'b'] } };
+		await vaultsStore.setExpandedFolders('v1', ['a', 'b']);
+		expect(api.configSave).not.toHaveBeenCalled();
+	});
+
+	it('setExpandedFolders() calls configSave when the list differs', async () => {
+		vaultsStore.vaults = [editVault];
+		vaultsStore.vaultStates = { v1: { expandedFolders: ['a', 'b'] } };
+		await vaultsStore.setExpandedFolders('v1', ['a']);
+		expect(api.configSave).toHaveBeenCalledOnce();
+		expect(vaultsStore.vaultStates['v1'].expandedFolders).toEqual(['a']);
 	});
 });

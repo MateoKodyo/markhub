@@ -96,6 +96,12 @@
 	--space-7: 32px;
 	--space-8: 48px;
 	--space-9: 64px;
+
+	/* === Editor content layout === */
+	/* Width of the centered editor body — ~80-90 chars at our type size.
+	   Aligned with the Linear / iA Writer / Notion default reading column. */
+	--content-max-width: 760px;
+	--content-padding-x: 48px;
 }
 
 /* === Reset & base === */

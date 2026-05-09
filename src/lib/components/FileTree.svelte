@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { SvelteSet } from 'svelte/reactivity';
+	import {
+		ChevronDown,
+		ChevronRight,
+		FileText,
+		Folder,
+		FolderOpen
+	} from 'lucide-svelte';
+	import { collectAncestors } from '$lib/utils/tree';
+	import InlineInput from './InlineInput.svelte';
 	import type { FileEntry } from '$lib/tauri/types';
 
 	export type TreeContext =
@@ -7,23 +15,109 @@
 		| { kind: 'directory'; entry: FileEntry }
 		| { kind: 'root' };
 
+	export type CreatingAt = {
+		mode: 'file' | 'folder';
+		/** '' = root, otherwise a directory's relativePath. */
+		parentPath: string;
+	};
+
 	let {
 		root = null,
 		filter = '',
+		expanded = new Set<string>(),
+		selectedPath = null,
+		creatingAt = null,
 		onFileClick = () => {},
-		onContextMenu = () => {}
+		onToggle = () => {},
+		onContextMenu = () => {},
+		onSelectionChange = () => {},
+		onCreateSubmit = () => {},
+		onCreateCancel = () => {}
 	}: {
 		root?: FileEntry | null;
 		filter?: string;
+		/** Persisted expanded folder paths (controlled by parent / store). */
+		expanded?: Set<string>;
+		/** Currently selected entry (used for create-context + visual highlight). */
+		selectedPath?: string | null;
+		/** When non-null, an inline input is rendered at the matching parent. */
+		creatingAt?: CreatingAt | null;
 		onFileClick?: (relativePath: string) => void;
+		onToggle?: (relativePath: string) => void;
 		onContextMenu?: (ctx: TreeContext, x: number, y: number) => void;
+		onSelectionChange?: (entry: FileEntry | null) => void;
+		onCreateSubmit?: (value: string) => void | Promise<void>;
+		onCreateCancel?: () => void;
 	} = $props();
 
-	const expanded = new SvelteSet<string>();
+	// Filter the tree, keeping any directory whose name OR descendants match.
+	function filterTree(entry: FileEntry, q: string): FileEntry | null {
+		if (!q) return entry;
+		const ql = q.toLowerCase();
+		if (!entry.isDirectory) {
+			return entry.name.toLowerCase().includes(ql) ? entry : null;
+		}
+		const filteredChildren: FileEntry[] = [];
+		for (const child of entry.children ?? []) {
+			const fc = filterTree(child, q);
+			if (fc) filteredChildren.push(fc);
+		}
+		if (filteredChildren.length > 0 || entry.name.toLowerCase().includes(ql)) {
+			return { ...entry, children: filteredChildren };
+		}
+		if (entry.name === '' && entry.relativePath === '') {
+			return { ...entry, children: [] };
+		}
+		return null;
+	}
 
-	function toggle(rel: string) {
-		if (expanded.has(rel)) expanded.delete(rel);
-		else expanded.add(rel);
+	const displayRoot = $derived(root ? filterTree(root, filter) : null);
+	const isEmpty = $derived(
+		!displayRoot || !displayRoot.children || displayRoot.children.length === 0
+	);
+
+	// When a filter is active, auto-expand all ancestors of any matching entry
+	// so users can see WHERE the matches are. We compute this set on the fly,
+	// without mutating the persisted `expanded` prop.
+	const autoExpandedFromFilter = $derived.by(() => {
+		const set = new Set<string>();
+		if (!filter || !displayRoot) return set;
+		const collectFromMatches = (entry: FileEntry) => {
+			if (!entry.isDirectory) {
+				for (const ancestor of collectAncestors(entry.relativePath)) set.add(ancestor);
+				return;
+			}
+			// Directories that survived the filter — include them and recurse.
+			if (entry.relativePath) {
+				set.add(entry.relativePath);
+				for (const ancestor of collectAncestors(entry.relativePath)) set.add(ancestor);
+			}
+			for (const child of entry.children ?? []) collectFromMatches(child);
+		};
+		for (const child of displayRoot.children ?? []) collectFromMatches(child);
+		return set;
+	});
+
+	// Effective expansion = persisted ∪ auto. While the filter is active, the
+	// auto set forces matching branches open without losing the user's intent
+	// for when the filter clears.
+	const effectiveExpanded = $derived.by(() => {
+		if (!filter) return expanded;
+		const merged = new Set(expanded);
+		for (const p of autoExpandedFromFilter) merged.add(p);
+		return merged;
+	});
+
+	function isExpanded(path: string): boolean {
+		// Force-expand a directory hosting an inline-create input so the user
+		// can see the new entry's pending name.
+		if (creatingAt && creatingAt.parentPath === path) return true;
+		return effectiveExpanded.has(path);
+	}
+
+	function inlinePlaceholder(): string {
+		if (!creatingAt) return '';
+		return creatingAt.mode === 'file' ? 'name.md' : 'folder';
 	}
 
 	function onEntryContextMenu(e: MouseEvent, entry: FileEntry) {
@@ -41,40 +135,36 @@
 		onContextMenu({ kind: 'root' }, e.clientX, e.clientY);
 	}
 
-	// Apply filter to a tree, returning a pruned copy.
-	function filterTree(entry: FileEntry, q: string): FileEntry | null {
-		if (!q) return entry;
-		const ql = q.toLowerCase();
-		if (!entry.isDirectory) {
-			return entry.name.toLowerCase().includes(ql) ? entry : null;
-		}
-		const filteredChildren: FileEntry[] = [];
-		for (const child of entry.children ?? []) {
-			const fc = filterTree(child, q);
-			if (fc) filteredChildren.push(fc);
-		}
-		// Show a directory if any descendant matches OR the dir name itself matches.
-		if (filteredChildren.length > 0 || entry.name.toLowerCase().includes(ql)) {
-			return { ...entry, children: filteredChildren };
-		}
-		// For the synthetic root (empty name + empty relativePath), keep it but with empty children.
-		if (entry.name === '' && entry.relativePath === '') {
-			return { ...entry, children: [] };
-		}
-		return null;
+	function selectEntry(entry: FileEntry) {
+		onSelectionChange(entry);
 	}
 
-	const displayRoot = $derived(root ? filterTree(root, filter) : null);
-	const isEmpty = $derived(
-		!displayRoot || !displayRoot.children || displayRoot.children.length === 0
-	);
+	function clickDirectory(entry: FileEntry) {
+		selectEntry(entry);
+		onToggle(entry.relativePath);
+	}
+
+	function clickFile(entry: FileEntry) {
+		selectEntry(entry);
+		onFileClick(entry.relativePath);
+	}
 </script>
 
 <div class="tree-wrap" oncontextmenu={onRootContextMenu} role="presentation">
-	{#if isEmpty}
-		<p class="empty">Vault vide — clic droit pour créer un fichier</p>
+	{#if isEmpty && !(creatingAt && creatingAt.parentPath === '')}
+		<p class="empty">Vault vide — clic droit ou bouton « + » pour créer</p>
 	{:else}
 		<ul class="tree" role="tree">
+			{#if creatingAt && creatingAt.parentPath === ''}
+				<li class="entry inline-creating" data-testid="inline-create">
+					<InlineInput
+						indentPx={8}
+						placeholder={inlinePlaceholder()}
+						onSubmit={onCreateSubmit}
+						onCancel={onCreateCancel}
+					/>
+				</li>
+			{/if}
 			{#each displayRoot?.children ?? [] as entry (entry.relativePath)}
 				{@render entryNode(entry, 0)}
 			{/each}
@@ -84,23 +174,49 @@
 
 {#snippet entryNode(entry: FileEntry, depth: number)}
 	{#if entry.isDirectory}
+		{@const isOpen = isExpanded(entry.relativePath)}
 		<li
 			data-testid="file-tree-entry"
+			data-kind="directory"
 			class="entry directory"
-			class:is-expanded={expanded.has(entry.relativePath)}
+			class:is-expanded={isOpen}
+			class:is-selected={selectedPath === entry.relativePath}
 		>
 			<button
 				type="button"
 				class="row"
-				style="padding-left: {8 + depth * 12}px"
-				onclick={() => toggle(entry.relativePath)}
+				style="padding-left: {8 + depth * 16}px"
+				onclick={() => clickDirectory(entry)}
 				oncontextmenu={(e) => onEntryContextMenu(e, entry)}
 			>
-				<span class="caret">{expanded.has(entry.relativePath) ? '▾' : '▸'}</span>
+				<span class="chevron">
+					{#if isOpen}
+						<ChevronDown size={12} />
+					{:else}
+						<ChevronRight size={12} />
+					{/if}
+				</span>
+				<span class="icon icon-folder">
+					{#if isOpen}
+						<FolderOpen size={14} />
+					{:else}
+						<Folder size={14} />
+					{/if}
+				</span>
 				<span class="name">{entry.name}</span>
 			</button>
-			{#if expanded.has(entry.relativePath)}
+			{#if isOpen}
 				<ul role="group">
+					{#if creatingAt && creatingAt.parentPath === entry.relativePath}
+						<li class="entry inline-creating" data-testid="inline-create">
+							<InlineInput
+								indentPx={8 + (depth + 1) * 16}
+								placeholder={inlinePlaceholder()}
+								onSubmit={onCreateSubmit}
+								onCancel={onCreateCancel}
+							/>
+						</li>
+					{/if}
 					{#each entry.children ?? [] as child (child.relativePath)}
 						{@render entryNode(child, depth + 1)}
 					{/each}
@@ -108,14 +224,22 @@
 			{/if}
 		</li>
 	{:else}
-		<li data-testid="file-tree-entry" class="entry file">
+		<li
+			data-testid="file-tree-entry"
+			data-kind="file"
+			class="entry file"
+			class:is-selected={selectedPath === entry.relativePath}
+		>
 			<button
 				type="button"
 				class="row"
-				style="padding-left: {20 + depth * 12}px"
-				onclick={() => onFileClick(entry.relativePath)}
+				style="padding-left: {8 + depth * 16 + 12}px"
+				onclick={() => clickFile(entry)}
 				oncontextmenu={(e) => onEntryContextMenu(e, entry)}
 			>
+				<span class="icon icon-file">
+					<FileText size={14} />
+				</span>
 				<span class="name">{entry.name}</span>
 			</button>
 		</li>
@@ -146,7 +270,7 @@
 	.row {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
+		gap: 6px;
 		width: 100%;
 		min-height: 26px;
 		padding: 4px var(--space-3) 4px 8px;
@@ -165,16 +289,41 @@
 		color: var(--color-text-primary);
 	}
 
-	.caret {
-		display: inline-block;
+	.is-selected > .row {
+		background: var(--color-surface-active);
+		color: var(--color-text-primary);
+	}
+
+	.chevron {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		width: 12px;
-		font-size: 10px;
 		color: var(--color-text-secondary);
 		flex-shrink: 0;
 	}
 
+	.icon {
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+		color: var(--color-text-secondary);
+	}
+
+	.directory > .row > .icon-folder {
+		color: var(--color-text-body);
+	}
+
+	.directory.is-expanded > .row > .icon-folder {
+		color: var(--color-text-primary);
+	}
+
 	.directory > .row > .name {
 		color: var(--color-text-primary);
+	}
+
+	.file > .row > .icon-file {
+		color: var(--color-text-secondary);
 	}
 
 	.name {

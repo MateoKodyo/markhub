@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -64,6 +66,15 @@ pub struct FileEntry {
     pub children: Option<Vec<FileEntry>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultState {
+    /// Relative paths (from vault root) of folders currently expanded in the sidebar.
+    /// Persisted across sessions so the tree restores its open/closed state.
+    #[serde(default)]
+    pub expanded_folders: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
@@ -71,6 +82,11 @@ pub struct Config {
     pub vaults: Vec<Vault>,
     pub last_opened_file: Option<LastOpenedFile>,
     pub settings: Settings,
+    /// Per-vault UI state (expansion, future: scroll position, etc.).
+    /// `#[serde(default)]` keeps backwards compatibility with configs written
+    /// before this field existed.
+    #[serde(default)]
+    pub vault_states: HashMap<String, VaultState>,
 }
 
 impl Default for Config {
@@ -80,6 +96,7 @@ impl Default for Config {
             vaults: Vec::new(),
             last_opened_file: None,
             settings: Settings::default(),
+            vault_states: HashMap::new(),
         }
     }
 }
@@ -151,7 +168,46 @@ mod tests {
     fn default_config_serializes_to_expected_snapshot() {
         let cfg = Config::default();
         let json = serde_json::to_string_pretty(&cfg).unwrap();
-        let expected = "{\n  \"version\": 1,\n  \"vaults\": [],\n  \"lastOpenedFile\": null,\n  \"settings\": {\n    \"autoSaveDelayMs\": 1500,\n    \"theme\": \"system\"\n  }\n}";
+        let expected = "{\n  \"version\": 1,\n  \"vaults\": [],\n  \"lastOpenedFile\": null,\n  \"settings\": {\n    \"autoSaveDelayMs\": 1500,\n    \"theme\": \"system\"\n  },\n  \"vaultStates\": {}\n}";
         assert_eq!(json, expected);
+    }
+
+    // ------ A1.4 — VaultState round-trip ------
+    #[test]
+    fn vault_state_with_expanded_folders_round_trips() {
+        let state = VaultState {
+            expanded_folders: vec!["sub".into(), "sub/deeper".into()],
+        };
+        let json = serde_json::to_string(&state).unwrap();
+        let back: VaultState = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, state);
+    }
+
+    // ------ A1.5 — Config with vault_states round-trips ------
+    #[test]
+    fn config_with_vault_states_round_trips() {
+        let mut cfg = Config::default();
+        cfg.vault_states.insert(
+            "vault-id-1".into(),
+            VaultState {
+                expanded_folders: vec!["a".into(), "a/b".into()],
+            },
+        );
+        let json = serde_json::to_string_pretty(&cfg).unwrap();
+        let back: Config = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, cfg);
+    }
+
+    // ------ A1.6 — Old configs (without vaultStates) still load ------
+    #[test]
+    fn config_without_vault_states_field_still_deserializes() {
+        let legacy_json = r#"{
+            "version": 1,
+            "vaults": [],
+            "lastOpenedFile": null,
+            "settings": { "autoSaveDelayMs": 1500, "theme": "system" }
+        }"#;
+        let cfg: Config = serde_json::from_str(legacy_json).unwrap();
+        assert!(cfg.vault_states.is_empty());
     }
 }

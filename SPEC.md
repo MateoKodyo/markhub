@@ -143,6 +143,7 @@ type FileEntry = {
 #[tauri::command] fn file_create(vault_id: String, relative_path: String) -> Result<(), String>
 #[tauri::command] fn file_delete(vault_id: String, relative_path: String) -> Result<(), String>
 #[tauri::command] fn file_rename(vault_id: String, old_path: String, new_path: String) -> Result<(), String>
+#[tauri::command] fn folder_create(vault_id: String, relative_path: String) -> Result<(), String>
 ```
 
 **Règle de sécurité** : toute commande `file_*` qui prend un `relative_path` **doit** :

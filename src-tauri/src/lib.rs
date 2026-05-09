@@ -27,6 +27,7 @@ pub fn run() {
             commands::files::file_create,
             commands::files::file_delete,
             commands::files::file_rename,
+            commands::files::folder_create,
             commands::files::vault_scan,
         ])
         .run(tauri::generate_context!())

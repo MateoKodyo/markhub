@@ -59,4 +59,28 @@ describe('Editor', () => {
 		expect(screen.getByRole('textbox')).toBeInTheDocument();
 		expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('hello');
 	});
+
+	// ------ C3.5 — frontmatter rendered as collapsible block in preview ------
+	it('renders a frontmatter block above Milkdown when content has YAML frontmatter', () => {
+		const md = '---\ntitle: Hello\n---\n\n# Body';
+		const { container } = render(Editor, { content: md, mode: 'preview' });
+		const fm = container.querySelector('[data-frontmatter]');
+		expect(fm).not.toBeNull();
+		expect(fm?.tagName).toBe('DETAILS');
+		expect(fm?.hasAttribute('open')).toBe(false);
+		expect(fm?.textContent).toContain('title: Hello');
+	});
+
+	it('does NOT render the frontmatter block when content has no YAML', () => {
+		const { container } = render(Editor, { content: '# No frontmatter', mode: 'preview' });
+		expect(container.querySelector('[data-frontmatter]')).toBeNull();
+	});
+
+	// ------ C3.6 — frontmatter visible verbatim in source mode ------
+	it('keeps the frontmatter inline in the source-mode textarea (no separate block)', () => {
+		const md = '---\ntitle: src\n---\n\nbody';
+		const { container } = render(Editor, { content: md, mode: 'source' });
+		expect(container.querySelector('[data-frontmatter]')).toBeNull();
+		expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(md);
+	});
 });

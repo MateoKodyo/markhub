@@ -117,8 +117,24 @@ mod tests {
         let (_guard, path) = temp_config_path();
         save_config_to_path(&path, &Config::default()).unwrap();
         let raw = std::fs::read_to_string(&path).unwrap();
-        let expected = "{\n  \"version\": 1,\n  \"vaults\": [],\n  \"lastOpenedFile\": null,\n  \"settings\": {\n    \"autoSaveDelayMs\": 1500,\n    \"theme\": \"system\"\n  }\n}";
+        let expected = "{\n  \"version\": 1,\n  \"vaults\": [],\n  \"lastOpenedFile\": null,\n  \"settings\": {\n    \"autoSaveDelayMs\": 1500,\n    \"theme\": \"system\"\n  },\n  \"vaultStates\": {}\n}";
         assert_eq!(raw, expected);
+    }
+
+    // ------ A2.7 — round-trip with vaultStates non-empty ------
+    #[test]
+    fn round_trip_with_populated_vault_states() {
+        let (_guard, path) = temp_config_path();
+        let mut cfg = Config::default();
+        cfg.vault_states.insert(
+            "vault-id-1".to_string(),
+            crate::models::VaultState {
+                expanded_folders: vec!["a".to_string(), "a/b".to_string()],
+            },
+        );
+        save_config_to_path(&path, &cfg).unwrap();
+        let loaded = load_config_from_path(&path).unwrap();
+        assert_eq!(loaded, cfg);
     }
 
     // ------ A2.6 — save then load round-trips identically ------
