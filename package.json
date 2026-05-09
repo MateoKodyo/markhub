@@ -13,7 +13,9 @@
 		"tauri": "tauri",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test --project=e2e",
+		"test:visual": "playwright test --project=visual",
+		"test:visual:update": "playwright test --project=visual --update-snapshots"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.59.1",

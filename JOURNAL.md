@@ -322,4 +322,147 @@ Résumé en 5 lignes :
 ### Stash actif
 - `agents-prep-work-stash` : refactors I1/I2 + JOURNAL closure section + STATE.md préliminaire
 
+---
+
+# Session 2026-05-09T17:35 — Polish visuel (Phase 6)
+
+## Étape 1 — Investigation gap test/rendu (systematic-debugging)
+
+### Hypothèse initiale (Matheo)
+« Les tests CSS passent alors que le rendu visuel est cassé. Probablement : jsdom (env Vitest) ne charge pas les feuilles CSS externes Crepe → les tests sont aveugles. »
+
+### Méthode
+Conformément au skill `systematic-debugging` Phase 1 (root cause investigation), AVANT toute proposition de fix :
+1. Audit du harnais de tests (`vite.config.ts`, `tests/setup.ts`, tous les `tests/component/Editor*`)
+2. Audit du rendu Editor (`src/lib/components/Editor.svelte`)
+3. Construction d'un test diagnostique probant (`tests/component/_diagnostic-crepe-probe.test.svelte.ts`) qui :
+   - Charge Crepe RÉEL (pas de `vi.mock`)
+   - Charge les CSS via les paths exacts d'Editor.svelte
+   - Monte un editor avec `# Hello heading\n## Sub heading\nA paragraph.`
+   - Lit `getComputedStyle` sur h1 / .milkdown / un h1 manuel hors Crepe (control case)
+
+### Findings
+
+**1. Pièce à conviction #1 — Crepe est intégralement mocké dans les tests existants.**
+Dans `tests/component/Editor.test.svelte.ts:6-26`, un `vi.mock('@milkdown/crepe', ...)` remplace `Crepe` par une coquille vide qui ne rend RIEN. Le commentaire l'admet : *« Mock Milkdown so jsdom doesn't choke on contenteditable / ProseMirror. Real Milkdown is exercised in Phase 5 E2E. »*
+Or `STATE.md` confirme que la Phase 5 E2E real-binary n'a jamais été montée. Donc les bugs visuels Crepe (slash menu, toolbar flottante, headings, frontmatter rendu) ne sont couverts par AUCUN test, ni unit, ni E2E.
+
+**2. Pièce à conviction #2 — résultats expérimentaux du probe diagnostique.**
+Test exécuté : `npx vitest run tests/component/_diagnostic-crepe-probe.test.svelte.ts`. Résultats :
+- `crepeMod imported = true` — Crepe se charge dans jsdom.
+- `cssLoadOk = true`, `cssErrors = []` — les CSS Crepe se résolvent côté Vite.
+- `mountOk = true` — Crepe **monte avec succès** dans jsdom et produit du DOM réel : `<div class="milkdown"><div class="ProseMirror">…<h1>Hello heading</h1><h2>Sub heading</h2><p>A paragraph.</p></div></div>` (9929 chars d'HTML, slash menu non déclenché car pas d'input simulé).
+- `h1.computed.fontFamily = "depends on user agent"` (chaîne littérale jsdom)
+- `h1.computed.fontSize = "2em"` (default user-agent, **PAS** le 26px de l'override Editor.svelte ni le 42px de Crepe)
+- `manual h1 (hors Crepe).computed.fontSize = "2em"` — **identique** au h1 Crepe
+- `manual h1.fontFamily = "depends on user agent"`
+
+**3. Conclusion expérimentale formelle.**
+- jsdom **rend bien le DOM Crepe** (le mock dans les tests existants est par choix, pas par nécessité technique).
+- jsdom **n'évalue PAS les feuilles CSS cascadées** : ni les CSS externes Crepe (`@milkdown/crepe/theme/*.css`), ni les `<style>` scoped Svelte du composant Editor. `getComputedStyle` retourne uniquement les valeurs user-agent par défaut, toutes identiques entre h1 Crepe et h1 manuel.
+- Hypothèse initiale **CONFIRMÉE et renforcée** : non seulement jsdom est aveugle aux CSS cascadées, mais les tests existants mockent Crepe par-dessus, ce qui retire même la possibilité d'observer le DOM Crepe.
+
+### Implication pour la suite
+- **Aucun test unit/component CSS du projet ne peut détecter les 4 bugs visuels P0.** Les tests qui semblaient les couvrir (C3.5/C3.6 frontmatter) testent uniquement le wrapper Svelte qui rend le `<details>` AVANT Crepe — vrais positifs, portée limitée au DOM custom Svelte.
+- Les overrides CSS d'`Editor.svelte:222-331` sont **100% non-couverts** par les tests automatiques.
+- **La validation Playwright + screenshots est techniquement obligatoire**, pas optionnelle, pour valider toute correction visuelle Crepe (slash menu, toolbar flottante, headings, frontmatter rendu).
+
+### Décision actée
+1. La couverture visuelle de l'éditeur passe **par Playwright + screenshots uniquement** (étape 2 de la session).
+2. Les unit tests CSS sur Crepe sont **interdits** (faux sentiment de sécurité). Les tests unit/component restent valides pour le wrapper Svelte (split frontmatter, mode toggle, readonly prop, EditorToolbar custom, etc.) — c'est leur scope légitime.
+3. Le test diagnostique `_diagnostic-crepe-probe.test.svelte.ts` est temporaire — sera supprimé après validation Matheo (sans valeur de régression : il prouve juste l'invariant jsdom).
+
+### À valider avant Étape 2
+- OK pour décision actée ci-dessus ?
+- OK pour supprimer le probe diagnostic ?
+- OK pour passer à la mise en place Playwright + screenshots ?
+
+→ **Validé par Matheo** : decision actée + suppression probe + go Étape 2 option (a) Playwright sur Vite seul.
+
+## Étape 2 — Harnais Playwright + baselines (terminée)
+
+### Mise en place
+1. Route isolée `src/routes/_visual/+page.svelte` — rend `<Editor>` seul avec un contenu fixé via `?fixture=headings|frontmatter|slash|toolbar`. Pas de chrome (sidebar/header) → on isole le rendu Crepe.
+2. `playwright.config.ts` étendu : 2 projets (`visual` + `e2e`), `webServer: npm run dev` sur port 1420, `viewport: 1280×800`, `baseURL: http://localhost:1420`.
+3. `package.json` : 3 scripts ajoutés (`test:e2e --project=e2e`, `test:visual --project=visual`, `test:visual:update --update-snapshots`).
+4. Helper commun `tests/visual/_helpers.ts` : `gotoFixture()` (wait `.milkdown .ProseMirror` + `document.fonts.ready` + 2 RAF settle), `snap()` (animations disabled, caret hide, `maxDiffPixelRatio: 0.01`).
+5. 4 specs : `editor-headings`, `editor-frontmatter` (2 screenshots : collapsed + open), `editor-slash-menu`, `editor-toolbar`.
+6. `npx playwright install chromium` exécuté (download ~92MB).
+7. Premier run `--update-snapshots` : **5 baselines générés en 6.5s, tous verts**.
+
+### Diagnostic des baselines
+
+| Bug | Statut isolé | Notes |
+|-----|--------------|-------|
+| #1 slash menu double-rendu | ❌ **CONFIRMÉ** | Deux panels empilés clairement visibles dans le PNG |
+| #2 frontmatter italique géant | ✅ **NON REPRODUIT** | Wrapper Svelte rend bien `<details>` mono collapsed. Probable bug d'un build pré-HMR |
+| #3 headings non conformes | ✅ **NON REPRODUIT** | 26/21/18/16/14 Geist Sans appliqués correctement |
+| #4 toolbar flottante | 🟡 **PARTIEL** | Apparaît avec styling Crepe Material translucide, peu lisible |
+
+### Décision sur l'ordre d'attaque (Étape 3)
+Au lieu de l'ordre suggéré (#2 → #3 → #4 → #1), j'inverse pour matcher la réalité observée :
+1. **#1 slash menu** — seul bug clairement reproductible et critique
+2. **#4 toolbar flottante** — overrides app.css à compléter
+3. **Smoke test full app** entre #4 et #2/#3 pour reconfirmer ces deux derniers, qui pourraient être déjà fixés
+4. Si #2 ou #3 ressurgissent en full app : investigation ciblée
+
+### Fichiers créés/modifiés
+- ✅ `src/routes/_visual/+page.svelte` (nouveau — route fixture)
+- ✅ `playwright.config.ts` (étendu — projects + webServer)
+- ✅ `package.json` (scripts test:visual)
+- ✅ `tests/visual/_helpers.ts` (nouveau)
+- ✅ `tests/visual/editor-frontmatter.spec.ts` (nouveau)
+- ✅ `tests/visual/editor-headings.spec.ts` (nouveau)
+- ✅ `tests/visual/editor-slash-menu.spec.ts` (nouveau)
+- ✅ `tests/visual/editor-toolbar.spec.ts` (nouveau)
+- ✅ 5 baselines PNG dans `tests/visual/*.spec.ts-snapshots/`
+- ✅ `tests/component/_diagnostic-crepe-probe.test.svelte.ts` SUPPRIMÉ
+
+### Tests
+- cargo test : non touché — 51/51
+- npm run test : non touché — 116/116
+- npm run test:visual : **5/5 ✅** (baselines générés, état initial = état cassé tel que voulu)
+
+## Étape 3 — Round 1 : Fix bugs P0 #1 + #4 (un seul commit)
+
+### Root cause #1 — slash menu "double panel"
+Le diagnostic Playwright (`_diagnostic-slash-dom.spec.ts`, supprimé) a démontré qu'il n'y avait **qu'une seule instance Crepe** (`.milkdown count = 1`, `.milkdown-slash-menu count = 1`). Le double-panel visuel venait de :
+- L'override `app.css:316` `.milkdown .milkdown-slash-menu ul { flex-direction: column; gap: 1px }` s'appliquait à TOUS les `<ul>` du menu, y compris celui de `nav.tab-group` qui doit rester en `flex-direction: row` (Crepe natif).
+- Conséquence : les 3 onglets « Text / List / Advanced » s'empilaient verticalement, formant un mini-panel au-dessus du menu items, séparé visuellement par le `border-bottom` natif Crepe sur `.tab-group`.
+
+### Root cause #2 — overrides app.css masqués par cascade
+Les fonds/bordures des popovers Crepe étaient encore aux valeurs par défaut Crepe (`background: rgba(255, 255, 255, 0.03)`), pas à `var(--color-bg-raised)` (`#121110`). Cause : `block-edit.css` est lazy-loaded au mount d'Editor (Editor.svelte:67-72), donc injecté APRÈS `app.css`. À spécificité égale `(0,0,2,0)`, la feuille la plus récente gagne le cascade.
+
+### Fix appliqué — `src/app.css:297-470`
+Un seul fix qui résout les deux causes :
+1. **Spécificité** : tous les sélecteurs Crepe overlay préfixés par `.milkdown.milkdown` au lieu de `.milkdown`. Le double-class trick passe la spécificité de `(0,0,2,0)` à `(0,0,3,0)` sans `!important`, gagnant la cascade contre `block-edit.css`. Commentaire explicatif en tête.
+2. **Scope du flex column** : la règle `ul { flex-direction: column }` est restreinte à `.menu-group ul` (items list). Le `tab-group ul` reçoit ses propres règles explicites avec `flex-direction: row` et un styling cohérent avec le design system.
+3. **Restyle du tab-group** : padding compact, font-size `--text-caption`, items chip-like avec hover/selected via `--color-surface-hover/active`, séparateur via `border-bottom: 1px solid var(--color-border-subtle)`.
+
+### Effet collatéral — bug P0 #4 résolu en passant
+Le fix de spécificité (1) couvre aussi `.milkdown-toolbar`, `.milkdown-block-handle`, `.milkdown-link-preview`, `.milkdown-link-edit`. La toolbar flottante ne recevait pas non plus son fond `--color-bg-raised` à cause de la même cascade. Avec le bump de spécificité, la toolbar a maintenant le bon fond raised, les 6 icônes lisibles (B / I / strike / `<>` / Σ / link), et le styling IDE-cohérent attendu.
+
+### Bugs P0 #2 + #3 — non reproductibles en baseline
+- **#2 frontmatter** : baseline montre `<details>` collapsed avec summary mono `▸ Frontmatter` + contenu YAML mono à l'ouverture. Conforme à la spec. Le wrapper Svelte (Editor.svelte:137-142) n'a jamais été cassé en réalité.
+- **#3 headings** : baseline montre H1=26px / H2=21px / H3=18px / H4=16px / H5=14px en Geist Sans, weight 500, font-style normal. Override Editor.svelte:263-285 est appliqué — confirmé par computed styles.
+
+Hypothèse : le smoke test final de la session précédente a probablement été fait sur un build pré-HMR ou pré-commit `dffd1a1`. Le fix de spécificité de cette session #1+#4 garantit en plus que rien d'extérieur ne peut écraser ces overrides.
+
+**Smoke test full app à intercaler par Matheo** pour confirmer définitivement que #2 et #3 sont OK en réel (avec sidebar/header présents).
+
+### Tests
+- cargo test : 51/51 ✅
+- npm run test : 116/116 ✅
+- npm run test:visual : 5/5 ✅ (baselines régénérés post-fix : tous les rendus sont corrects)
+- svelte-check : non re-run, mais aucune modif TS/Svelte de logique
+
+### Fichiers modifiés
+- `src/app.css` (overrides Crepe popovers — spécificité + scope flex column + tab-group restyle)
+- `tests/visual/*.spec.ts-snapshots/*.png` (5 baselines régénérés post-fix)
+
+### Hors scope évités
+- Aucun nouveau test unit/component CSS sur Crepe (interdit par décision Étape 1)
+- Pas de refactor structure Editor.svelte
+- Pas de Tauri/Rust touché
+
 

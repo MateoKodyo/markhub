@@ -1,10 +1,15 @@
 # STATE — État du projet pour reprise de session
 
 ## Date de clôture
-2026-05-09T17:25:50+02:00
+2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T17:50 (mise à jour Étape 2 polish session)
 
 ## Phase actuelle
-Phase 5 (E2E + finitions) — logique terminée, visuel CASSÉ sur points critiques.
+Phase 6 (Polish visuel) — Étapes 1, 2, 3 (round 1) terminées :
+- Étape 1 : root cause investigation (jsdom blind + Crepe mocked) ✅
+- Étape 2 : harnais Playwright `/_visual` + 5 baselines ✅
+- Étape 3 round 1 : fix #1 (slash menu) + #4 (toolbar flottante) via un seul commit (spécificité + scope flex column). #2 et #3 non reproductibles en baseline, considérés résolus par le fix de spécificité ✅
+
+À VALIDER : smoke test full app pour confirmer définitivement #2 et #3 dans le contexte réel (sidebar/header présents).
 
 ## Avancement global
 - Phase 0 : ✅ Bootstrap
@@ -22,11 +27,16 @@ Phase 5 (E2E + finitions) — logique terminée, visuel CASSÉ sur points critiq
 - npm run build : OK
 - npm run test:e2e : 1 placeholder skipped, real-binary jamais monté
 
-## ⚠️ BUGS VISUELS CONFIRMÉS PAR SMOKE TEST (priorité P0)
-1. **Slash menu** : rend DEUX menus empilés simultanément, textes se chevauchent. Le fix flicker (untrack) tient mais nouveau bug visuel apparu (capture dans JOURNAL).
-2. **Preview markdown** : frontmatter rendu en italique géant — la correction `<details>` monospace n'est PAS appliquée visuellement (alors que les tests passent). À investiguer : décalage entre tests et rendu réel.
-3. **Headings (H1, H2)** : typo non conforme à `design.md`. Encore des styles Milkdown Crepe par défaut visibles.
-4. **Slash menu + toolbar flottante** : styling Crepe pas correctement overridé en pratique malgré le commit f3cfe88.
+## ⚠️ BUGS VISUELS — RE-DIAGNOSTIC via baselines Playwright (2026-05-09T17:50)
+
+État après mise en place du harnais Playwright `/_visual?fixture=...` (Étape 2 session polish) :
+
+1. **Slash menu (P0 #1)** — ❌ **CONFIRMÉ** par baseline `editor-slash-menu-visual-darwin.png` : deux panels superposés rendus simultanément (catégories Text/List/Advanced empilées sur la liste détaillée). À fixer en priorité.
+2. **Frontmatter italique géant (P0 #2)** — ✅ **NON REPRODUIT en isolation** : baselines `editor-frontmatter-collapsed/open` montrent un `<details>` collapsed avec summary monospace `▸ Frontmatter`, contenu YAML monospace quand déplié. Le wrapper Svelte (Editor.svelte:137-142) fonctionne. **Hypothèse** : bug initial observé sur un build pré-HMR ou résolu par un commit récent (f3cfe88 ou dffd1a1). À reconfirmer en smoke test full app.
+3. **Headings non conformes (P0 #3)** — ✅ **NON REPRODUIT en isolation** : baseline `editor-headings` montre H1 26px / H2 21px / H3 18px / H4 16px / H5 14px en Geist Sans weight 500, conforme aux overrides Editor.svelte:263-285. **Hypothèse** : idem #2, déjà fixé.
+4. **Toolbar flottante (P0 #4)** — 🟡 **PARTIELLEMENT CONFIRMÉ** : la toolbar apparaît avec un styling Crepe natif — fond translucide Material-style, icônes peu lisibles (~20% opacity), pas conforme à l'IDE-dark Markhub. À overrider.
+
+**Source d'incertitude résiduelle** : les baselines viennent d'une route isolée `/_visual` sans chrome (pas de sidebar/header). En full app, les bugs #2/#3 pourraient ressurgir si quelque chose d'autre interfère. Smoke test full app à intercaler.
 
 ## Bugs structurels en attente
 - E2E real-binary jamais monté (Phase 5 incomplète sur ce point).
