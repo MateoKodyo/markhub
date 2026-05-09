@@ -205,6 +205,54 @@ Au lancement `npm run tauri dev` :
 
 ---
 
+## Patch post-session — 4 retours utilisateur (~16:50)
+
+### Retour 1 — Audit emoji + remplacement Lucide
+**Émojis trouvés** (7 occurrences sur 3 fichiers) :
+- `EditorToolbar.svelte:26` — `🔗` lien
+- `VaultList.svelte:45` — `🔒` cadenas readonly
+- `+page.svelte:40-46` — `✏️` `💾` `⚠️` statut sauvegarde
+- `+page.svelte:83` — `🔒` badge readonly
+
+**Remplacements Lucide** :
+- EditorToolbar : tous les boutons convertis en icônes (`Bold`, `Italic`, `Code`, `Heading1`, `Heading2`, `Heading3`, `Link`) — plus cohérent IDE-like, identique à Cursor/Warp.
+- VaultList : `Lock` (12px).
+- Status badge : `Pencil`, `Save`, `Check`, `AlertCircle`, `Loader` — selon état.
+- Readonly badge : `Lock` + texte « Lecture seule ».
+
+**Test d'audit** ajouté : `tests/component/no-emoji.test.svelte.ts` — scanne le `textContent` des composants critiques contre les blocs Unicode emoji/symbols (1F000–1FFFF, 2700–27BF, 2600–26FF, 2300–23FF). RED avant fix, GREEN après. Garde-fou contre régression future.
+
+### Retour 2 — Layout full-width 1280px / 64px
+- Tokens mis à jour : `--content-max-width: 1280px` (vs 760), `--content-padding-x: 64px` (vs 48).
+- SPEC.md §3.4 patché avec la nouvelle justification (édition de docs techniques avec blocs de code / tableaux / listes).
+- Aucun test n'avait hardcodé 760/48 (tokens consommés via CSS) → pas d'adaptation de tests requise.
+
+### Retour 3 — « Déplacer vers… » + drag-drop confirmé backlog
+- Nouveau utilitaire `collectDirectories(tree): FileEntry[]` dans `tree.ts` (retourne dirs triées sans la racine).
+- Nouveau composant `FolderPickerDialog.svelte` : modale qui liste tous les dossiers du vault + option « (racine du vault) », exclude path optionnel pour cacher le parent actuel.
+- Menu contextuel fichier étendu : `Renommer / Déplacer vers… / Supprimer`.
+- Wiring : `fileRename(id, oldPath, joinPath(targetDir, basename(oldPath)))` ; refresh scan ; mise à jour `activeFileStore` si le fichier ouvert est déplacé.
+- BACKLOG.md mis à jour : drag-drop intra-vault confirmé hors-scope, avec note explicite que « Déplacer vers… » couvre le besoin MVP.
+
+### Retour 4 — Confirmations à valider visuellement
+Comme avant, je ne peux pas valider visuellement par moi-même. Les tests confirment :
+- **Persistence expandedFolders** : tests B3.7 / B3.8 / B3.9 (toggle + persistence + cleanup au removeVault).
+- **Filtre récursif** : tests C2.7 / C2.8 (matchs case-insensitive, auto-expand des ancêtres).
+- **Frontmatter rendu** : tests C3.5 / C3.6 (bloc `<details>` replié en preview, contenu intact en source).
+
+**Smoke à faire à ton retour** : lance `npm run tauri dev`, ajoute un vault, déplie un dossier, ferme + relance, vérifie persistence. Tape « kodyo » dans le filtre, vérifie auto-expand.
+
+### Tests post-patch
+- Avant patch : 156 (51 rust + 105 front)
+- Après patch : **161** (51 rust + 110 front) — 5 ajouts : 3 collectDirectories + 2 no-emoji
+- Désactivés : 0
+- svelte-check : 0/0
+
+### Commit Patch
+- À créer après cet update du journal — voir `git log` au retour.
+
+---
+
 ## 🏁 Session terminée — ~16:00
 
 Résumé en 5 lignes :

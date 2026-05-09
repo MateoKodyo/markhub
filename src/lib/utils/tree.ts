@@ -107,3 +107,20 @@ export function findInsertionTarget(
 	const i = selection.relativePath.lastIndexOf('/');
 	return i >= 0 ? selection.relativePath.substring(0, i) : '';
 }
+
+/**
+ * Collect every directory (sorted by relativePath) in the tree, EXCLUDING the
+ * synthetic root. Used by the "Move to…" folder picker.
+ */
+export function collectDirectories(root: FileEntry | null): FileEntry[] {
+	if (!root) return [];
+	const acc: FileEntry[] = [];
+	const walk = (entry: FileEntry) => {
+		if (entry.isDirectory && entry.relativePath !== '') {
+			acc.push(entry);
+		}
+		for (const child of entry.children ?? []) walk(child);
+	};
+	walk(root);
+	return acc.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}

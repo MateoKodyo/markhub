@@ -1,5 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import {
+		AlertCircle,
+		Check,
+		Loader,
+		Lock,
+		Pencil,
+		Save
+	} from 'lucide-svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorApi, type EditorMode } from '$lib/components/Editor.svelte';
 	import EditorToolbar from '$lib/components/EditorToolbar.svelte';
@@ -30,22 +38,24 @@
 		}
 	});
 
-	const statusLabel = $derived.by(() => {
+	type LucideIcon = typeof Loader;
+
+	const statusInfo = $derived.by<{ icon: LucideIcon | null; label: string }>(() => {
 		switch (activeFileStore.status) {
 			case 'idle':
-				return '';
+				return { icon: null, label: '' };
 			case 'loading':
-				return 'Chargement…';
+				return { icon: Loader, label: 'Chargement' };
 			case 'modified':
-				return '✏️ Modifié';
+				return { icon: Pencil, label: 'Modifié' };
 			case 'saving':
-				return '💾 Sauvegarde…';
+				return { icon: Save, label: 'Sauvegarde' };
 			case 'saved':
-				return '💾 Sauvegardé';
+				return { icon: Check, label: 'Sauvegardé' };
 			case 'error':
-				return '⚠️ Erreur';
+				return { icon: AlertCircle, label: 'Erreur' };
 			default:
-				return '';
+				return { icon: null, label: '' };
 		}
 	});
 
@@ -80,7 +90,8 @@
 					<span class="caption">{activeFileStore.activeFile.relativePath}</span>
 					{#if vaultsStore.isActiveVaultReadonly}
 						<span class="badge-readonly" aria-label="Lecture seule">
-							🔒 Lecture seule
+							<Lock size={11} />
+							<span>Lecture seule</span>
 						</span>
 					{/if}
 				</div>
@@ -115,7 +126,15 @@
 						</button>
 					</div>
 
-					<div class="status">{statusLabel}</div>
+					<div class="status">
+						{#if statusInfo.icon}
+							{@const StatusIcon = statusInfo.icon}
+							<StatusIcon size={12} />
+						{/if}
+						{#if statusInfo.label}
+							<span>{statusInfo.label}</span>
+						{/if}
+					</div>
 				</div>
 			</header>
 
@@ -188,6 +207,9 @@
 	}
 
 	.badge-readonly {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 		flex-shrink: 0;
 		padding: 2px 8px;
 		font-size: var(--text-label);
@@ -234,11 +256,14 @@
 	}
 
 	.status {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
 		font-size: var(--text-caption);
 		color: var(--color-text-secondary);
 		font-family: var(--font-mono);
 		min-width: 110px;
-		text-align: right;
+		justify-content: flex-end;
 	}
 
 	.content-body {

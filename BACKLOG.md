@@ -19,4 +19,4 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 - Plugins, thèmes custom utilisateur
 - Sync, multi-fenêtres
 - Drag-drop de fichiers entre vaults
-- **Drag-drop de fichiers entre dossiers** (intra-vault) — la création contextuelle MVP couvre la création, pas le déplacement.
+- **Drag-drop de fichiers entre dossiers** (intra-vault) — la création contextuelle MVP couvre la création. **Le déplacement intra-vault est livré dans le menu contextuel via l'item « Déplacer vers… »** (cf. SPEC.md §3.4) ; le drag-drop pur reste backlog car il demande feedback visuel pendant le drag, drop zones, gestion conflits, accessibilité clavier — sa propre session de ~2h.

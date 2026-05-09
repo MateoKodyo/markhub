@@ -98,10 +98,11 @@
 	--space-9: 64px;
 
 	/* === Editor content layout === */
-	/* Width of the centered editor body — ~80-90 chars at our type size.
-	   Aligned with the Linear / iA Writer / Notion default reading column. */
-	--content-max-width: 760px;
-	--content-padding-x: 48px;
+	/* Markhub edits technical docs (specs, CLAUDE.md, briefs, journals) with
+	   wide code blocks, tables, deep lists — full-width is the right call.
+	   Aligned with VS Code / Cursor / GitHub readme rendering. */
+	--content-max-width: 1280px;
+	--content-padding-x: 64px;
 }
 
 /* === Reset & base === */

@@ -5,6 +5,7 @@
 	import ContextMenu, { type MenuItem } from './ContextMenu.svelte';
 	import InputDialog from './InputDialog.svelte';
 	import ConfirmDialog from './ConfirmDialog.svelte';
+	import FolderPickerDialog from './FolderPickerDialog.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import {
@@ -14,7 +15,7 @@
 		fileRename,
 		folderCreate
 	} from '$lib/tauri/api';
-	import { joinPath, getParentPath, isMarkdownFile } from '$lib/utils/path';
+	import { joinPath, getFileName, getParentPath, isMarkdownFile } from '$lib/utils/path';
 	import {
 		findInsertionTarget,
 		pruneExpandedFolders
@@ -51,6 +52,11 @@
 	let confirmTitle = $state('');
 	let confirmMessage = $state('');
 	let confirmHandler = $state<() => Promise<void>>(async () => {});
+
+	// Folder picker for "Déplacer vers…".
+	let folderPickerOpen = $state(false);
+	let folderPickerExclude = $state<string | null>(null);
+	let folderPickerHandler = $state<(target: string) => Promise<void>>(async () => {});
 
 	// Re-scan whenever the active vault changes; prune stale expanded paths after.
 	$effect(() => {
@@ -238,6 +244,7 @@
 			case 'file':
 				return [
 					{ label: 'Renommer', onClick: () => promptRenameFile(ctx.entry) },
+					{ label: 'Déplacer vers…', onClick: () => promptMoveFile(ctx.entry) },
 					{ label: 'Supprimer', danger: true, onClick: () => confirmDeleteFile(ctx.entry) }
 				];
 			case 'directory':
@@ -251,6 +258,31 @@
 					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', '') }
 				];
 		}
+	}
+
+	function promptMoveFile(entry: FileEntry) {
+		const currentParent = getParentPath(entry.relativePath);
+		folderPickerExclude = currentParent || null;
+		folderPickerHandler = async (target: string) => {
+			const id = vaultsStore.activeVaultId;
+			if (!id) throw new Error('Aucun vault actif');
+			const baseName = getFileName(entry.relativePath);
+			const newRel = target ? joinPath(target, baseName) : baseName;
+			if (newRel === entry.relativePath) {
+				folderPickerOpen = false;
+				return;
+			}
+			await fileRename(id, entry.relativePath, newRel);
+			folderPickerOpen = false;
+			await refreshScan();
+			if (
+				activeFileStore.activeFile?.vaultId === id &&
+				activeFileStore.activeFile?.relativePath === entry.relativePath
+			) {
+				void activeFileStore.openFile(id, newRel);
+			}
+		};
+		folderPickerOpen = true;
 	}
 
 	function promptRenameFile(entry: FileEntry) {
@@ -412,6 +444,14 @@
 	danger
 	onConfirm={confirmHandler}
 	onCancel={() => (confirmOpen = false)}
+/>
+
+<FolderPickerDialog
+	open={folderPickerOpen}
+	tree={scanRoot}
+	excludePath={folderPickerExclude}
+	onSubmit={folderPickerHandler}
+	onCancel={() => (folderPickerOpen = false)}
 />
 
 <style>

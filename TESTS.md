@@ -96,6 +96,7 @@ Convention de nommage : `describe('Module', () => { it('should ...', ...) })`.
 - [ ] `findInsertionTarget(selection, tree)` : sélection vide → racine `''` ; sélection sur un dossier → ce dossier ; sélection sur un fichier → parent du fichier.
 - [ ] `pruneExpandedFolders(['a', 'a/b', 'ghost'], tree)` retire les chemins qui ne correspondent plus à un dossier existant dans `tree`. Les chemins toujours valides (= il existe une `FileEntry isDirectory=true` à ce relativePath) sont conservés. Si tous les chemins ont disparu → `[]`. Si tree vide → `[]`.
 - [ ] `collectAncestors('a/b/c.md')` → `['a', 'a/b']` — utilitaire pour calculer les parents auto-expand quand un fichier matche le filtre.
+- [ ] `collectDirectories(tree)` retourne tous les `FileEntry` `isDirectory=true` triés par `relativePath` (sans la racine synthétique). Utilisé par `FolderPickerDialog` (« Déplacer vers… »).
 
 ### B3. `lib/stores/vaults.svelte.ts`
 - [ ] État initial : `vaults = []`, `activeVaultId = null`, `vaultStates = {}`.
@@ -155,6 +156,16 @@ Convention de nommage : `describe('Module', () => { it('should ...', ...) })`.
 - [ ] Enter avec valeur vide → no-op.
 - [ ] Escape → callback `onCancel`.
 - [ ] Blur → callback `onCancel` (même comportement que Escape).
+
+### C7. `FolderPickerDialog.svelte`
+- [ ] Liste tous les dossiers du tree + entrée « (racine du vault) ».
+- [ ] Click sur un dossier → `onSubmit(relativePath)`.
+- [ ] Click racine → `onSubmit('')`.
+- [ ] `excludePath` retire un dossier candidat (utile pour exclure le parent actuel quand on déplace).
+
+### C8. Audit anti-emoji
+- [ ] `EditorToolbar` ne contient aucun caractère unicode dans les blocs emoji/symbols (1F000–1FFFF, 2700–27BF, 2600–26FF, 2300–23FF). Toutes les icônes viennent de `lucide-svelte`.
+- [ ] `VaultList` ne contient aucun emoji (le cadenas readonly est rendu via Lucide `Lock`).
 
 ### C4. `EditorToolbar.svelte`
 - [ ] Boutons présents : Bold, Italic, Code, H1, H2, H3, Lien.

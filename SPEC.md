@@ -192,7 +192,8 @@ type FileEntry = {
     - **Persistence** : chaque toggle expand/collapse est persisté immédiatement dans `Config.vaultStates[vaultId].expandedFolders` (array de relativePath). Au redémarrage, l'arbre se restaure à l'identique.
     - Click sur le chevron OU sur le nom du dossier → toggle.
     - Click sur un fichier → ouvre dans l'éditeur.
-    - **Right-click** sur un fichier : menu contextuel `Renommer`, `Supprimer`. Right-click sur un dossier : `Nouveau fichier`, `Nouveau dossier`. Right-click zone vide / racine : `Nouveau fichier` + `Nouveau dossier`.
+    - **Right-click** sur un fichier : menu contextuel `Renommer`, `Déplacer vers…`, `Supprimer`. Right-click sur un dossier : `Nouveau fichier`, `Nouveau dossier`. Right-click zone vide / racine : `Nouveau fichier` + `Nouveau dossier`.
+    - **Déplacer vers…** ouvre un sélecteur de dossier (`FolderPickerDialog`) listant tous les dossiers du vault courant + l'option « (racine du vault) ». Sélection d'un dossier → `file_rename(vault_id, oldPath, joinPath(targetDir, basename(oldPath)))`. Drag-drop intra-vault reste backlog.
   - **Création contextuelle in-tree** (pattern VS Code) :
     - Click sur `file-plus` ou `folder-plus` → un input inline apparaît à l'emplacement de création :
       - Aucun élément sélectionné → racine du vault.
@@ -202,10 +203,11 @@ type FileEntry = {
 
 - **Zone éditeur** (à droite de la sidebar, occupe le reste de la largeur) :
   - **Header** (étalé full-width de la zone éditeur, hauteur ~44px) : breadcrumb à gauche, toolbar styles + toggle Preview/Source + statut de sauvegarde à droite.
-  - **Corps** : zone scrollable centrale qui scroll verticalement. Le contenu rendu (Milkdown preview ou textarea source) est **centré horizontalement** avec :
-    - largeur max **`--content-max-width: 760px`** (~80-90 caractères par ligne)
-    - padding horizontal **`--content-padding-x: 48px`** de chaque côté
+  - **Corps** : zone scrollable centrale (full-width). Markhub édite des docs techniques (specs, briefs, CLAUDE.md, journaux) avec blocs de code, tableaux, listes imbriquées profondes — full-width est le bon choix, pas le centrage 760px style Linear/Notion. Référence : VS Code / Cursor / GitHub readme.
+    - largeur max **`--content-max-width: 1280px`** (centré seulement sur écrans ultra-wide)
+    - padding horizontal **`--content-padding-x: 64px`** de chaque côté
   - **Footer** : aucun footer dédié pour l'instant — le statut de sauvegarde vit dans le header.
+- **Toutes les icônes UI proviennent de `lucide-svelte`** — zéro emoji unicode autorisé. Règle de cohérence visuelle non-négociable. Test d'audit dédié dans `tests/component/no-emoji.test.svelte.ts`.
 - **Frontmatter YAML** (cas spécifique du body) :
   - **Mode preview** : si le contenu commence par un bloc `---\n…\n---`, ce bloc est extrait et rendu **séparément en haut du document**, dans un `<details>` replié par défaut, summary `▸ Frontmatter`, body en `<pre><code>` typo monospace, fond `--color-surface-veil`, taille `--text-caption`. Le reste du contenu est rendu normalement par Milkdown.
   - **Mode source** : aucun changement, le frontmatter apparaît tel quel dans le markdown brut.

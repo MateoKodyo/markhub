@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Lock } from 'lucide-svelte';
 	import type { Vault } from '$lib/tauri/types';
 
 	let {
@@ -42,7 +43,9 @@
 				></span>
 				<span class="name">{v.name}</span>
 				{#if v.mode === 'readonly'}
-					<span class="lock" aria-label="Lecture seule" title="Lecture seule">🔒</span>
+					<span class="lock" aria-label="Lecture seule" title="Lecture seule">
+						<Lock size={12} />
+					</span>
 				{/if}
 			</button>
 		</li>

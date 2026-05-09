@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	collectAncestors,
+	collectDirectories,
 	findInsertionTarget,
 	flattenTree,
 	pruneExpandedFolders,
@@ -121,5 +122,25 @@ describe('tree utils', () => {
 	it('collectAncestors returns [] for top-level entries (no parent)', () => {
 		expect(collectAncestors('top.md')).toEqual([]);
 		expect(collectAncestors('')).toEqual([]);
+	});
+
+	// ------ B7.8 — collectDirectories ------
+	it('collectDirectories returns all directories sorted, excluding root', () => {
+		const dirs = collectDirectories(sampleTree);
+		expect(dirs.map((d) => d.relativePath)).toEqual(['subdir', 'subdir/deeper']);
+	});
+
+	it('collectDirectories returns [] for null root', () => {
+		expect(collectDirectories(null)).toEqual([]);
+	});
+
+	it('collectDirectories returns [] for an empty vault', () => {
+		const empty = {
+			name: '',
+			relativePath: '',
+			isDirectory: true,
+			children: []
+		};
+		expect(collectDirectories(empty)).toEqual([]);
 	});
 });
