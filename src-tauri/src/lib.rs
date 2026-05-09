@@ -29,6 +29,8 @@ pub fn run() {
             commands::files::file_rename,
             commands::files::folder_create,
             commands::files::vault_scan,
+            commands::files::file_duplicate,
+            commands::files::file_reveal_in_finder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

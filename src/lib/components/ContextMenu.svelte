@@ -1,10 +1,15 @@
 <script lang="ts">
-	export type MenuItem = {
-		label: string;
-		onClick: () => void;
-		danger?: boolean;
-		disabled?: boolean;
-	};
+	export type MenuItem =
+		| {
+				separator: true;
+		  }
+		| {
+				separator?: false;
+				label: string;
+				onClick: () => void;
+				danger?: boolean;
+				disabled?: boolean;
+		  };
 
 	let {
 		x = 0,
@@ -22,7 +27,7 @@
 		if (e.key === 'Escape') onClose();
 	}
 
-	function trigger(item: MenuItem) {
+	function trigger(item: Extract<MenuItem, { label: string }>) {
 		if (item.disabled) return;
 		item.onClick();
 		onClose();
@@ -48,18 +53,22 @@
 		onclick={(e) => e.stopPropagation()}
 	>
 		{#each items as item, i (i)}
-			<li role="none">
-				<button
-					type="button"
-					class="ctx-item"
-					class:is-danger={item.danger}
-					disabled={item.disabled}
-					onclick={() => trigger(item)}
-					role="menuitem"
-				>
-					{item.label}
-				</button>
-			</li>
+			{#if item.separator}
+				<li role="separator" class="ctx-sep" aria-hidden="true"></li>
+			{:else}
+				<li role="none">
+					<button
+						type="button"
+						class="ctx-item"
+						class:is-danger={item.danger}
+						disabled={item.disabled}
+						onclick={() => trigger(item)}
+						role="menuitem"
+					>
+						{item.label}
+					</button>
+				</li>
+			{/if}
 		{/each}
 	</ul>
 </div>
@@ -108,5 +117,11 @@
 
 	.ctx-item.is-danger {
 		color: var(--color-status-error);
+	}
+
+	.ctx-sep {
+		height: 1px;
+		margin: var(--space-1) 0;
+		background: var(--color-border-subtle);
 	}
 </style>

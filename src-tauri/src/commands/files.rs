@@ -123,6 +123,81 @@ pub fn rename_file(vault: &Vault, old_relative: &str, new_relative: &str) -> Res
         .map_err(|e| format!("Failed to rename {old_relative} → {new_relative}: {e}"))
 }
 
+/// Duplicate the file at `relative` inside `vault`. The new file is placed
+/// in the same directory with a " copie" / " copie 2" / … suffix, picked
+/// to avoid collisions. Returns the new relative path.
+/// Refuses on readonly vaults; refuses on directories (only files duplicate).
+pub fn duplicate_file(vault: &Vault, relative: &str) -> Result<String, String> {
+    ensure_writable(vault)?;
+    let src = resolve_safe_path(vault, relative)?;
+    if !src.exists() {
+        return Err(format!("File not found: {relative}"));
+    }
+    if src.is_dir() {
+        return Err(format!("Cannot duplicate a directory: {relative}"));
+    }
+
+    let stem = src
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let ext = src
+        .extension()
+        .map(|s| format!(".{}", s.to_string_lossy()))
+        .unwrap_or_default();
+    let parent_rel = match relative.rsplit_once('/') {
+        Some((p, _)) => p.to_string(),
+        None => String::new(),
+    };
+
+    // Try "{stem} copie{ext}", then "{stem} copie 2{ext}", etc.
+    let mut attempt = 1u32;
+    let new_rel = loop {
+        let suffix = if attempt == 1 {
+            " copie".to_string()
+        } else {
+            format!(" copie {attempt}")
+        };
+        let candidate_name = format!("{stem}{suffix}{ext}");
+        let candidate_rel = if parent_rel.is_empty() {
+            candidate_name.clone()
+        } else {
+            format!("{parent_rel}/{candidate_name}")
+        };
+        let candidate_abs = resolve_safe_path(vault, &candidate_rel)?;
+        if !candidate_abs.exists() {
+            break candidate_rel;
+        }
+        attempt += 1;
+        if attempt > 100 {
+            return Err("Too many duplicates — clean up the directory first".to_string());
+        }
+    };
+
+    let dst = resolve_safe_path(vault, &new_rel)?;
+    fs::copy(&src, &dst)
+        .map_err(|e| format!("Failed to duplicate {relative}: {e}"))?;
+    Ok(new_rel)
+}
+
+/// Reveal the file at `relative` inside `vault` in the macOS Finder.
+/// Uses `open -R` directly (no extra Tauri plugin dependency). Read-only
+/// operation: works regardless of the vault's readonly flag.
+pub fn reveal_in_finder(vault: &Vault, relative: &str) -> Result<(), String> {
+    let abs = resolve_safe_path(vault, relative)?;
+    if !abs.exists() {
+        return Err(format!("Path not found: {relative}"));
+    }
+    let abs_str = abs
+        .to_str()
+        .ok_or_else(|| "Path is not valid UTF-8".to_string())?;
+    std::process::Command::new("open")
+        .args(["-R", abs_str])
+        .spawn()
+        .map_err(|e| format!("Failed to invoke Finder: {e}"))?;
+    Ok(())
+}
+
 /// Recursively scan a vault, returning a tree of FileEntry.
 /// Filters: only `.md` / `.markdown` files; ignores entries starting with `.`.
 /// Sorts: directories first, then alphabetical within each group.
@@ -268,6 +343,26 @@ pub fn folder_create(
 pub fn vault_scan(app: AppHandle, vault_id: String) -> Result<FileEntry, String> {
     let v = vault_for(&app, &vault_id)?;
     scan_vault(&v)
+}
+
+#[tauri::command]
+pub fn file_duplicate(
+    app: AppHandle,
+    vault_id: String,
+    relative_path: String,
+) -> Result<String, String> {
+    let v = vault_for(&app, &vault_id)?;
+    duplicate_file(&v, &relative_path)
+}
+
+#[tauri::command]
+pub fn file_reveal_in_finder(
+    app: AppHandle,
+    vault_id: String,
+    relative_path: String,
+) -> Result<(), String> {
+    let v = vault_for(&app, &vault_id)?;
+    reveal_in_finder(&v, &relative_path)
 }
 
 #[cfg(test)]
@@ -621,5 +716,88 @@ mod tests {
         write_fixture(g.path(), "blocker", "x"); // a file, not a dir
         let result = create_folder(&v, "blocker");
         assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Phase 5b — duplicate_file
+    // ============================================================
+
+    #[test]
+    fn duplicate_creates_a_copy_with_copie_suffix() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "note.md", "hello");
+        let new_rel = duplicate_file(&v, "note.md").expect("duplicate ok");
+        assert_eq!(new_rel, "note copie.md");
+        assert!(g.path().join("note copie.md").exists());
+        assert_eq!(fs::read_to_string(g.path().join("note copie.md")).unwrap(), "hello");
+        // Source must remain.
+        assert!(g.path().join("note.md").exists());
+    }
+
+    #[test]
+    fn duplicate_in_subdir_keeps_parent_path() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "sub/note.md", "x");
+        let new_rel = duplicate_file(&v, "sub/note.md").unwrap();
+        assert_eq!(new_rel, "sub/note copie.md");
+        assert!(g.path().join("sub/note copie.md").exists());
+    }
+
+    #[test]
+    fn duplicate_increments_when_copy_already_exists() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "note.md", "x");
+        write_fixture(g.path(), "note copie.md", "x"); // pre-existing first copy
+        let new_rel = duplicate_file(&v, "note.md").unwrap();
+        assert_eq!(new_rel, "note copie 2.md");
+        assert!(g.path().join("note copie 2.md").exists());
+    }
+
+    #[test]
+    fn duplicate_rejects_on_readonly_vault() {
+        let (g, v) = make_vault(VaultMode::Readonly);
+        write_fixture(g.path(), "note.md", "x");
+        let err = duplicate_file(&v, "note.md").expect_err("readonly must reject");
+        assert!(err.contains("Vault is readonly"));
+    }
+
+    #[test]
+    fn duplicate_rejects_when_source_does_not_exist() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err = duplicate_file(&v, "missing.md").expect_err("missing source must error");
+        assert!(err.contains("File not found"));
+    }
+
+    #[test]
+    fn duplicate_rejects_directories() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        std::fs::create_dir(g.path().join("dir")).unwrap();
+        let err = duplicate_file(&v, "dir").expect_err("directory must error");
+        assert!(err.contains("Cannot duplicate a directory"));
+    }
+
+    #[test]
+    fn duplicate_rejects_path_outside_vault() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err = duplicate_file(&v, "../escape.md").expect_err("traversal must error");
+        assert!(err.contains("Path outside vault"));
+    }
+
+    // ============================================================
+    // Phase 5b — reveal_in_finder (light test — we don't actually open Finder)
+    // ============================================================
+
+    #[test]
+    fn reveal_rejects_path_outside_vault() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err = reveal_in_finder(&v, "../etc").expect_err("traversal must error");
+        assert!(err.contains("Path outside vault"));
+    }
+
+    #[test]
+    fn reveal_rejects_when_path_does_not_exist() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err = reveal_in_finder(&v, "missing.md").expect_err("missing must error");
+        assert!(err.contains("Path not found"));
     }
 }

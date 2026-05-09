@@ -61,3 +61,15 @@ export const fileRename = (
 
 export const folderCreate = (vaultId: string, relativePath: string): Promise<void> =>
 	invoke('folder_create', { vaultId, relativePath });
+
+/** Duplicate a file with " copie" / " copie 2" / … suffix. Returns the new relative path. */
+export const fileDuplicate = (
+	vaultId: string,
+	relativePath: string
+): Promise<string> => invoke('file_duplicate', { vaultId, relativePath });
+
+/** Reveal a file or folder in the macOS Finder (no plugin dependency). */
+export const fileRevealInFinder = (
+	vaultId: string,
+	relativePath: string
+): Promise<void> => invoke('file_reveal_in_finder', { vaultId, relativePath });

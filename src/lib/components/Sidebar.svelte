@@ -13,6 +13,8 @@
 		fileCreate,
 		fileDelete,
 		fileRename,
+		fileDuplicate,
+		fileRevealInFinder,
 		folderCreate
 	} from '$lib/tauri/api';
 	import { joinPath, getFileName, getParentPath, isMarkdownFile } from '$lib/utils/path';
@@ -178,13 +180,45 @@
 	function openVaultContextMenu(vault: Vault, x: number, y: number) {
 		ctxX = x;
 		ctxY = y;
+		const ro = vault.mode === 'readonly';
 		ctxItems = [
-			{ label: 'Renommer', onClick: () => promptRenameVault(vault) },
+			{
+				label: 'Nouvelle note à la racine',
+				disabled: ro,
+				onClick: () => {
+					vaultsStore.selectVault(vault.id);
+					startCreate('file', '');
+				}
+			},
+			{
+				label: 'Nouveau dossier à la racine',
+				disabled: ro,
+				onClick: () => {
+					vaultsStore.selectVault(vault.id);
+					startCreate('folder', '');
+				}
+			},
+			{ separator: true },
+			{ label: 'Renommer le vault', onClick: () => promptRenameVault(vault) },
 			{
 				label: vault.mode === 'edit' ? 'Mode lecture seule' : 'Mode édition',
 				onClick: () => toggleVaultMode(vault)
 			},
-			{ label: 'Supprimer', danger: true, onClick: () => confirmRemoveVault(vault) }
+			{ separator: true },
+			{
+				label: 'Révéler dans le Finder',
+				onClick: () => revealVault(vault)
+			},
+			{
+				label: 'Copier le chemin du vault',
+				onClick: () => copyVaultPath(vault)
+			},
+			{ separator: true },
+			{
+				label: 'Retirer le vault',
+				danger: true,
+				onClick: () => confirmRemoveVault(vault)
+			}
 		];
 		ctxOpen = true;
 	}
@@ -243,25 +277,210 @@
 	}
 
 	function buildFileMenuItems(ctx: TreeContext): MenuItem[] {
+		const ro = vaultsStore.isActiveVaultReadonly;
 		switch (ctx.kind) {
-			case 'file':
+			case 'file': {
+				const entry = ctx.entry;
 				return [
-					{ label: 'Renommer', onClick: () => startRenameEntry(ctx.entry) },
-					{ label: 'Déplacer vers…', onClick: () => promptMoveFile(ctx.entry) },
-					{ label: 'Supprimer', danger: true, onClick: () => confirmDeleteFile(ctx.entry) }
+					{ label: 'Ouvrir', onClick: () => handleOpenFile(entry.relativePath) },
+					{ separator: true },
+					{
+						label: 'Renommer',
+						disabled: ro,
+						onClick: () => startRenameEntry(entry)
+					},
+					{
+						label: 'Dupliquer',
+						disabled: ro,
+						onClick: () => handleDuplicateFile(entry)
+					},
+					{
+						label: 'Déplacer vers…',
+						disabled: ro,
+						onClick: () => promptMoveFile(entry)
+					},
+					{ separator: true },
+					{
+						label: 'Copier le chemin (relatif)',
+						onClick: () => copyEntryPath(entry, 'relative')
+					},
+					{
+						label: 'Copier le chemin (absolu)',
+						onClick: () => copyEntryPath(entry, 'absolute')
+					},
+					{
+						label: 'Révéler dans le Finder',
+						onClick: () => handleRevealInFinder(entry.relativePath)
+					},
+					{ separator: true },
+					{
+						label: 'Supprimer',
+						danger: true,
+						disabled: ro,
+						onClick: () => confirmDeleteFile(entry)
+					}
 				];
-			case 'directory':
+			}
+			case 'directory': {
+				const entry = ctx.entry;
 				return [
-					{ label: 'Nouveau fichier', onClick: () => startCreate('file', ctx.entry.relativePath) },
-					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', ctx.entry.relativePath) },
-					{ label: 'Renommer', onClick: () => startRenameEntry(ctx.entry) }
+					{
+						label: 'Nouvelle note ici',
+						disabled: ro,
+						onClick: () => startCreate('file', entry.relativePath)
+					},
+					{
+						label: 'Nouveau dossier ici',
+						disabled: ro,
+						onClick: () => startCreate('folder', entry.relativePath)
+					},
+					{ separator: true },
+					{
+						label: 'Renommer',
+						disabled: ro,
+						onClick: () => startRenameEntry(entry)
+					},
+					{ separator: true },
+					{
+						label: 'Copier le chemin (relatif)',
+						onClick: () => copyEntryPath(entry, 'relative')
+					},
+					{
+						label: 'Copier le chemin (absolu)',
+						onClick: () => copyEntryPath(entry, 'absolute')
+					},
+					{
+						label: 'Révéler dans le Finder',
+						onClick: () => handleRevealInFinder(entry.relativePath)
+					},
+					{ separator: true },
+					{
+						label: 'Supprimer',
+						danger: true,
+						disabled: ro,
+						onClick: () => confirmDeleteEntry(entry)
+					}
 				];
+			}
 			case 'root':
 				return [
-					{ label: 'Nouveau fichier', onClick: () => startCreate('file', '') },
-					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', '') }
+					{
+						label: 'Nouvelle note à la racine',
+						disabled: ro,
+						onClick: () => startCreate('file', '')
+					},
+					{
+						label: 'Nouveau dossier à la racine',
+						disabled: ro,
+						onClick: () => startCreate('folder', '')
+					}
 				];
 		}
+	}
+
+	// ----- Phase 5b helpers -----
+	function countDescendants(entry: FileEntry): { files: number; folders: number } {
+		let files = 0;
+		let folders = 0;
+		const walk = (e: FileEntry) => {
+			for (const child of e.children ?? []) {
+				if (child.isDirectory) {
+					folders++;
+					walk(child);
+				} else {
+					files++;
+				}
+			}
+		};
+		walk(entry);
+		return { files, folders };
+	}
+
+	async function handleDuplicateFile(entry: FileEntry) {
+		const id = vaultsStore.activeVaultId;
+		if (!id) return;
+		try {
+			const newRel = await fileDuplicate(id, entry.relativePath);
+			await refreshScan();
+			void activeFileStore.openFile(id, newRel);
+		} catch (e) {
+			topLevelError = `Duplication impossible : ${String(e)}`;
+		}
+	}
+
+	async function handleRevealInFinder(relativePath: string) {
+		const id = vaultsStore.activeVaultId;
+		if (!id) return;
+		try {
+			await fileRevealInFinder(id, relativePath);
+		} catch (e) {
+			topLevelError = `Impossible d'ouvrir le Finder : ${String(e)}`;
+		}
+	}
+
+	async function copyEntryPath(entry: FileEntry, mode: 'relative' | 'absolute') {
+		const vault = vaultsStore.activeVault;
+		if (!vault) return;
+		const value =
+			mode === 'absolute'
+				? joinPath(vault.path, entry.relativePath)
+				: entry.relativePath;
+		try {
+			await navigator.clipboard.writeText(value);
+		} catch (e) {
+			topLevelError = `Copie impossible : ${String(e)}`;
+		}
+	}
+
+	async function copyVaultPath(vault: Vault) {
+		try {
+			await navigator.clipboard.writeText(vault.path);
+		} catch (e) {
+			topLevelError = `Copie impossible : ${String(e)}`;
+		}
+	}
+
+	async function revealVault(vault: Vault) {
+		try {
+			await fileRevealInFinder(vault.id, '');
+		} catch (e) {
+			topLevelError = `Impossible d'ouvrir le Finder : ${String(e)}`;
+		}
+	}
+
+	function confirmDeleteEntry(entry: FileEntry) {
+		if (!entry.isDirectory) {
+			confirmDeleteFile(entry);
+			return;
+		}
+		const counts = countDescendants(entry);
+		const parts: string[] = [];
+		if (counts.files > 0) parts.push(`${counts.files} fichier${counts.files > 1 ? 's' : ''}`);
+		if (counts.folders > 0) {
+			parts.push(`${counts.folders} sous-dossier${counts.folders > 1 ? 's' : ''}`);
+		}
+		const blast = parts.length > 0 ? ` et ${parts.join(' + ')}` : '';
+		confirmTitle = `Supprimer le dossier ${entry.name} ?`;
+		confirmMessage = `Le dossier "${entry.relativePath}"${blast} sera supprimé du disque. Cette action est irréversible.`;
+		confirmHandler = async () => {
+			const id = vaultsStore.activeVaultId;
+			if (!id) throw new Error('Aucun vault actif');
+			await fileDelete(id, entry.relativePath);
+			confirmOpen = false;
+			await refreshScan();
+			// Close any open file that lived under this folder.
+			const open = activeFileStore.activeFile;
+			if (
+				open &&
+				open.vaultId === id &&
+				(open.relativePath === entry.relativePath ||
+					open.relativePath.startsWith(`${entry.relativePath}/`))
+			) {
+				activeFileStore.close();
+				void vaultsStore.setLastOpenedFile(null);
+			}
+		};
+		confirmOpen = true;
 	}
 
 	function startRenameEntry(entry: FileEntry) {

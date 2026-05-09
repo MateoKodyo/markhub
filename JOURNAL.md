@@ -548,4 +548,53 @@ Décision arbitrée par Matheo : Option A (garder + raffiner) plutôt que B (mas
 2. **Sélecteur `:has()` + cascade** : `.label-wrapper:has(.checked) ~ .children` propage à toute la branche (sub-list pending incluse). Restreindre à `> p:first-child` n'a pas marché à cause de la structure DOM Crepe (probablement un wrapper avant le `<p>`). Le pragmatisme : drop la feature secondaire (strike-through) puisque la différenciation principale (couleur accent) suffit.
 3. **Décision A vs B sur Crepe block-handle** : pas de menu de transformation natif au click sur ⋮⋮ → Crepe ne fait que drag-and-drop. Option A retenue : garder le drag-reorder + opacity progressive pour réduire le bruit. Le `+` reste le vector d'insertion via slash menu.
 
+---
+
+# Session autonome soirée 2026-05-09T19:22
+
+**Budget temps** : 1h22 dev + 15 min clôture (cap absolu 21h00). **Cible révisée** : Chantier 1 (menus contextuels) garanti, Chantier 3 (status bar) si temps. Chantier 2 (refactor onglets, 2-3h) SKIP — explicitement marqué risqué et hors budget. Chantier 4 idem (optionnel).
+
+## Chantier 1 — Phase 5b menus contextuels — 19:22 → ?
+
+### Décisions prises (autonomie)
+- **a)** ContextMenu existant n'a pas de sous-menus → on aplatit "Copier le chemin" en 2 items flat (relatif / absolu) plutôt que de refactorer le composant. Trade-off : on perd l'ergonomie sub-menu mais on garde un budget temps réaliste.
+- **b)** FolderPickerDialog existant déjà → réutilisé tel quel pour "Déplacer vers…".
+- **c)** Suppression de dossier : confirmation avec compteur "Supprimer ce dossier et X fichier(s) ?" — donne conscience du blast radius.
+- **d)** Pas de `tauri-plugin-shell` (nouvelle dep) → reveal Finder via `Command::new("open").args(["-R", path])` direct en Rust. Justification : 1 ligne de code, 0 nouvelle dep, fonctionne uniquement macOS (cible MVP).
+- **e)** Copy chemin : `navigator.clipboard.writeText` côté front, pas de commande Tauri dédiée. Justification : API web standard, pas de surface IPC supplémentaire.
+- **f)** Séparateurs `──` : ajout d'un type `MenuItem.separator: true` (3 lignes dans ContextMenu.svelte).
+
+### Tests
+- Avant : cargo 51, vitest 121
+- Après : cargo **60** (+9), vitest **121** (les tests UI menus seraient redondants avec les tests Rust + smoke)
+- Ajoutés Rust : 7 sur duplicate (suffix copie/copie 2/copie 3 cap, parent path preserved, readonly reject, missing source, directory reject, traversal) + 2 sur reveal (traversal + missing) = 9 cas
+
+### Bugs/blocages
+- Aucun.
+
+### Hors scope évités
+- Sub-menu `Copier le chemin` (▸ relatif/absolu) → 2 items flat à la place. ContextMenu sub-menu = backlog.
+- Toast "Chemin copié" → pas de système de toast existant, pas créé pour ce soir. À ajouter dans une session ultérieure si jugé nécessaire.
+- "Dupliquer" et "Déplacer vers…" sur un dossier → backlog (la duplication récursive d'un dossier demande sa propre review de sécurité).
+
+### Implémentation
+- Rust `commands/files.rs` :
+  - `duplicate_file(vault, relative)` → " copie" / " copie 2" / … cap à 100, path-traversal safe, refuse readonly.
+  - `reveal_in_finder(vault, relative)` → `Command::new("open").args(["-R", abs])`.
+  - `#[tauri::command] file_duplicate` + `file_reveal_in_finder`.
+- Rust `lib.rs` : 2 commandes ajoutées à `invoke_handler`.
+- Front `tauri/api.ts` : `fileDuplicate`, `fileRevealInFinder`.
+- Front `ContextMenu.svelte` : type `MenuItem` étendu en union avec `{ separator: true }`. Render branch + style.
+- Front `Sidebar.svelte` :
+  - File menu : Ouvrir / Renommer / Dupliquer / Déplacer vers… / Copier chemin (relatif|absolu) / Révéler / Supprimer.
+  - Folder menu : Nouvelle note ici / Nouveau dossier ici / Renommer / Copier chemin / Révéler / Supprimer (avec compteur fichiers + sous-dossiers).
+  - Vault menu : Nouvelle note racine / Nouveau dossier racine / Renommer / Toggle mode / Révéler / Copier chemin / Retirer.
+  - Items disabled si vault readonly. Suppression file ouvert ferme l'onglet auto.
+  - `confirmDeleteEntry` détecte fichier vs dossier ; pour dossier ouvre confirm avec compteur via `countDescendants`.
+
+### Commit
+- Hash : à venir
+
+
+
 
