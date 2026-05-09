@@ -142,6 +142,7 @@ Another paragraph for context.`,
 		flex-direction: column;
 		width: 280px;
 		flex-shrink: 0;
+		background: var(--color-bg-sidebar);
 		border-right: 1px solid var(--color-border-subtle);
 		overflow: hidden;
 	}

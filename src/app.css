@@ -10,7 +10,14 @@
 :root {
 	/* === Color palette === */
 
-	/* Canvas — warm near-black, never blue-tinted */
+	/* Canvas — warm near-black, never blue-tinted.
+	 * Three-tier hierarchy (darkest → lightest):
+	 *   --color-bg-sidebar : sidebar / chrome (most recessed)
+	 *   --color-bg         : main editor canvas (default body bg)
+	 *   --color-bg-raised  : popovers, dialogs, slash menu (elevated)
+	 * Same warm hue, only OKLCH lightness varies — preserves Warp's
+	 * monochromatic warm-gray identity. */
+	--color-bg-sidebar: #060504;
 	--color-bg: #0a0908;
 	--color-bg-raised: #121110;
 
