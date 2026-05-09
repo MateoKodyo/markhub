@@ -544,3 +544,17 @@ samp {
 	font-family: var(--font-sans);
 	font-size: var(--text-ui);
 }
+
+/* Task list checkboxes — Crepe ships .checked / .unchecked SVG icons in
+ * .label-wrapper, both filled with --crepe-color-outline (one gray tone),
+ * making "done" and "todo" near-indistinguishable. We retheme:
+ *   - unchecked → muted box outline (still reads as "empty")
+ *   - checked   → accent-blue fill so completed tasks scan instantly */
+.milkdown.milkdown .milkdown-list-item-block li .label-wrapper .unchecked svg {
+	fill: var(--color-text-muted);
+}
+
+.milkdown.milkdown .milkdown-list-item-block li .label-wrapper .checked svg {
+	fill: var(--color-accent);
+}
+

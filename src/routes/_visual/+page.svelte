@@ -35,7 +35,25 @@ Select this whole sentence to summon the floating toolbar above the selection.
 
 Another paragraph for context.`,
 
-		'long-doc': Array.from({ length: 80 }, (_, i) => `## Section ${i + 1}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n`).join('\n')
+		'long-doc': Array.from({ length: 80 }, (_, i) => `## Section ${i + 1}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n`).join('\n'),
+
+		'task-list': `# Sprint todos
+
+- [x] Fix slash menu double-render (P0 #1)
+- [x] Atomic openFile + requestId guard (P0-2 + P0-3)
+- [x] Bound app height + overlay scrollbars (P0-1)
+- [ ] Polish text selection
+- [ ] Restyle task list checkboxes
+- [ ] Decide block handle: enable or hide
+- [ ] Final visual validation
+
+Mixed sub-list:
+
+- [x] Done parent
+  - [x] Done child
+  - [ ] Pending child
+- [ ] Pending parent
+  - [ ] Nested pending`
 	};
 
 	// Fake file-tree entries used by the `sidebar-overflow` fixture. We render
