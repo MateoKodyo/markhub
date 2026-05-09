@@ -305,3 +305,21 @@ Résumé en 5 lignes :
 - **État des tests** : 156/156 verts, svelte-check 0/0, npm build OK, cargo build OK.
 - **Recommandation prochaine étape** : smoke manuel ; si OK, considérer Phase 5 closed et trancher outline panel + E2E real binary en session encadrée plutôt qu'autonome.
 
+---
+
+## 🏁 Clôture session 2026-05-09T17:25:50+02:00
+
+### Bilan
+- Logique : excellente progression (Phases 3-4-5 logiques OK, 116/116 + 51/51 tests verts)
+- Visuel : cassé sur 4 points critiques découverts au smoke test final (cf. `STATE.md` P0)
+- Décision : clôture session, redémarrage avec contexte frais dédié polish visuel
+
+### Lessons learned pour la prochaine session
+1. Les tests unit CSS passent mais ne capturent pas l'état réel du rendu (jsdom limit). Adopter Playwright + screenshots pour le visuel.
+2. Smoke test visuel à intercaler entre chaque round de modifications visuelles, pas seulement à la fin.
+3. Override des libs externes (Milkdown Crepe) : ne pas faire confiance aux variables CSS exposées par défaut, contrôler avec sélecteurs spécifiques.
+
+### Stash actif
+- `agents-prep-work-stash` : refactors I1/I2 + JOURNAL closure section + STATE.md préliminaire
+
+
