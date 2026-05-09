@@ -18,17 +18,32 @@ class ActiveFileStore {
 
 	#saveTimer: ReturnType<typeof setTimeout> | null = null;
 
+	// Monotonic open-request counter. Each call to `openFile` claims a fresh ID;
+	// when the awaited fileRead resolves, the result is only applied if no newer
+	// call has been issued in the meantime. Without this, A→B→C rapid clicks
+	// could end up showing A or B when C's read happens to finish first.
+	#openRequestId = 0;
+
 	async openFile(vaultId: string, relativePath: string): Promise<void> {
+		const myRequestId = ++this.#openRequestId;
 		this.#cancelPendingSave();
 		this.status = 'loading';
-		this.activeFile = { vaultId, relativePath };
 		try {
-			this.content = await api.fileRead(vaultId, relativePath);
+			const newContent = await api.fileRead(vaultId, relativePath);
+			// Stale: a newer openFile call has started since this one began.
+			if (myRequestId !== this.#openRequestId) return;
+			// Atomic update — activeFile and content move together, AFTER the read,
+			// so the {#key editorKey} in +page.svelte remounts Editor with the
+			// correct content already in place. Fixes the race where Crepe captured
+			// stale content via untrack() at mount.
+			this.activeFile = { vaultId, relativePath };
+			this.content = newContent;
 			this.status = 'saved';
 			this.lastSavedAt = Date.now();
-			// Persist as last-opened — non-blocking, errors logged but swallowed.
 			void vaultsStore.setLastOpenedFile({ vaultId, relativePath });
 		} catch (e) {
+			// Same staleness guard for errors: only the latest request controls UI.
+			if (myRequestId !== this.#openRequestId) return;
 			this.status = 'error';
 			throw e;
 		}

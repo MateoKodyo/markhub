@@ -118,4 +118,117 @@ describe('activeFileStore', () => {
 		await Promise.resolve();
 		expect(api.fileWrite).not.toHaveBeenCalled();
 	});
+
+	// ------ B4.7 — atomic update: activeFile is NOT set during the read ------
+	// Root cause of P0-2: setting activeFile before the read makes editorKey
+	// flip and remount Editor with stale content. Atomic update guarantees that
+	// activeFile and content move together, AFTER fileRead resolves.
+	it('does not mutate activeFile or content until fileRead resolves', async () => {
+		let resolveRead!: (value: string) => void;
+		vi.mocked(api.fileRead).mockImplementationOnce(
+			() => new Promise<string>((r) => (resolveRead = r))
+		);
+
+		const promise = activeFileStore.openFile('v1', 'lazy.md');
+		// Yield once so the synchronous prelude of openFile runs.
+		await Promise.resolve();
+
+		expect(activeFileStore.status).toBe('loading');
+		// Atomic invariant: activeFile must NOT yet be set to the requested file.
+		expect(activeFileStore.activeFile).toBeNull();
+		expect(activeFileStore.content).toBe('');
+
+		resolveRead('lazy body');
+		await promise;
+
+		expect(activeFileStore.activeFile).toEqual({ vaultId: 'v1', relativePath: 'lazy.md' });
+		expect(activeFileStore.content).toBe('lazy body');
+		expect(activeFileStore.status).toBe('saved');
+	});
+
+	// ------ B4.8 — concurrent calls: only the LATEST wins ------
+	// Even if A's read finishes after B's, the user clicked B last so B should
+	// be on screen, not A. Without a requestId guard, A would clobber B.
+	it('with two concurrent openFile calls, only the most recent takes effect', async () => {
+		let resolveA!: (v: string) => void;
+		let resolveB!: (v: string) => void;
+		vi.mocked(api.fileRead)
+			.mockImplementationOnce(() => new Promise<string>((r) => (resolveA = r)))
+			.mockImplementationOnce(() => new Promise<string>((r) => (resolveB = r)));
+
+		const callA = activeFileStore.openFile('v1', 'A.md');
+		const callB = activeFileStore.openFile('v1', 'B.md');
+
+		// B finishes first (the user-selected file).
+		resolveB('B body');
+		await callB;
+
+		expect(activeFileStore.activeFile).toEqual({ vaultId: 'v1', relativePath: 'B.md' });
+		expect(activeFileStore.content).toBe('B body');
+
+		// A's late-arriving read MUST be discarded.
+		resolveA('A body');
+		await callA;
+
+		expect(activeFileStore.activeFile).toEqual({ vaultId: 'v1', relativePath: 'B.md' });
+		expect(activeFileStore.content).toBe('B body');
+	});
+
+	// ------ B4.9 — three rapid concurrent calls, out-of-order resolution ------
+	it('with three rapid openFile calls resolving out of order, only the last call wins', async () => {
+		let resolveA!: (v: string) => void;
+		let resolveB!: (v: string) => void;
+		let resolveC!: (v: string) => void;
+		vi.mocked(api.fileRead)
+			.mockImplementationOnce(() => new Promise<string>((r) => (resolveA = r)))
+			.mockImplementationOnce(() => new Promise<string>((r) => (resolveB = r)))
+			.mockImplementationOnce(() => new Promise<string>((r) => (resolveC = r)));
+
+		const callA = activeFileStore.openFile('v1', 'A.md');
+		const callB = activeFileStore.openFile('v1', 'B.md');
+		const callC = activeFileStore.openFile('v1', 'C.md');
+
+		// Reverse-ish resolution order: B, then C, then A (the laggard).
+		resolveB('B body');
+		await Promise.resolve();
+		resolveC('C body');
+		await Promise.resolve();
+		resolveA('A body');
+		await Promise.all([callA, callB, callC]);
+
+		// The user clicked C last, so C must be the final state.
+		expect(activeFileStore.activeFile).toEqual({ vaultId: 'v1', relativePath: 'C.md' });
+		expect(activeFileStore.content).toBe('C body');
+	});
+
+	// ------ B4.10 — empty file (P0-3 auto-open after creation) ------
+	// fileCreate produces a 0-byte file; fileRead returns "". The atomic update
+	// must still kick in so the new file becomes the active one with empty body.
+	it('opens an empty file with content="" (post-creation auto-open scenario)', async () => {
+		vi.mocked(api.fileRead).mockResolvedValueOnce('');
+
+		await activeFileStore.openFile('v1', 'newly-created.md');
+
+		expect(activeFileStore.activeFile).toEqual({ vaultId: 'v1', relativePath: 'newly-created.md' });
+		expect(activeFileStore.content).toBe('');
+		expect(activeFileStore.status).toBe('saved');
+	});
+
+	// ------ B4.11 — error from fileRead is reported only if it's the latest call ------
+	it('a stale failed openFile does not flip status to error if a newer one succeeded', async () => {
+		let rejectA!: (e: unknown) => void;
+		vi.mocked(api.fileRead)
+			.mockImplementationOnce(() => new Promise<string>((_, rej) => (rejectA = rej)))
+			.mockResolvedValueOnce('B body');
+
+		const callA = activeFileStore.openFile('v1', 'A.md').catch(() => {});
+		const callB = activeFileStore.openFile('v1', 'B.md');
+		await callB;
+		// Only AFTER B has settled, A errors out.
+		rejectA(new Error('boom'));
+		await callA;
+
+		expect(activeFileStore.status).toBe('saved');
+		expect(activeFileStore.activeFile).toEqual({ vaultId: 'v1', relativePath: 'B.md' });
+	});
 });
