@@ -47,6 +47,8 @@
 	--color-accent: #3b82f6;
 	--color-accent-hover: #4f8ff7;
 	--color-accent-text: #ffffff;
+	/* Text selection — accent at ~30% opacity. Visible without screaming. */
+	--color-selection: rgba(59, 130, 246, 0.32);
 
 	/* Status indicators (sparse use) */
 	--color-status-ok: #4ade80;
@@ -149,6 +151,23 @@ body {
 body {
 	display: flex;
 	flex-direction: column;
+}
+
+/* Text selection — apply globally so it covers Milkdown ProseMirror,
+ * source-mode textarea, sidebar filenames, and any other text node. The
+ * default browser blue is too bright on the warm-dark canvas; ours is
+ * the accent at low opacity so it reads as "selected" without yelling. */
+::selection {
+	background-color: var(--color-selection);
+}
+
+/* Crepe ships its own `.milkdown .ProseMirror *::selection` rule pointing
+ * at --crepe-color-selected (which we map to surface-active = ~5% white),
+ * making the highlight invisible in editor body. Bump our specificity to
+ * (0,0,3,1) > Crepe's (0,0,2,1) so the accent-tinted blue wins. */
+.milkdown.milkdown .ProseMirror *::selection,
+.milkdown.milkdown .ProseMirror::selection {
+	background-color: var(--color-selection);
 }
 
 /* Custom scrollbar — overlay style, narrow, blends with the warm-dark canvas.
