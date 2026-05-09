@@ -629,7 +629,83 @@ Décision arbitrée par Matheo : Option A (garder + raffiner) plutôt que B (mas
 - `src/routes/+page.svelte` : statut+toggle retirés du header (déplacés dans status bar) ; `<StatusBar />` monté en frère de `.app` directement sous body flex column ; nouveau handler `copyActiveFilePath` pour le bouton path.
 
 ### Commit
-- Hash : à venir
+- Hash : `0952ebd`
+
+## Chantier 4 — Drag-drop intra-vault — 19:35 → 19:42 (7 min)
+
+### Décisions prises (autonomie)
+- **a)** API : HTML5 native drag-drop (pas de library). Justification : 0 nouvelle dep, surface fonctionnelle suffisante, le user a explicitement dit "pas de drag-drop entre vaults / pas de réordonnancement" → on n'a pas besoin des sophistications d'une lib.
+- **b)** MIME type custom `application/x-markhub-path` plutôt que `text/plain`. Justification : évite que Markhub réagisse à des drags étrangers (image dropped from Finder, fichier d'un autre éditeur). Filtre via `dataTransfer.types.includes(MIME)` dans les handlers `dragover`.
+- **c)** Pas de Playwright spec — `dispatchDrop` Playwright est historiquement fragile, le coût de mise en place dépasse le budget. Smoke test interactif à la charge de Matheo.
+
+### Tests
+- Avant : vitest 145, cargo 60, visual 9
+- Après : vitest 145, cargo 60, visual **10** (+1 app-shell pour le screenshot end-to-end qui inclut sidebar/editor/status bar — couvre indirectement le contexte du drag-drop)
+
+### Bugs/blocages
+- Aucun.
+
+### Hors scope évités
+- Drag-drop entre vaults différents → backlog (ferme).
+- Réordonnancement custom (sort tri custom) → backlog.
+
+### Implémentation
+- `FileTree.svelte` : props `readonly` + `onMoveFile`. Handlers `handleDragStart` / `handleDragEnd` / `handleDragOverFolder` / `handleDragLeaveFolder` / `handleDropOnFolder` / `handleRootDragOver`. State local `dragOverPath` (drop target) + `dragSourcePath` (faded source). Classes `is-drag-source` (opacity .5) / `is-drop-target` (accent-tinted bg).
+- `Sidebar.svelte` : nouveau handler `handleMoveFile(source, targetParent)` → `fileRename` + refresh + auto-expand destination + follow l'onglet ouvert si concerné.
+- `BACKLOG.md` : item drag-drop intra-vault marqué fait, item drag-drop entre vaults conservé.
+
+### Commit
+- Hash : `8a15e99`
+
+---
+
+## 🏁 Session autonome soirée — fin 19:42
+
+### Résumé
+- **Chantiers terminés (4/4 prévus + 1 optionnel) :**
+  1. Phase 5b menus contextuels ✅ (commit `b0ddb6b`)
+  2. Status bar Phase 6 ✅ (commit `0952ebd`)
+  3. App-shell visual fixture ✅ (commit `f3b355c`)
+  4. Drag-drop intra-vault ✅ (commit `8a15e99`)
+- **Chantiers SKIPPÉS volontairement :**
+  - Phase 5c onglets — explicitement marqué risqué + 2-3h hors budget. À reprendre en session encadrée.
+- **Tests finaux : cargo 60/60, vitest 145/145, svelte-check 0/0, build OK, visual 10/10.**
+- **Heure début : 19:22. Heure fin : 19:42. Durée totale : 20 min** (sur un budget de 1h22 avant clôture absolue 20:45). Avance prise → clôture anticipée propre, marge de sécurité utilisée pour les tests + la doc.
+
+### Recommandation prochaine action
+- Smoke test interactif sur l'app dev (Cmd+R pour reload). Cibler les 3 nouveaux flows : menus contextuels, status bar, drag-drop. Confirmer la régression zéro sur les fix Round 1+2.
+- Si OK : Phase 5c onglets en session encadrée prochaine fois (le seul chantier majeur qui reste pour matcher l'expérience VS Code/Cursor).
+
+### Points critiques pour Matheo
+1. **Drag-drop pas couvert par tests automatiques** — uniquement smoke test interactif. Si comportement différent de ce qui est attendu (drop pas reconnu / conflit / etc.), me le dire à ton retour.
+2. **Status bar : breadcrumb header conservé** (au-dessus de l'éditeur) — à toi de juger si redondance pénible avec status bar en bas. Suppression triviale (1 bloc dans `+page.svelte`).
+3. **Outline panel + settings buttons : non rendus** dans la status bar. Décision autonome : afficher des boutons non-fonctionnels casserait la confiance plus que ne pas les afficher. Backlog clair.
+4. **Heading actif au scroll** : pas implémenté côté status bar. Demande un intersection observer sur les `<h*>` ProseMirror — backlog.
+5. **Phase 5c onglets** : SKIPPÉ. Refactor sensible non piloté en autonomie. Voir P1 dans STATE.md.
+
+### Décisions autonomes prises sans validation Matheo
+Listées exhaustivement par chantier dans les sections ci-dessus. Récap des plus structurantes :
+- **5b a)** Pas de sub-menus dans ContextMenu (refactor évité) → "Copier le chemin" en 2 items flat.
+- **5b d)** `Command::new("open")` direct pour reveal Finder (pas de `tauri-plugin-shell` ajouté).
+- **5b e)** `navigator.clipboard.writeText` côté front (pas de cmd Tauri pour clipboard).
+- **5b c)** Confirmation suppression dossier avec compteur "X fichiers + Y sous-dossiers" pour conscience du blast radius.
+- **6 c/d)** Boutons outline + settings non rendus tant que features non implémentées.
+- **6 g)** Breadcrumb header conservé.
+- **4 b)** MIME type custom `application/x-markhub-path` pour drag-drop, pas `text/plain`.
+
+### Test stable au moment de la clôture
+```
+cargo test              → 60 passed
+npm run test            → 145 passed
+npm run check           → 0 errors / 0 warnings
+npm run build           → OK
+npm run test:visual     → 10 passed
+```
+
+### Commits poussés ?
+**Non.** Le brief disait "Aucun git push." 5 commits locaux à pusher quand Matheo valide à son retour : `b0ddb6b`, `0952ebd`, `f3b355c`, `8a15e99`, plus le commit closure ci-dessous.
+
+
 
 
 

@@ -1,15 +1,20 @@
 # STATE — État du projet pour reprise de session
 
 ## Date de clôture
-2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T18:05 (Round 1 polish) · 2026-05-09T19:15 (Round 2 polish)
+2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T18:05 (Round 1) · 2026-05-09T19:15 (Round 2) · 2026-05-09T19:42 (Session autonome soirée)
 
 ## Phase actuelle
-Phase 6 (Polish visuel) — terminée avec Round 1 + Round 2 :
+Phase 6 (Polish visuel) terminée + Phase 5b (menus) + Status bar + Drag-drop intra-vault :
 - Étape 1 : root cause investigation (jsdom blind + Crepe mocked) ✅
-- Étape 2 : harnais Playwright `/_visual` + 9 baselines ✅
+- Étape 2 : harnais Playwright `/_visual` + baselines ✅
 - Round 1 (Crepe popovers) : #1 slash menu + #4 toolbar via spécificité bumpée ✅
 - Round 1 P0 fonctionnels (smoke validé) : #1 scroll, #2 click fiable, #3 auto-open après création ✅
 - Round 2 (chantiers visuels) : #1 grayscale 3-tier, #2 sélection accent-tinted, #3 task list différenciées, #4 block-handle opacity progressive ✅
+- Session soirée 2026-05-09T19:22→19:42 (autonome, 20 min) :
+  - Phase 5b menus contextuels (file/folder/vault avec items completes : Ouvrir / Renommer / Dupliquer / Déplacer / Copier chemin (rel|abs) / Révéler Finder / Supprimer ; nouveau séparateur natif ; commandes Rust `file_duplicate` + `file_reveal_in_finder`) ✅
+  - Status bar (vault+path+RO / mots+lecture / save status + mode toggle, click path = copy absolu, click mots = toggle caractères) ✅
+  - Drag-drop intra-vault (HTML5 native, MIME custom, opacity source + accent-tint cible, désactivé readonly) ✅
+- Phase 5c (onglets) : SKIP volontaire — refactor 2-3h hors budget soirée. À reprendre en session encadrée.
 
 ## Avancement global
 - Phase 0 : ✅ Bootstrap
@@ -20,12 +25,12 @@ Phase 6 (Polish visuel) — terminée avec Round 1 + Round 2 :
 - Phase 5 : 🟡 Logique faite (vault menu, file menu, persistence, inline rename) — VISUEL CASSÉ
 - Phase 6 : ❌ Polish (à faire — c'est la priorité de la prochaine session)
 
-## Tests (2026-05-09T19:15)
-- cargo test : 51/51 passants ✅
-- npm run test : 121/121 passants ✅ (+5 cas atomic openFile)
+## Tests (2026-05-09T19:42)
+- cargo test : **60/60** passants ✅ (+9 : 7 duplicate + 2 reveal)
+- npm run test : **145/145** passants ✅ (+24 : 15 documentStats + 9 StatusBar)
 - npm run check : 0 erreur, 0 warning ✅
 - npm run build : OK ✅
-- npm run test:visual : 9/9 passants ✅ (slash, frontmatter, headings, toolbar, scroll-overflow×2, grayscale-hierarchy, text-selection, task-list)
+- npm run test:visual : **10/10** passants ✅ (+1 app-shell)
 - npm run test:e2e : 1 placeholder skipped, real-binary jamais monté
 
 ## BUGS VISUELS P0 — État FERMÉ (clôture 2026-05-09T18:05, commit 48be55d)
@@ -62,23 +67,28 @@ Stash `agents-prep-work-stash` contient :
 
 ## À FAIRE EN PRIORITÉ — prochaine session
 
-### P0 — Smoke test final full app (à charge de Matheo)
-Lancer `npm run tauri dev` sur un fichier .md réel contenant :
-- Un frontmatter YAML en tête → vérifier rendu `<details>` collapsed mono
-- Des H1/H2/H3 dans le body → vérifier typo Geist conforme à `design.md`
-- Tester `/` dans un para vide → vérifier slash menu single-panel
-- Sélectionner du texte → vérifier toolbar flottante propre
+### P0 — Smoke test soirée (à charge de Matheo)
+Lancer `npm run tauri dev` puis `Cmd+R` pour reload le frontend. À tester :
+- **Menus contextuels (Phase 5b)** : right-click sur fichier / dossier / vault → vérifier les 3 menus complets (Ouvrir / Renommer / Dupliquer / Déplacer / Copier chemin / Révéler / Supprimer côté file ; nouvelle note ici / nouveau dossier ici / Renommer / Copier chemin / Révéler / Supprimer côté folder ; nouvelle note racine / Renommer vault / Mode RO ↔ Edit / Révéler / Copier path / Retirer côté vault). Items disabled si vault readonly.
+- **Status bar** : ancrée en bas pleine largeur, vault + path + word count + save status + Preview/Source toggle. Click sur path → copie absolu. Click sur word counter → toggle caractères/mots.
+- **Drag-drop** : drag d'un fichier sur un dossier → opacity 0.5 + accent-tint sur la cible → drop → fichier déplacé + dossier déplié auto + onglet suit le fichier si actif. Drop sur la zone vide racine = move à la racine. Vault readonly = drag bloqué.
+- **Régression Round 2** : confirmer que les fixes visuels précédents tiennent (sidebar plus sombre, sélection bleue, checkboxes différenciées, block handle subtil).
 
-Si tout est OK : MVP visuel shippable. Sinon : creuser le contexte full app (probablement un autre override CSS qui interfère).
+### P1 — Phase 5c (onglets) à reprendre en session encadrée
+Refactor activeFile → openFiles[] est un 2-3h pas piloté en autonomie ce soir (explicitement marqué risqué dans le brief). À attaquer en présence de Matheo car ça touche +page.svelte / Editor / Sidebar / persistence config + plusieurs tests existants.
 
-### P1 — Dette technique mineure (post-MVP)
-- **Route `/_visual` en build de prod** : la route fixture est incluse dans le bundle prod (16KB). Inoffensive (URL non publicisée) mais idéalement DEV-only. Solution simple : ajouter `if (!import.meta.env.DEV) goto('/')` dans `+page.svelte`, ou exclure la route via un hook SvelteKit. **5 min** de boulot.
-- **Stash `agents-prep-work-stash`** : refactors I1/I2 (`findEntryByPath` → `utils/tree.ts`, `enforceMarkdownExtension` → `utils/path.ts`). Indépendants des fixes visuels, peuvent être poppés et mergés à part, ou jetés.
-- **Décider de D3 (box-shadow popovers)** : aujourd'hui `0 4px 16px rgba(0,0,0,0.35)` sur slash menu / toolbar / link tooltip. Plus subtil que Material default mais visible. Peut être encore toned down si on veut « depth via borders only » strict (`design.md §6`).
+### P2 — Dette technique mineure (post-MVP)
+- **Route `/_visual` en build de prod** : la route fixture est incluse dans le bundle prod. Inoffensive mais idéalement DEV-only. Guard avec `import.meta.env.DEV` ou hook SvelteKit. ~5 min.
+- **Stash `agents-prep-work-stash`** : non touché ce soir. Refactors I1/I2 — Matheo décide pop/drop.
+- **Décider de D3 (box-shadow popovers)** — toned-down possible si « depth via borders only » strict.
+- **Heading actif au scroll dans la status bar** : intersection observer sur `.ProseMirror h1, h2, h3` → afficher dans la zone centre.
+- **Outline panel** : pas implémenté, bouton non rendu dans la status bar.
+- **Settings panel** : pas implémenté, bouton non rendu.
+- **Couleurs custom vault** (color picker) : backlog.
 
-### P2 — Compléter Phase 5
-- Monter `tauri-driver` pour E2E real-binary OU étendre Playwright avec un mock de la couche Tauri sur la full app (alternative au real-binary).
-- Outline panel : spec à valider avec Matheo avant code.
+### P3 — Compléter Phase 5
+- Monter `tauri-driver` pour E2E real-binary OU étendre Playwright avec un mock de la couche Tauri sur la full app.
+- Tests Playwright pour le drag-drop (`dispatchDrop` historiquement fragile, à valider).
 
 ## Skills Claude pertinents pour ce projet
 À identifier en début de prochaine session via : `ls /Users/lkid/Ressources/Skills/`
