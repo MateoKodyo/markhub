@@ -465,4 +465,29 @@ Hypothèse : le smoke test final de la session précédente a probablement été
 - Pas de refactor structure Editor.svelte
 - Pas de Tauri/Rust touché
 
+### Commit
+- Hash : `48be55d`
+- Message : `fix(visual): slash menu single-panel + Crepe overrides specificity`
+
+---
+
+## 🏁 Clôture session 2026-05-09T18:05
+
+### Bilan
+- **Mission accomplie** : 4 bugs P0 visuels traités. #1 et #4 fixés explicitement, #2 et #3 non reproductibles dans le harnais (probablement déjà fixés par les commits récents + protégés par le bump de spécificité).
+- **Filet de sécurité installé** : harnais Playwright `/_visual` + 5 baselines, capable de détecter toute régression future du rendu Crepe.
+- **Décision actée** : interdiction des unit tests CSS sur Crepe (jsdom blind to cascaded styles + Crepe mocké). Documenté dans Étape 1.
+
+### État final
+- Tests : cargo 51/51, npm 116/116, svelte-check 0/0, build OK, visual 5/5.
+- Stash `agents-prep-work-stash` toujours actif (refactors I1/I2 non touchés).
+- Phase 6 (Polish visuel) : ✅ Étapes 1, 2, 3 round 1 terminées.
+- Reste à charge Matheo : smoke test full app (validation finale) + décider sort du stash + dette technique mineure (route `/_visual` en prod).
+
+### Lessons learned (session)
+1. **Lazy-loaded CSS = cascade order matters**. Crepe charge ses CSS au mount d'Editor → après `app.css` parsé en layout. À spécificité égale, la feuille la plus récente gagne. Solution non-violente : doubler la classe (`.milkdown.milkdown`) pour bumper la spécificité sans `!important`.
+2. **Un `flex-direction: column` mal scopé peut créer un faux bug "double-rendu"**. Le menu était unique (DOM le confirmait), mais les onglets empilés à cause d'un override trop large faisaient illusion d'un panel séparé.
+3. **Le harnais Playwright `/_visual` permet d'isoler le composant Editor** sans avoir à mocker la couche Tauri. Plus rapide à monter qu'un real-binary E2E (~30 min vs 1-2h tauri-driver), suffisant pour le rendu Crepe pur.
+4. **Les baselines initiaux capturés en état "cassé" sont précieux** — ils servent de témoignage avant/après et permettent de mesurer formellement le delta visuel.
+
 

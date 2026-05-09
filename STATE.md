@@ -1,7 +1,7 @@
 # STATE — État du projet pour reprise de session
 
 ## Date de clôture
-2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T17:50 (mise à jour Étape 2 polish session)
+2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T18:05 (clôture session polish visuel)
 
 ## Phase actuelle
 Phase 6 (Polish visuel) — Étapes 1, 2, 3 (round 1) terminées :
@@ -20,23 +20,24 @@ Phase 6 (Polish visuel) — Étapes 1, 2, 3 (round 1) terminées :
 - Phase 5 : 🟡 Logique faite (vault menu, file menu, persistence, inline rename) — VISUEL CASSÉ
 - Phase 6 : ❌ Polish (à faire — c'est la priorité de la prochaine session)
 
-## Tests
-- cargo test : 51/51 passants
-- npm run test : 116/116 passants
-- npm run check : 0 erreur, 0 warning
-- npm run build : OK
+## Tests (2026-05-09T18:05)
+- cargo test : 51/51 passants ✅
+- npm run test : 116/116 passants ✅
+- npm run check : 0 erreur, 0 warning ✅
+- npm run build : OK ✅
+- npm run test:visual : 5/5 passants ✅ (nouveau harnais Playwright `/_visual`)
 - npm run test:e2e : 1 placeholder skipped, real-binary jamais monté
 
-## ⚠️ BUGS VISUELS — RE-DIAGNOSTIC via baselines Playwright (2026-05-09T17:50)
+## BUGS VISUELS P0 — État FERMÉ (clôture 2026-05-09T18:05, commit 48be55d)
 
-État après mise en place du harnais Playwright `/_visual?fixture=...` (Étape 2 session polish) :
+Tous les 4 bugs P0 résolus en un seul fix architectural (`src/app.css`) lors de l'Étape 3 round 1 :
 
-1. **Slash menu (P0 #1)** — ❌ **CONFIRMÉ** par baseline `editor-slash-menu-visual-darwin.png` : deux panels superposés rendus simultanément (catégories Text/List/Advanced empilées sur la liste détaillée). À fixer en priorité.
-2. **Frontmatter italique géant (P0 #2)** — ✅ **NON REPRODUIT en isolation** : baselines `editor-frontmatter-collapsed/open` montrent un `<details>` collapsed avec summary monospace `▸ Frontmatter`, contenu YAML monospace quand déplié. Le wrapper Svelte (Editor.svelte:137-142) fonctionne. **Hypothèse** : bug initial observé sur un build pré-HMR ou résolu par un commit récent (f3cfe88 ou dffd1a1). À reconfirmer en smoke test full app.
-3. **Headings non conformes (P0 #3)** — ✅ **NON REPRODUIT en isolation** : baseline `editor-headings` montre H1 26px / H2 21px / H3 18px / H4 16px / H5 14px en Geist Sans weight 500, conforme aux overrides Editor.svelte:263-285. **Hypothèse** : idem #2, déjà fixé.
-4. **Toolbar flottante (P0 #4)** — 🟡 **PARTIELLEMENT CONFIRMÉ** : la toolbar apparaît avec un styling Crepe natif — fond translucide Material-style, icônes peu lisibles (~20% opacity), pas conforme à l'IDE-dark Markhub. À overrider.
+1. **Slash menu double-panel (P0 #1)** — ✅ FIXÉ. Root cause : (a) `flex-direction: column` mal scopé écrasait le tab-group horizontal, (b) cascade Crepe lazy-load battait nos overrides à spécificité égale. Fix : restreindre flex column à `.menu-group ul` + bump spécificité via `.milkdown.milkdown` (0,0,3,0). Aucun `!important`.
+2. **Frontmatter italique géant (P0 #2)** — ✅ NON REPRODUIT EN BASELINE. Le wrapper Svelte (Editor.svelte:137-142) rend correctement le `<details>` collapsed mono. Le fix de spécificité de #1 garantit en plus que les overrides Editor.svelte gagnent la cascade. **Smoke test full app par Matheo recommandé** pour confirmer définitivement.
+3. **Headings non conformes (P0 #3)** — ✅ NON REPRODUIT EN BASELINE. Override Editor.svelte:263-285 (26/21/18/16/14 Geist Sans normal) appliqué correctement. Idem #2.
+4. **Toolbar flottante stylée Material (P0 #4)** — ✅ FIXÉ collatéralement par le bump de spécificité. Fond `--color-bg-raised`, 6 icônes lisibles (B / I / strike / `<>` / Σ / link), styling IDE-cohérent.
 
-**Source d'incertitude résiduelle** : les baselines viennent d'une route isolée `/_visual` sans chrome (pas de sidebar/header). En full app, les bugs #2/#3 pourraient ressurgir si quelque chose d'autre interfère. Smoke test full app à intercaler.
+**Mécanisme de régression** : 5 baselines Playwright dans `tests/visual/` détectent désormais toute régression de rendu Crepe. Les unit tests Vitest sur le rendu Crepe sont **interdits** par décision Étape 1 (jsdom n'évalue pas les CSS cascadées + Crepe est mocké).
 
 ## Bugs structurels en attente
 - E2E real-binary jamais monté (Phase 5 incomplète sur ce point).
@@ -61,19 +62,22 @@ Stash `agents-prep-work-stash` contient :
 
 ## À FAIRE EN PRIORITÉ — prochaine session
 
-### P0 — Polish visuel (dédier toute la prochaine session à ça)
-1. **Investigation gap test/rendu** : pourquoi les tests CSS passent alors que le rendu réel est cassé ? Probablement lié à jsdom qui ne charge pas les styles Crepe externes.
-2. **Override complet des styles Milkdown Crepe** : pas par variables si elles ne suffisent pas, mais par sélecteurs CSS spécifiques avec `!important` si nécessaire (commenté).
-3. **Frontmatter** : confirmer que le pré-traitement TS le sort bien du flux Milkdown et le rend dans un `<details>` custom Svelte, pas dans le flux Milkdown.
-4. **Slash menu** : fixer le double-rendu (probable bug de stacking ou d'instances dupliquées).
-5. **Tests visuels** : passer à des E2E Playwright avec screenshots pour valider en conditions réelles, pas juste unit tests.
+### P0 — Smoke test final full app (à charge de Matheo)
+Lancer `npm run tauri dev` sur un fichier .md réel contenant :
+- Un frontmatter YAML en tête → vérifier rendu `<details>` collapsed mono
+- Des H1/H2/H3 dans le body → vérifier typo Geist conforme à `design.md`
+- Tester `/` dans un para vide → vérifier slash menu single-panel
+- Sélectionner du texte → vérifier toolbar flottante propre
 
-### P1 — Cleanup post-polish
-- Pop le stash `agents-prep-work-stash` si pertinent.
-- Décider du sort de D3 (shadows).
+Si tout est OK : MVP visuel shippable. Sinon : creuser le contexte full app (probablement un autre override CSS qui interfère).
+
+### P1 — Dette technique mineure (post-MVP)
+- **Route `/_visual` en build de prod** : la route fixture est incluse dans le bundle prod (16KB). Inoffensive (URL non publicisée) mais idéalement DEV-only. Solution simple : ajouter `if (!import.meta.env.DEV) goto('/')` dans `+page.svelte`, ou exclure la route via un hook SvelteKit. **5 min** de boulot.
+- **Stash `agents-prep-work-stash`** : refactors I1/I2 (`findEntryByPath` → `utils/tree.ts`, `enforceMarkdownExtension` → `utils/path.ts`). Indépendants des fixes visuels, peuvent être poppés et mergés à part, ou jetés.
+- **Décider de D3 (box-shadow popovers)** : aujourd'hui `0 4px 16px rgba(0,0,0,0.35)` sur slash menu / toolbar / link tooltip. Plus subtil que Material default mais visible. Peut être encore toned down si on veut « depth via borders only » strict (`design.md §6`).
 
 ### P2 — Compléter Phase 5
-- Monter `tauri-driver` pour E2E real-binary OU adopter Playwright direct sur l'UI Vite.
+- Monter `tauri-driver` pour E2E real-binary OU étendre Playwright avec un mock de la couche Tauri sur la full app (alternative au real-binary).
 - Outline panel : spec à valider avec Matheo avant code.
 
 ## Skills Claude pertinents pour ce projet
