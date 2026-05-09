@@ -1,15 +1,15 @@
 # STATE — État du projet pour reprise de session
 
 ## Date de clôture
-2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T18:05 (clôture session polish visuel)
+2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T18:05 (Round 1 polish) · 2026-05-09T19:15 (Round 2 polish)
 
 ## Phase actuelle
-Phase 6 (Polish visuel) — Étapes 1, 2, 3 (round 1) terminées :
+Phase 6 (Polish visuel) — terminée avec Round 1 + Round 2 :
 - Étape 1 : root cause investigation (jsdom blind + Crepe mocked) ✅
-- Étape 2 : harnais Playwright `/_visual` + 5 baselines ✅
-- Étape 3 round 1 : fix #1 (slash menu) + #4 (toolbar flottante) via un seul commit (spécificité + scope flex column). #2 et #3 non reproductibles en baseline, considérés résolus par le fix de spécificité ✅
-
-À VALIDER : smoke test full app pour confirmer définitivement #2 et #3 dans le contexte réel (sidebar/header présents).
+- Étape 2 : harnais Playwright `/_visual` + 9 baselines ✅
+- Round 1 (Crepe popovers) : #1 slash menu + #4 toolbar via spécificité bumpée ✅
+- Round 1 P0 fonctionnels (smoke validé) : #1 scroll, #2 click fiable, #3 auto-open après création ✅
+- Round 2 (chantiers visuels) : #1 grayscale 3-tier, #2 sélection accent-tinted, #3 task list différenciées, #4 block-handle opacity progressive ✅
 
 ## Avancement global
 - Phase 0 : ✅ Bootstrap
@@ -20,12 +20,12 @@ Phase 6 (Polish visuel) — Étapes 1, 2, 3 (round 1) terminées :
 - Phase 5 : 🟡 Logique faite (vault menu, file menu, persistence, inline rename) — VISUEL CASSÉ
 - Phase 6 : ❌ Polish (à faire — c'est la priorité de la prochaine session)
 
-## Tests (2026-05-09T18:05)
+## Tests (2026-05-09T19:15)
 - cargo test : 51/51 passants ✅
-- npm run test : 116/116 passants ✅
+- npm run test : 121/121 passants ✅ (+5 cas atomic openFile)
 - npm run check : 0 erreur, 0 warning ✅
 - npm run build : OK ✅
-- npm run test:visual : 5/5 passants ✅ (nouveau harnais Playwright `/_visual`)
+- npm run test:visual : 9/9 passants ✅ (slash, frontmatter, headings, toolbar, scroll-overflow×2, grayscale-hierarchy, text-selection, task-list)
 - npm run test:e2e : 1 placeholder skipped, real-binary jamais monté
 
 ## BUGS VISUELS P0 — État FERMÉ (clôture 2026-05-09T18:05, commit 48be55d)

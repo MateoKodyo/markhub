@@ -490,4 +490,62 @@ Hypothèse : le smoke test final de la session précédente a probablement été
 3. **Le harnais Playwright `/_visual` permet d'isoler le composant Editor** sans avoir à mocker la couche Tauri. Plus rapide à monter qu'un real-binary E2E (~30 min vs 1-2h tauri-driver), suffisant pour le rendu Crepe pur.
 4. **Les baselines initiaux capturés en état "cassé" sont précieux** — ils servent de témoignage avant/après et permettent de mesurer formellement le delta visuel.
 
+---
+
+# Session 2026-05-09T18:15 — Round 1 P0 fonctionnels (smoke real-app)
+
+Après smoke test sur Tauri dev, 3 P0 bloquant l'usage :
+
+**P0-2 (click pas fiable) + P0-3 (création n'ouvre pas)** — root cause unique trouvée par lecture statique :
+- `openFile` mutait `activeFile` SYNCHRONE avant `await fileRead` → `editorKey` flippait → `{#key}` re-mountait Editor → Crepe capturait via `untrack(body)` un content stale.
+- Caractère "intermittent" expliqué par le timing de fileRead : <1ms (cache OS) → race gagnée ; >10ms → race perdue.
+
+**Fix** :
+- Atomic update : `activeFile` et `content` set ENSEMBLE après `await fileRead`.
+- Guard `#openRequestId` monotone : si une requête plus récente démarre, le résultat de l'ancienne est jeté (anti-clobber sur clicks rapides A→B→C).
+- Tests : +5 cas (atomic, 2-call latest-wins, 3-call out-of-order, empty-file post-create, stale-error suppression).
+- Commit `ef67170`.
+
+**P0-1 (scroll absent)** — root cause par lecture du markup généré :
+- SvelteKit static adapter wrap l'app dans `<div style="display: contents">`.
+- Sélecteur legacy `#svelte, #app` ne match plus rien.
+- `.app { flex: 1 }` n'avait pas de parent flex → sidebar/éditeur grandissaient sans contrainte.
+
+**Fix** :
+- `body { display: flex; flex-direction: column }` (les wrappers `display: contents` sont layout-transparent → `.app` devient flex item direct de body).
+- Bonus : scrollbars 8px overlay (vs 16px native) pour ne pas bouffer la place dans la sidebar 280px.
+- Test : +1 visual spec `scroll-overflow` avec mirror Sidebar (60 fake files + 80-section long-doc) qui asserte `scrollHeight > clientHeight` ET `scrollTop` réagit.
+- Commit `8be122f`.
+
+**Smoke test Matheo** : "scroll ok / clique fichier mieux / création + édition OK" → Round 1 fonctionnel validé.
+
+---
+
+# Session 2026-05-09T18:30 — Round 2 polish visuel (5 chantiers)
+
+## Chantier 1 — Niveaux de gris différenciés (commit `84f7a8b`)
+Sidebar et éditeur partageaient le même background → chrome et content blur. Ajout d'un token `--color-bg-sidebar: #060504` plus sombre que `--color-bg: #0a0908`. Hiérarchie 3-tier : sidebar (darkest) → canvas → raised popovers (lightest). Test : `grayscale-hierarchy` mesure luma sidebar < luma content avec ≥2 unités delta.
+
+## Chantier 2 — Sélection texte visible (commit `000e029`)
+Crepe override `::selection` avec `--crepe-color-selected` (= surface-active = ~5% white) → highlight invisible. Solution : token `--color-selection: rgba(59, 130, 246, 0.32)` + override spécifique `.milkdown.milkdown .ProseMirror *::selection` (0,0,3,1) > Crepe (0,0,2,1). Test : `getComputedStyle(el, '::selection')` matche le bleu accent rgba.
+
+## Chantier 3 — Task list checkboxes (commit `4899076`)
+Crepe paint .checked et .unchecked avec le même `--crepe-color-outline` → indistinguables. Override SVG fill : unchecked → `--color-text-muted`, checked → `--color-accent`. Strike-through tenté mais cascade aux sub-items pending (Crepe n'expose pas `.is-checked` sur le `<li>` parent) → drop, le bleu vif suffit comme signal.
+
+## Chantier 4 — Block handle opacity progressive (commit `26ab846`)
+Décision arbitrée par Matheo : Option A (garder + raffiner) plutôt que B (masquer). Le block-handle Crepe (+/⋮⋮ à gauche) passe à `opacity: 0.4` au `data-show=true` et `1.0` au hover direct, transition 0.15s ease. Pattern Linear / Notion : présent mais quiet, pleinement visible uniquement quand on cible.
+
+## Chantier 5 — Validation finale (ce commit)
+- cargo 51/51 ✅
+- vitest 121/121 ✅
+- svelte-check 0/0 ✅
+- build OK ✅
+- visual 9/9 ✅
+- BACKLOG.md confirmé : drag-drop fichier→dossier intra-vault toujours hors-scope (item présent depuis Round 1).
+
+### Lessons learned Round 2
+1. **Cascade Crepe sur `::selection`** : Crepe a sa propre règle scopée à `.milkdown .ProseMirror *::selection`, donc un `::selection` global ne suffit pas. Bumper la spécificité reste la solution propre.
+2. **Sélecteur `:has()` + cascade** : `.label-wrapper:has(.checked) ~ .children` propage à toute la branche (sub-list pending incluse). Restreindre à `> p:first-child` n'a pas marché à cause de la structure DOM Crepe (probablement un wrapper avant le `<p>`). Le pragmatisme : drop la feature secondaire (strike-through) puisque la différenciation principale (couleur accent) suffit.
+3. **Décision A vs B sur Crepe block-handle** : pas de menu de transformation natif au click sur ⋮⋮ → Crepe ne fait que drag-and-drop. Option A retenue : garder le drag-reorder + opacity progressive pour réduire le bruit. Le `+` reste le vector d'insertion via slash menu.
+
 
