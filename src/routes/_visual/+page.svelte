@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Editor from '$lib/components/Editor.svelte';
+	import StatusBar from '$lib/components/StatusBar.svelte';
+	import type { Vault } from '$lib/tauri/types';
 
 	const FIXTURES: Record<string, string> = {
 		headings: `# H1 heading example
@@ -64,6 +66,26 @@ Mixed sub-list:
 		name: `note-${String(i + 1).padStart(2, '0')}.md`
 	}));
 
+	const FAKE_VAULT: Vault = {
+		id: 'fake-vault',
+		name: 'Notes perso',
+		path: '/Users/demo/MD',
+		mode: 'edit',
+		color: '#A78BFA'
+	};
+
+	const APP_SHELL_BODY = `# Architecture overview
+
+The status bar at the bottom shows the active vault, the current document path, the word count, the save status, and the editor mode toggle.
+
+## Why a status bar
+
+Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual info to the bottom rail.
+
+- [x] Define the three zones
+- [x] Wire the word count derived store
+- [ ] Add cursor line/col position (backlog)`;
+
 	let fixture = $state<string>('headings');
 	let content = $derived(FIXTURES[fixture] ?? FIXTURES.headings);
 	let ready = $state(false);
@@ -71,7 +93,13 @@ Mixed sub-list:
 	onMount(() => {
 		const params = new URLSearchParams(window.location.search);
 		const f = params.get('fixture');
-		if (f && (f in FIXTURES || f === 'sidebar-overflow' || f === 'editor-overflow')) {
+		if (
+			f &&
+			(f in FIXTURES ||
+				f === 'sidebar-overflow' ||
+				f === 'editor-overflow' ||
+				f === 'app-shell')
+		) {
 			fixture = f;
 		}
 		ready = true;
@@ -98,7 +126,44 @@ Mixed sub-list:
 
 <div class="visual-host" data-ready={ready}>
 	{#if ready}
-		{#if fixture === 'sidebar-overflow'}
+		{#if fixture === 'app-shell'}
+			<!-- Full app-shell mirror: sidebar + editor + status bar.
+			     Used by visual tests to assert end-to-end layout in isolation. -->
+			<div class="app-mirror app-shell">
+				<aside class="sidebar-mirror">
+					<section class="vaults-section-mirror">
+						<span class="label">Vaults</span>
+						<div class="vault-row">Notes perso</div>
+						<div class="vault-row">Skills Claude</div>
+					</section>
+					<section class="files-section-mirror">
+						<header class="files-header">
+							<span class="label">Fichiers</span>
+						</header>
+						<input class="filter" placeholder="Filtrer…" />
+						<ul class="tree-mirror">
+							{#each FAKE_FILES.slice(0, 12) as f (f.name)}
+								<li class="entry">{f.name}</li>
+							{/each}
+						</ul>
+					</section>
+				</aside>
+				<main class="content-mirror">
+					<header class="content-header-mirror">subfolder/architecture.md</header>
+					<div class="content-body-mirror">
+						<Editor content={APP_SHELL_BODY} mode="preview" readonly={false} />
+					</div>
+				</main>
+			</div>
+			<StatusBar
+				vault={FAKE_VAULT}
+				relativePath="subfolder/architecture.md"
+				readonly={false}
+				content={APP_SHELL_BODY}
+				status="saved"
+				mode="preview"
+			/>
+		{:else if fixture === 'sidebar-overflow'}
 			<!-- Mirrors the real Sidebar's CSS structure (flex root → .sidebar →
 			     .vaults-section + .files-section). 60 fake entries push the tree
 			     well past the viewport so the scroll behavior is observable. -->
