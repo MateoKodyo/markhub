@@ -513,7 +513,22 @@ samp {
 	fill: var(--color-accent);
 }
 
-/* Block handle (drag handle that appears on the gutter) */
+/* Block handle (the +/⋮⋮ pair that appears on the left gutter at hover).
+ * Crepe makes it fully visible the moment data-show="true", which feels
+ * shouty against the warm-dark canvas. Pattern Linear / Notion: present
+ * but quiet, only fully visible when the user hovers it directly. */
+.milkdown.milkdown .milkdown-block-handle {
+	transition: opacity 0.15s ease;
+}
+
+.milkdown.milkdown .milkdown-block-handle[data-show='true'] {
+	opacity: 0.4;
+}
+
+.milkdown.milkdown .milkdown-block-handle[data-show='true']:hover {
+	opacity: 1;
+}
+
 .milkdown.milkdown .milkdown-block-handle .operation-item {
 	width: 24px;
 	height: 24px;
