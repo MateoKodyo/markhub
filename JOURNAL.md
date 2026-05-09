@@ -253,6 +253,49 @@ Comme avant, je ne peux pas valider visuellement par moi-même. Les tests confir
 
 ---
 
+## Round 2 — 4 retours visuels post-usage (~17:00)
+
+### RETOUR 3 — Block editing flicker (CRITIQUE)
+**Diagnostic** (sans code) : le `$effect` dans `Editor.svelte` lisait synchronement `frontmatter` et `body` (dérivés de `content` rune). Toute mutation de `content` (chaque keystroke) → re-trigger de l'effet → `crepe.destroy()` → nouvelle init Milkdown SANS le slash menu en cours d'ouverture. Hypothèses H1 confirmée par code-reading. H2/H3/H4 infirmées (preuves dans la diagnose envoyée).
+
+**Fix** : `untrack(() => frontmatter)` + `untrack(() => body)` au mount de l'effet. Les deps réactives sont désormais limitées à `mode` + `container`. Milkdown garde son state interne, n'est plus re-créé à chaque caractère. Slash menu et toolbar flottante survivent à l'interaction. Re-mount toujours déclenché correctement par `{#key editorKey}` du parent au switch de fichier.
+
+### RETOUR 2 — Fonts incohérentes + Crepe overrides
+- Cause confirmée : Crepe définit `--crepe-font-title: 'Noto Serif'` + tailles 42/36/32/28px sur h1-h4 dans son thème par défaut. Mes overrides précédents (`--crepe-color-*`) étaient au niveau `.preview` mais Crepe set ses vars sur `.milkdown` (plus spécifique → mes override perdaient la cascade).
+- Fix : déplacé les overrides dans `.preview :global(.milkdown)` (même spécificité), ajouté `--crepe-font-title: var(--font-sans)` + définition explicite des `font-size` h1-h6 sur l'échelle IDE-density (26/21/18/16/14/14px) + `font-style: normal` (anti-italique).
+- Frontmatter `<details>` : audit confirmé OK — bloc rendu monospace via `.frontmatter-block pre code { font-family: var(--font-mono) }`.
+- Tests existants (C3.5/C3.6) couvrent déjà le rendu frontmatter.
+
+### RETOUR 4 — Slash menu + floating toolbar customisés
+- Identifié les classes Crepe : `.milkdown-slash-menu`, `.milkdown-toolbar`, `.milkdown-block-handle`, `.milkdown-link-preview`, `.milkdown-link-edit`.
+- Override globalement dans `app.css` : `var(--color-bg-raised)` solide pour le background (vs `--crepe-color-surface`), bordures `var(--color-border)`, ombre légère (pas la heavy Material drop shadow par défaut), radius `var(--radius-md)`, fonts Geist Sans, items hover/selected via nos `--color-surface-hover` / `--color-surface-active`.
+- Le menu et la toolbar lisent maintenant comme du UI Markhub natif (cohérent avec `ContextMenu.svelte`).
+
+### RETOUR 1 — Rename inline (Finder / VS Code)
+- **InlineInput** étendu : `selectionRange?: [number, number]` qui pré-sélectionne au mount (sinon select all par défaut). `errorMessage?` prop qui affiche un texte d'erreur inline avec classe `has-error` (border rouge). `onSubmit` rejet → erreur capturée et affichée inline, input reste ouvert.
+- **FileTree** étendu : `renamingPath: string | null` prop. Quand non-null, l'entrée correspondante rend un `InlineInput` à la place du label, avec `selectionRange = [0, lastDotIndex]` pour les fichiers (skip extension) et select all pour les dirs/dotfiles. Triggers : `ondblclick` sur la row + `onkeydown` `F2` + via le menu contextuel.
+- **Sidebar** : remplace l'ancien `promptRenameFile` (popup `InputDialog`) par `startRenameEntry` qui set `renamingPath`. `commitRename` appelle `fileRename`, et si rejet (conflit), l'erreur remonte via le `onSubmit` de InlineInput. Le popup `InputDialog` reste utilisé pour le rename de **vault** (les vaults ne sont pas dans l'arbre, pas besoin d'inline).
+- Auto-add `.md` préservé : si l'utilisateur tape `note` sans extension, on enregistre `note.md`.
+- Menu contextuel dossier : ajout de l'item « Renommer » (manquait avant). Files : « Renommer / Déplacer vers… / Supprimer ». Dossiers : « Nouveau fichier / Nouveau dossier / Renommer ».
+
+### Tests round 2
+- Avant : 161 (51 rust + 110 front)
+- Après : **167** (51 rust + 116 front)
+- Nouveaux tests : 6
+  - C6.8/9/10 — InlineInput selectionRange + errorMessage + onSubmit reject
+  - C2.9/10/11 — FileTree renamingPath rendering + F2 + double-click
+- Désactivés : 0
+- svelte-check : 0/0
+- npm run build : OK
+
+### Décisions
+- Pas de Rust modif (pas besoin) — tout est UX front-end.
+- `InlineInput` reste un seul composant avec une API extensible, plutôt que créer un `InlineRenameInput` dédié (pas de duplication, juste 2 props additionnelles).
+- F2 binding est sur le `<button>` de la row (pas un keyboard handler global) — focus-driven, pas de risque d'interférer avec le shortcut F2 d'autres composants.
+- Auto-add `.md` skippé pour les dotfiles (`.env`, `.gitignore`) car `isMarkdownFile()` retourne false → on tape `.env` → on garde `.env` (pas `env.md`). Patché aussi.
+
+---
+
 ## 🏁 Session terminée — ~16:00
 
 Résumé en 5 lignes :

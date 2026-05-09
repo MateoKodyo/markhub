@@ -34,6 +34,9 @@
 	// Inline-creation state — when set, FileTree renders an InlineInput at parentPath.
 	let creatingAt = $state<CreatingAt | null>(null);
 
+	// Inline-rename state — when set, the entry at this path renders inline.
+	let renamingPath = $state<string | null>(null);
+
 	// Context menu shared between file tree + vault list (items differ).
 	let ctxOpen = $state(false);
 	let ctxX = $state(0);
@@ -243,14 +246,15 @@
 		switch (ctx.kind) {
 			case 'file':
 				return [
-					{ label: 'Renommer', onClick: () => promptRenameFile(ctx.entry) },
+					{ label: 'Renommer', onClick: () => startRenameEntry(ctx.entry) },
 					{ label: 'Déplacer vers…', onClick: () => promptMoveFile(ctx.entry) },
 					{ label: 'Supprimer', danger: true, onClick: () => confirmDeleteFile(ctx.entry) }
 				];
 			case 'directory':
 				return [
 					{ label: 'Nouveau fichier', onClick: () => startCreate('file', ctx.entry.relativePath) },
-					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', ctx.entry.relativePath) }
+					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', ctx.entry.relativePath) },
+					{ label: 'Renommer', onClick: () => startRenameEntry(ctx.entry) }
 				];
 			case 'root':
 				return [
@@ -258,6 +262,55 @@
 					{ label: 'Nouveau dossier', onClick: () => startCreate('folder', '') }
 				];
 		}
+	}
+
+	function startRenameEntry(entry: FileEntry) {
+		if (vaultsStore.isActiveVaultReadonly) return;
+		renamingPath = entry.relativePath;
+	}
+
+	function cancelRename() {
+		renamingPath = null;
+	}
+
+	async function commitRename(rawValue: string) {
+		const id = vaultsStore.activeVaultId;
+		if (!id || !renamingPath || !scanRoot) return;
+		const entry = findEntryByPath(scanRoot, renamingPath);
+		if (!entry) {
+			renamingPath = null;
+			return;
+		}
+		if (rawValue === entry.name) {
+			renamingPath = null;
+			return;
+		}
+		// Auto-add .md for files; dirs and dotfiles keep what the user typed.
+		const newName =
+			entry.isDirectory || isMarkdownFile(rawValue) || rawValue.startsWith('.')
+				? rawValue
+				: `${rawValue}.md`;
+		const parent = getParentPath(entry.relativePath);
+		const newRel = parent ? joinPath(parent, newName) : newName;
+		// Throws on conflict — InlineInput catches and surfaces inline.
+		await fileRename(id, entry.relativePath, newRel);
+		renamingPath = null;
+		await refreshScan();
+		if (
+			activeFileStore.activeFile?.vaultId === id &&
+			activeFileStore.activeFile?.relativePath === entry.relativePath
+		) {
+			void activeFileStore.openFile(id, newRel);
+		}
+	}
+
+	function findEntryByPath(root: FileEntry, path: string): FileEntry | null {
+		if (root.relativePath === path) return root;
+		for (const child of root.children ?? []) {
+			const found = findEntryByPath(child, path);
+			if (found) return found;
+		}
+		return null;
 	}
 
 	function promptMoveFile(entry: FileEntry) {
@@ -283,33 +336,6 @@
 			}
 		};
 		folderPickerOpen = true;
-	}
-
-	function promptRenameFile(entry: FileEntry) {
-		inputTitle = `Renommer ${entry.name}`;
-		inputPlaceholder = entry.name;
-		inputDefault = entry.name;
-		inputSubmit = async (raw: string) => {
-			const id = vaultsStore.activeVaultId;
-			if (!id) throw new Error('Aucun vault actif');
-			if (raw === entry.name) {
-				inputOpen = false;
-				return;
-			}
-			const newName = entry.isDirectory || isMarkdownFile(raw) ? raw : `${raw}.md`;
-			const parent = getParentPath(entry.relativePath);
-			const newRel = parent ? joinPath(parent, newName) : newName;
-			await fileRename(id, entry.relativePath, newRel);
-			inputOpen = false;
-			await refreshScan();
-			if (
-				activeFileStore.activeFile?.vaultId === id &&
-				activeFileStore.activeFile?.relativePath === entry.relativePath
-			) {
-				void activeFileStore.openFile(id, newRel);
-			}
-		};
-		inputOpen = true;
 	}
 
 	function confirmDeleteFile(entry: FileEntry) {
@@ -411,12 +437,16 @@
 					expanded={expandedSet}
 					selectedPath={selectedPath}
 					{creatingAt}
+					{renamingPath}
 					onFileClick={handleOpenFile}
 					onToggle={handleToggleFolder}
 					onContextMenu={openFileContextMenu}
 					onSelectionChange={(entry) => (selectedEntry = entry)}
 					onCreateSubmit={commitCreate}
 					onCreateCancel={cancelCreate}
+					onStartRename={startRenameEntry}
+					onRenameSubmit={commitRename}
+					onRenameCancel={cancelRename}
 				/>
 			{/if}
 		</section>

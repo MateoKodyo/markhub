@@ -27,12 +27,16 @@
 		expanded = new Set<string>(),
 		selectedPath = null,
 		creatingAt = null,
+		renamingPath = null,
 		onFileClick = () => {},
 		onToggle = () => {},
 		onContextMenu = () => {},
 		onSelectionChange = () => {},
 		onCreateSubmit = () => {},
-		onCreateCancel = () => {}
+		onCreateCancel = () => {},
+		onStartRename = () => {},
+		onRenameSubmit = () => {},
+		onRenameCancel = () => {}
 	}: {
 		root?: FileEntry | null;
 		filter?: string;
@@ -42,12 +46,18 @@
 		selectedPath?: string | null;
 		/** When non-null, an inline input is rendered at the matching parent. */
 		creatingAt?: CreatingAt | null;
+		/** When set, the entry at this relativePath shows an inline rename input. */
+		renamingPath?: string | null;
 		onFileClick?: (relativePath: string) => void;
 		onToggle?: (relativePath: string) => void;
 		onContextMenu?: (ctx: TreeContext, x: number, y: number) => void;
 		onSelectionChange?: (entry: FileEntry | null) => void;
 		onCreateSubmit?: (value: string) => void | Promise<void>;
 		onCreateCancel?: () => void;
+		/** Triggered by F2 / double-click on an entry's row. */
+		onStartRename?: (entry: FileEntry) => void;
+		onRenameSubmit?: (value: string) => void | Promise<void>;
+		onRenameCancel?: () => void;
 	} = $props();
 
 	// Filter the tree, keeping any directory whose name OR descendants match.
@@ -148,6 +158,31 @@
 		selectEntry(entry);
 		onFileClick(entry.relativePath);
 	}
+
+	function onEntryDoubleClick(e: MouseEvent, entry: FileEntry) {
+		e.preventDefault();
+		e.stopPropagation();
+		onStartRename(entry);
+	}
+
+	function onEntryKeyDown(e: KeyboardEvent, entry: FileEntry) {
+		if (e.key === 'F2') {
+			e.preventDefault();
+			onStartRename(entry);
+		}
+	}
+
+	/**
+	 * For files, pre-select the part of the name BEFORE the last extension dot
+	 * so the user can retype the name and keep `.md`. For dirs (and dotfiles),
+	 * select all.
+	 */
+	function renameSelection(entry: FileEntry): [number, number] | null {
+		if (entry.isDirectory) return null;
+		const i = entry.name.lastIndexOf('.');
+		if (i <= 0) return null;
+		return [0, i];
+	}
 </script>
 
 <div class="tree-wrap" oncontextmenu={onRootContextMenu} role="presentation">
@@ -175,6 +210,7 @@
 {#snippet entryNode(entry: FileEntry, depth: number)}
 	{#if entry.isDirectory}
 		{@const isOpen = isExpanded(entry.relativePath)}
+		{@const isRenaming = renamingPath === entry.relativePath}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="directory"
@@ -182,29 +218,57 @@
 			class:is-expanded={isOpen}
 			class:is-selected={selectedPath === entry.relativePath}
 		>
-			<button
-				type="button"
-				class="row"
-				style="padding-left: {8 + depth * 16}px"
-				onclick={() => clickDirectory(entry)}
-				oncontextmenu={(e) => onEntryContextMenu(e, entry)}
-			>
-				<span class="chevron">
-					{#if isOpen}
-						<ChevronDown size={12} />
-					{:else}
-						<ChevronRight size={12} />
-					{/if}
-				</span>
-				<span class="icon icon-folder">
-					{#if isOpen}
-						<FolderOpen size={14} />
-					{:else}
-						<Folder size={14} />
-					{/if}
-				</span>
-				<span class="name">{entry.name}</span>
-			</button>
+			{#if isRenaming}
+				<div class="row inline-renaming" data-testid="inline-rename">
+					<span class="chevron">
+						{#if isOpen}
+							<ChevronDown size={12} />
+						{:else}
+							<ChevronRight size={12} />
+						{/if}
+					</span>
+					<span class="icon icon-folder">
+						{#if isOpen}
+							<FolderOpen size={14} />
+						{:else}
+							<Folder size={14} />
+						{/if}
+					</span>
+					<InlineInput
+						indentPx={0}
+						defaultValue={entry.name}
+						selectionRange={renameSelection(entry)}
+						onSubmit={onRenameSubmit}
+						onCancel={onRenameCancel}
+					/>
+				</div>
+			{:else}
+				<button
+					type="button"
+					class="row"
+					style="padding-left: {8 + depth * 16}px"
+					onclick={() => clickDirectory(entry)}
+					ondblclick={(e) => onEntryDoubleClick(e, entry)}
+					onkeydown={(e) => onEntryKeyDown(e, entry)}
+					oncontextmenu={(e) => onEntryContextMenu(e, entry)}
+				>
+					<span class="chevron">
+						{#if isOpen}
+							<ChevronDown size={12} />
+						{:else}
+							<ChevronRight size={12} />
+						{/if}
+					</span>
+					<span class="icon icon-folder">
+						{#if isOpen}
+							<FolderOpen size={14} />
+						{:else}
+							<Folder size={14} />
+						{/if}
+					</span>
+					<span class="name">{entry.name}</span>
+				</button>
+			{/if}
 			{#if isOpen}
 				<ul role="group">
 					{#if creatingAt && creatingAt.parentPath === entry.relativePath}
@@ -224,24 +288,42 @@
 			{/if}
 		</li>
 	{:else}
+		{@const isRenaming = renamingPath === entry.relativePath}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="file"
 			class="entry file"
 			class:is-selected={selectedPath === entry.relativePath}
 		>
-			<button
-				type="button"
-				class="row"
-				style="padding-left: {8 + depth * 16 + 12}px"
-				onclick={() => clickFile(entry)}
-				oncontextmenu={(e) => onEntryContextMenu(e, entry)}
-			>
-				<span class="icon icon-file">
-					<FileText size={14} />
-				</span>
-				<span class="name">{entry.name}</span>
-			</button>
+			{#if isRenaming}
+				<div class="row inline-renaming" data-testid="inline-rename">
+					<span class="icon icon-file">
+						<FileText size={14} />
+					</span>
+					<InlineInput
+						indentPx={0}
+						defaultValue={entry.name}
+						selectionRange={renameSelection(entry)}
+						onSubmit={onRenameSubmit}
+						onCancel={onRenameCancel}
+					/>
+				</div>
+			{:else}
+				<button
+					type="button"
+					class="row"
+					style="padding-left: {8 + depth * 16 + 12}px"
+					onclick={() => clickFile(entry)}
+					ondblclick={(e) => onEntryDoubleClick(e, entry)}
+					onkeydown={(e) => onEntryKeyDown(e, entry)}
+					oncontextmenu={(e) => onEntryContextMenu(e, entry)}
+				>
+					<span class="icon icon-file">
+						<FileText size={14} />
+					</span>
+					<span class="name">{entry.name}</span>
+				</button>
+			{/if}
 		</li>
 	{/if}
 {/snippet}
@@ -331,6 +413,13 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.inline-renaming {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px var(--space-3) 4px 8px;
 	}
 
 	.empty {

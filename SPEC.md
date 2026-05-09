@@ -192,7 +192,8 @@ type FileEntry = {
     - **Persistence** : chaque toggle expand/collapse est persisté immédiatement dans `Config.vaultStates[vaultId].expandedFolders` (array de relativePath). Au redémarrage, l'arbre se restaure à l'identique.
     - Click sur le chevron OU sur le nom du dossier → toggle.
     - Click sur un fichier → ouvre dans l'éditeur.
-    - **Right-click** sur un fichier : menu contextuel `Renommer`, `Déplacer vers…`, `Supprimer`. Right-click sur un dossier : `Nouveau fichier`, `Nouveau dossier`. Right-click zone vide / racine : `Nouveau fichier` + `Nouveau dossier`.
+    - **Right-click** sur un fichier : menu contextuel `Renommer`, `Déplacer vers…`, `Supprimer`. Right-click sur un dossier : `Nouveau fichier`, `Nouveau dossier`, `Renommer`. Right-click zone vide / racine : `Nouveau fichier` + `Nouveau dossier`.
+    - **Renommage inline** (pattern Finder / VS Code) : déclenchable par **double-clic** sur le label, **F2** quand l'entrée a le focus, ou via le menu contextuel. Le label devient un `InlineInput` en place, pré-sélectionné sur le nom sans l'extension `.md`. Enter valide via `file_rename`, Escape/blur annule. Conflit de nom (rejet Rust) → border rouge + message inline. L'extension `.md` est ré-ajoutée automatiquement si l'utilisateur la supprime.
     - **Déplacer vers…** ouvre un sélecteur de dossier (`FolderPickerDialog`) listant tous les dossiers du vault courant + l'option « (racine du vault) ». Sélection d'un dossier → `file_rename(vault_id, oldPath, joinPath(targetDir, basename(oldPath)))`. Drag-drop intra-vault reste backlog.
   - **Création contextuelle in-tree** (pattern VS Code) :
     - Click sur `file-plus` ou `folder-plus` → un input inline apparaît à l'emplacement de création :

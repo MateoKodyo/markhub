@@ -111,4 +111,46 @@ describe('FileTree', () => {
 		const svgs = container.querySelectorAll('svg');
 		expect(svgs.length).toBeGreaterThanOrEqual(3);
 	});
+
+	// ------ C2.9 — renamingPath renders an inline rename input at that entry ------
+	it('renders an inline rename input when renamingPath matches a file entry', () => {
+		render(FileTree, {
+			root: sampleTree,
+			expanded: new Set<string>(),
+			renamingPath: 'a-note.md'
+		});
+		const inlineRename = document.querySelector('[data-testid="inline-rename"]');
+		expect(inlineRename).not.toBeNull();
+		const input = inlineRename?.querySelector('input') as HTMLInputElement | null;
+		expect(input?.value).toBe('a-note.md');
+	});
+
+	// ------ C2.10 — F2 keyboard shortcut emits onStartRename ------
+	it('emits onStartRename when F2 is pressed on a focused entry', async () => {
+		const onStartRename = vi.fn();
+		render(FileTree, {
+			root: sampleTree,
+			expanded: new Set<string>(),
+			onStartRename
+		});
+		const fileButton = screen.getByText('a-note.md').closest('button');
+		expect(fileButton).not.toBeNull();
+		await fireEvent.keyDown(fileButton!, { key: 'F2' });
+		expect(onStartRename).toHaveBeenCalled();
+		expect(onStartRename.mock.calls[0][0].relativePath).toBe('a-note.md');
+	});
+
+	// ------ C2.11 — double-click emits onStartRename ------
+	it('emits onStartRename on double-click of a file row', async () => {
+		const onStartRename = vi.fn();
+		render(FileTree, {
+			root: sampleTree,
+			expanded: new Set<string>(),
+			onStartRename
+		});
+		const fileButton = screen.getByText('a-note.md').closest('button');
+		await fireEvent.dblClick(fileButton!);
+		expect(onStartRename).toHaveBeenCalled();
+		expect(onStartRename.mock.calls[0][0].relativePath).toBe('a-note.md');
+	});
 });

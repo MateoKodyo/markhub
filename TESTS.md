@@ -139,6 +139,9 @@ Convention de nommage : `describe('Module', () => { it('should ...', ...) })`.
 - [ ] Affiche un message « Vault vide » si pas de fichiers.
 - [ ] Filtre récursif : avec filter='foo' et un fichier matching profond, le composant calcule un set d'expanded auto qui inclut les parents du match (sans muter l'expanded persisté du parent).
 - [ ] Icônes Lucide rendues : `chevron-right` / `chevron-down` pour le toggle, `folder` / `folder-open` pour les dossiers, `file-text` pour les fichiers `.md`.
+- [ ] **Renommage inline** : quand `renamingPath` correspond à une entrée, un `InlineInput` (data-testid `inline-rename`) la remplace, prefilled avec le nom de l'entrée.
+- [ ] **F2** sur une entrée focusée → callback `onStartRename(entry)`.
+- [ ] **Double-clic** sur la row d'une entrée → callback `onStartRename(entry)`.
 
 ### C3. `Editor.svelte`
 - [ ] Reçoit `content` en props et l'affiche dans Milkdown.
@@ -156,6 +159,9 @@ Convention de nommage : `describe('Module', () => { it('should ...', ...) })`.
 - [ ] Enter avec valeur vide → no-op.
 - [ ] Escape → callback `onCancel`.
 - [ ] Blur → callback `onCancel` (même comportement que Escape).
+- [ ] `selectionRange={[0, 4]}` pré-sélectionne uniquement les 4 premiers caractères au mount (utile pour rename de `note.md` → sélection `note`).
+- [ ] `errorMessage` prop affiche un texte d'erreur inline + classe `has-error` sur l'input.
+- [ ] Quand `onSubmit` rejette (e.g. conflit de nom serveur), l'erreur capturée est affichée inline et l'input reste ouvert.
 
 ### C7. `FolderPickerDialog.svelte`
 - [ ] Liste tous les dossiers du tree + entrée « (racine du vault) ».

@@ -67,4 +67,40 @@ describe('InlineInput', () => {
 		const input = screen.getByPlaceholderText('name') as HTMLInputElement;
 		expect(input.value).toBe('README.md');
 	});
+
+	// ------ C6.8 — selectionRange selects only the requested range ------
+	it('honors selectionRange to pre-select a substring (e.g. name without ext)', async () => {
+		render(InlineInput, {
+			placeholder: 'name',
+			defaultValue: 'note.md',
+			selectionRange: [0, 4]
+		});
+		const input = screen.getByPlaceholderText('name') as HTMLInputElement;
+		await new Promise((r) => setTimeout(r, 0));
+		expect(input.selectionStart).toBe(0);
+		expect(input.selectionEnd).toBe(4);
+	});
+
+	// ------ C6.9 — errorMessage prop renders inline ------
+	it('renders an inline error message when errorMessage prop is set', () => {
+		render(InlineInput, {
+			placeholder: 'name',
+			errorMessage: 'A file with this name already exists.'
+		});
+		expect(screen.getByRole('alert').textContent).toContain('already exists');
+	});
+
+	// ------ C6.10 — onSubmit rejection sets internal error and stays open ------
+	it('shows the error inline when onSubmit rejects (e.g. server conflict)', async () => {
+		const onSubmit = vi.fn(async () => {
+			throw new Error('Conflit de nom');
+		});
+		render(InlineInput, { placeholder: 'name', onSubmit });
+		const input = screen.getByPlaceholderText('name') as HTMLInputElement;
+		await fireEvent.input(input, { target: { value: 'taken.md' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+		// Wait for the async submit promise to settle.
+		await new Promise((r) => setTimeout(r, 0));
+		expect(screen.getByRole('alert').textContent).toContain('Conflit');
+	});
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { joinFrontmatter, splitFrontmatter } from '$lib/utils/markdown';
 
 	export type EditorMode = 'preview' | 'source';
@@ -53,9 +54,13 @@
 		let cancelled = false;
 		const root = container;
 		let localCrepe: any = null;
-		// Capture frontmatter at init time so onChange can recombine cleanly.
-		const initialFrontmatter = frontmatter;
-		const initialBody = body;
+		// Capture frontmatter + body via untrack so this effect ONLY re-runs on
+		// mode/container changes — not on every keystroke. Otherwise Milkdown
+		// gets destroyed + recreated on each char, killing the slash menu and
+		// floating toolbar mid-interaction. Milkdown owns content state from
+		// here; the parent re-mounts via {#key} on file change.
+		const initialFrontmatter = untrack(() => frontmatter);
+		const initialBody = untrack(() => body);
 
 		(async () => {
 			const { Crepe } = await import('@milkdown/crepe');
@@ -209,20 +214,28 @@
 	.preview {
 		flex: 1;
 		min-height: 0;
-		/* Override Crepe's default surface to match our warm-dark theme. */
+	}
+
+	/* Crepe defines --crepe-* on its own .milkdown selector. We override at the
+	   same specificity (or higher) on .preview .milkdown so our tokens win
+	   without relying on the parent-cascade trick. */
+	.preview :global(.milkdown) {
 		--crepe-color-background: transparent;
 		--crepe-color-surface: var(--color-surface-veil);
+		--crepe-color-surface-low: var(--color-surface-veil);
 		--crepe-color-on-surface: var(--color-text-primary);
 		--crepe-color-on-surface-variant: var(--color-text-body);
 		--crepe-color-outline: var(--color-border);
 		--crepe-color-primary: var(--color-accent);
+		--crepe-color-secondary: var(--color-border-strong);
+		--crepe-color-hover: var(--color-surface-hover);
+		--crepe-color-selected: var(--color-surface-active);
+		--crepe-color-inline-code: var(--color-text-primary);
+		--crepe-color-inline-area: var(--color-surface-veil);
 		--crepe-font-default: var(--font-sans);
+		--crepe-font-title: var(--font-sans); /* override 'Noto Serif' default */
 		--crepe-font-code: var(--font-mono);
-	}
 
-	/* Cancel any internal Crepe layout that would constrain or offset content —
-	   the .canvas wrapper is the single source of truth for centering & width. */
-	.preview :global(.milkdown) {
 		max-width: none;
 		width: 100%;
 		margin: 0;
@@ -233,13 +246,50 @@
 		color: var(--color-text-primary);
 	}
 
+	/* IDE-density heading scale (Crepe defaults are 42/36/32/28/24/18 — too large). */
 	.preview :global(.milkdown h1),
 	.preview :global(.milkdown h2),
 	.preview :global(.milkdown h3),
-	.preview :global(.milkdown h4) {
+	.preview :global(.milkdown h4),
+	.preview :global(.milkdown h5),
+	.preview :global(.milkdown h6) {
 		color: var(--color-text-primary);
+		font-family: var(--font-sans);
+		font-style: normal;
 		font-weight: var(--weight-medium);
 		letter-spacing: var(--tracking-heading);
+	}
+
+	.preview :global(.milkdown h1) {
+		font-size: 26px;
+		line-height: 1.25;
+		margin-top: 0;
+	}
+	.preview :global(.milkdown h2) {
+		font-size: 21px;
+		line-height: 1.3;
+	}
+	.preview :global(.milkdown h3) {
+		font-size: 18px;
+		line-height: 1.35;
+	}
+	.preview :global(.milkdown h4) {
+		font-size: 16px;
+		line-height: 1.4;
+	}
+	.preview :global(.milkdown h5),
+	.preview :global(.milkdown h6) {
+		font-size: 14px;
+		line-height: 1.4;
+		color: var(--color-text-body);
+	}
+
+	.preview :global(.milkdown p),
+	.preview :global(.milkdown li) {
+		font-family: var(--font-sans);
+		font-size: 15px;
+		line-height: 1.6;
+		color: var(--color-text-body);
 	}
 
 	.preview :global(.milkdown code) {
@@ -248,11 +298,35 @@
 		background: var(--color-surface-veil);
 		padding: 1px 5px;
 		border-radius: var(--radius-xs);
+		color: var(--color-text-primary);
+	}
+
+	.preview :global(.milkdown pre) {
+		font-family: var(--font-mono);
+		background: var(--color-surface-veil);
+		border: 1px solid var(--color-border-subtle);
+		border-radius: var(--radius-md);
+		padding: var(--space-3) var(--space-4);
+		overflow-x: auto;
+	}
+
+	.preview :global(.milkdown pre code) {
+		background: transparent;
+		padding: 0;
+		font-size: 13px;
+		line-height: 1.55;
 	}
 
 	.preview :global(.milkdown a) {
 		color: var(--color-accent);
 		text-decoration: underline;
 		text-underline-offset: 2px;
+	}
+
+	.preview :global(.milkdown blockquote) {
+		margin: 0;
+		padding: 0 var(--space-4);
+		border-left: 3px solid var(--color-border-strong);
+		color: var(--color-text-body);
 	}
 </style>

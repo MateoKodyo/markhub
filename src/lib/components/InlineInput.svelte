@@ -2,18 +2,25 @@
 	// Inline input that drops into the file tree at the insertion target.
 	// Different from `InputDialog`: no backdrop, no modal — it's an in-flow input
 	// that captures focus, validates on Enter, cancels on Escape or blur.
+	// Used for both creation (empty defaultValue) and rename (defaultValue =
+	// existing name, with optional selectionRange to skip the extension).
 
 	let {
 		placeholder = '',
 		defaultValue = '',
 		indentPx = 0,
+		/** [start, end] of the selection applied at focus. If null, select all. */
+		selectionRange = null,
+		errorMessage = null,
 		onSubmit = (_: string) => {},
 		onCancel = () => {}
 	}: {
 		placeholder?: string;
 		defaultValue?: string;
-		/** Padding-left in px applied to the input row, mirrors tree depth. */
 		indentPx?: number;
+		selectionRange?: [number, number] | null;
+		/** Optional error from the parent (e.g. name conflict from server). */
+		errorMessage?: string | null;
 		onSubmit?: (value: string) => void | Promise<void>;
 		onCancel?: () => void;
 	} = $props();
@@ -22,18 +29,34 @@
 	let value = $state(defaultValue);
 	let inputEl: HTMLInputElement | null = $state(null);
 	let busy = $state(false);
+	let internalError = $state<string | null>(null);
+	const displayError = $derived(internalError ?? errorMessage);
 
-	// Auto-focus on mount.
+	// Auto-focus + selection on mount.
 	$effect(() => {
-		if (inputEl) inputEl.focus();
+		if (!inputEl) return;
+		inputEl.focus();
+		if (selectionRange) {
+			const [start, end] = selectionRange;
+			try {
+				inputEl.setSelectionRange(start, end);
+			} catch {
+				inputEl.select();
+			}
+		} else {
+			inputEl.select();
+		}
 	});
 
 	async function submit() {
 		const trimmed = value.trim();
 		if (trimmed.length === 0 || busy) return;
 		busy = true;
+		internalError = null;
 		try {
 			await onSubmit(trimmed);
+		} catch (e) {
+			internalError = String(e);
 		} finally {
 			busy = false;
 		}
@@ -66,13 +89,18 @@
 		bind:value
 		type="text"
 		class="field"
+		class:has-error={!!displayError}
 		{placeholder}
 		onkeydown={onKeyDown}
 		onblur={onBlur}
 		spellcheck="false"
 		autocapitalize="off"
 		autocomplete="off"
+		aria-invalid={!!displayError}
 	/>
+	{#if displayError}
+		<span class="error-msg" role="alert">{displayError}</span>
+	{/if}
 </div>
 
 <style>
@@ -94,5 +122,18 @@
 		font-family: inherit;
 		font-size: var(--text-ui);
 		outline: none;
+	}
+
+	.field.has-error {
+		border-color: var(--color-status-error);
+	}
+
+	.error-msg {
+		margin-left: var(--space-2);
+		font-size: var(--text-label);
+		color: var(--color-status-error);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 </style>
