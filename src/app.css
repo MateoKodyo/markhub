@@ -1,0 +1,288 @@
+/* Markhub — design tokens
+ * Source: design.md (warm-dark IDE aesthetic, Warp-inspired).
+ * Calibrated against actual Warp app screenshots — denser than design.md's
+ * marketing-site spec, with single accent color and ambient gradient.
+ * SPEC.md §2 anchors this file as the canonical design system. */
+
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+:root {
+	/* === Color palette === */
+
+	/* Canvas — warm near-black, never blue-tinted */
+	--color-bg: #0a0908;
+	--color-bg-raised: #121110;
+
+	/* Surfaces (IDE-style — much subtler than the marketing spec) */
+	--color-surface-veil: rgba(255, 255, 255, 0.03);
+	--color-surface-active: rgba(255, 255, 255, 0.05); /* List item active state */
+	--color-surface-hover: rgba(255, 255, 255, 0.025);
+	--color-surface-strong: #16151400;
+
+	/* Borders — depth via semi-transparent borders, never shadows */
+	--color-border-strong: rgba(226, 226, 226, 0.16); /* Containment */
+	--color-border: rgba(255, 255, 255, 0.08); /* Default panel borders */
+	--color-border-subtle: rgba(255, 255, 255, 0.04);
+
+	/* Text — warm parchment, never pure white */
+	--color-text-primary: #faf9f6; /* Warm Parchment */
+	--color-text-body: #afaeac; /* Ash Gray — workhorse reading color */
+	--color-text-secondary: #868584; /* Stone Gray */
+	--color-text-muted: #666469; /* Purple-tint gray — links, tertiary */
+
+	/* Interactive — restrained dark pill */
+	--color-button-bg: #353534; /* Earth Gray */
+	--color-button-text: #afaeac;
+	--color-button-bg-hover: #3f3f3e;
+
+	/* Accent — single saturated color reserved for primary CTAs (Warp uses blue) */
+	--color-accent: #3b82f6;
+	--color-accent-hover: #4f8ff7;
+	--color-accent-text: #ffffff;
+
+	/* Status indicators (sparse use) */
+	--color-status-ok: #4ade80;
+	--color-status-warn: #fbbf24;
+	--color-status-error: #f87171;
+
+	/* Ambient gradient — Warp's signature warm-edge / cool-corner glow */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(255, 170, 110, 0.06), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(140, 100, 200, 0.05), transparent 55%);
+
+	/* === Typography === */
+	--font-sans: 'Geist Variable', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+	--font-mono: 'Geist Mono Variable', 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+
+	/* Type scale — IDE-calibrated */
+	--text-display: 32px; /* Largest in-app heading */
+	--text-heading: 24px; /* Section heading (e.g. "Runs") */
+	--text-subheading: 18px;
+	--text-body: 14px; /* Default UI body */
+	--text-ui: 13px; /* Default UI element (buttons, list items) */
+	--text-caption: 12px;
+	--text-label: 11px; /* Uppercase micro-labels */
+	--text-micro: 10px;
+
+	/* Letter spacing */
+	--tracking-display: -0.4px;
+	--tracking-heading: -0.3px;
+	--tracking-body: 0px;
+	--tracking-ui: 0px;
+	--tracking-caption: 0.4px;
+	--tracking-label: 1.4px; /* Uppercase categorization signal */
+
+	/* Weights — Regular dominance, Medium for emphasis only */
+	--weight-regular: 400;
+	--weight-medium: 500;
+
+	/* === Radius === */
+	--radius-xs: 4px;
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 10px;
+	--radius-xl: 12px;
+	--radius-pill: 50px;
+
+	/* === Spacing (4px base, IDE-density) === */
+	--space-0-5: 2px;
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-7: 32px;
+	--space-8: 48px;
+	--space-9: 64px;
+}
+
+/* === Reset & base === */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	background-color: var(--color-bg);
+	background-image: var(--gradient-ambient);
+	background-attachment: fixed;
+	color: var(--color-text-body);
+	font-family: var(--font-sans);
+	font-size: var(--text-body);
+	font-weight: var(--weight-regular);
+	line-height: 1.4;
+	letter-spacing: var(--tracking-body);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+	overflow: hidden;
+}
+
+#svelte,
+#app {
+	min-height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0;
+	color: var(--color-text-primary);
+	font-weight: var(--weight-regular);
+}
+
+p {
+	margin: 0;
+	color: var(--color-text-body);
+}
+
+a {
+	color: var(--color-text-muted);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+a:hover {
+	color: var(--color-text-primary);
+}
+
+code,
+pre,
+kbd,
+samp {
+	font-family: var(--font-mono);
+	font-size: 0.95em;
+}
+
+/* === Utility classes === */
+
+.label {
+	font-size: var(--text-label);
+	letter-spacing: var(--tracking-label);
+	text-transform: uppercase;
+	color: var(--color-text-secondary);
+	font-weight: var(--weight-regular);
+}
+
+.caption {
+	font-size: var(--text-caption);
+	letter-spacing: var(--tracking-caption);
+	color: var(--color-text-secondary);
+}
+
+/* IDE panel — bordered container, no shadow */
+.panel {
+	background: var(--color-surface-veil);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+}
+
+/* List item — sidebar / tab list */
+.list-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	color: var(--color-text-body);
+	font-size: var(--text-ui);
+	cursor: pointer;
+	transition: background-color 80ms ease;
+}
+
+.list-item:hover {
+	background: var(--color-surface-hover);
+}
+
+.list-item.is-active {
+	background: var(--color-surface-active);
+	color: var(--color-text-primary);
+}
+
+/* Buttons — three variants */
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: 6px var(--space-3);
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text-body);
+	font-family: var(--font-sans);
+	font-size: var(--text-ui);
+	font-weight: var(--weight-medium);
+	line-height: 1.2;
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease,
+		color 120ms ease;
+}
+
+.button:focus-visible {
+	outline: 1px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+/* Default ghost button */
+.button:hover {
+	background: var(--color-surface-hover);
+	color: var(--color-text-primary);
+}
+
+/* Primary — single accent (the only blue in the app) */
+.button--primary {
+	background: var(--color-accent);
+	color: var(--color-accent-text);
+}
+
+.button--primary:hover {
+	background: var(--color-accent-hover);
+	color: var(--color-accent-text);
+}
+
+/* Secondary — bordered ghost */
+.button--secondary {
+	border-color: var(--color-border-strong);
+	color: var(--color-text-primary);
+}
+
+.button--secondary:hover {
+	background: var(--color-surface-hover);
+	border-color: var(--color-border-strong);
+}
+
+/* Status dot */
+.status-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--color-text-secondary);
+}
+
+.status-dot.is-ok {
+	background: var(--color-status-ok);
+}
+.status-dot.is-warn {
+	background: var(--color-status-warn);
+}
+.status-dot.is-error {
+	background: var(--color-status-error);
+}
