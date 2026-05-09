@@ -593,6 +593,42 @@ Décision arbitrée par Matheo : Option A (garder + raffiner) plutôt que B (mas
   - `confirmDeleteEntry` détecte fichier vs dossier ; pour dossier ouvre confirm avec compteur via `countDescendants`.
 
 ### Commit
+- Hash : `b0ddb6b`
+
+## Chantier 3 — Status bar — 19:28 → 19:34 (6 min)
+
+### Décisions prises (autonomie)
+- **a)** TabBar séparée vs intégrée header → non applicable (chantier 2 onglets skippé). Status bar bien en BAS pleine largeur, hors `.app`, sous flex column body.
+- **b)** Heading actif au scroll → SKIP pour ce soir (demande hook into Crepe scroll position + intersection observer sur les `<h*>` du DOM ProseMirror — trop pour le budget). Backlog.
+- **c)** Toggle outline → bouton non rendu (pas d'outline implémenté, autant ne pas afficher un bouton désactivé qui ment).
+- **d)** Settings → bouton non rendu (pas de panel settings, idem c).
+- **e)** Click word counter → toggle mots/caractères implémenté.
+- **f)** Click path → copie chemin absolu (pas de système de toast → pas de feedback visuel post-copy ; le `title` tooltip annonce l'action).
+- **g)** Breadcrumb header haut éditeur → CONSERVÉ (déjà discret, pas de redondance pénible avec status bar en bas). Suppression marquée optionnelle dans le journal si smoke test confirme la redondance gênante.
+
+### Tests
+- Avant : vitest 121, cargo 60
+- Après : vitest **145** (+24), cargo 60
+- Ajoutés :
+  - `tests/unit/documentStats.test.ts` : 15 cas (countWords avec strip frontmatter / hashes / bullets / task markers / links / inline code / bold-italic + countCharacters + readingMinutes + computeDocumentStats)
+  - `tests/component/StatusBar.test.svelte.ts` : 9 cas (états no-vault / no-file / file-open / RO badge / counter / toggle counter / save status / mode toggle / copy path)
+
+### Bugs/blocages
+- 1er run countWords cassait sur les task markers (`- [x]`) car l'alternation regex prenait `-` en bullet avant de tester le pattern task. Fix : réordonner alternations (task-marker AVANT bullet).
+- Cleanup CSS : 4 sélecteurs morts (`.mode-btn`, `.status`) après suppression du status+toggle du header. Retirés pour ramener svelte-check à 0/0.
+
+### Hors scope évités
+- Slot configurables, indicateur git, encoding/line-endings, auto-hide au scroll, position curseur ligne/col en source → backlog confirmé.
+- Heading actif au scroll → backlog (cf. décision b).
+- Outline panel + bouton settings → backlog (cf. c et d).
+- Visual test screenshot status bar full-app shell → component tests Vitest font le job pour MVP, screenshot demandé par smoke test Matheo.
+
+### Implémentation
+- `src/lib/stores/documentStats.svelte.ts` : helpers purs (`stripMarkdownNoise`, `countWords`, `countCharacters`, `readingMinutes`, `computeDocumentStats`).
+- `src/lib/components/StatusBar.svelte` : 3 zones flex (left/center/right), monospace, bg `--color-bg-sidebar` (cohérent grayscale 3-tier), border-top subtile.
+- `src/routes/+page.svelte` : statut+toggle retirés du header (déplacés dans status bar) ; `<StatusBar />` monté en frère de `.app` directement sous body flex column ; nouveau handler `copyActiveFilePath` pour le bouton path.
+
+### Commit
 - Hash : à venir
 
 

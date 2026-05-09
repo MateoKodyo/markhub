@@ -1,18 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		AlertCircle,
-		Check,
-		Loader,
-		Lock,
-		Pencil,
-		Save
-	} from 'lucide-svelte';
+	import { Lock } from 'lucide-svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorApi, type EditorMode } from '$lib/components/Editor.svelte';
 	import EditorToolbar from '$lib/components/EditorToolbar.svelte';
+	import StatusBar from '$lib/components/StatusBar.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
+	import { joinPath } from '$lib/utils/path';
 
 	let loadError = $state<string | null>(null);
 	let editorMode = $state<EditorMode>('preview');
@@ -38,33 +33,23 @@
 		}
 	});
 
-	type LucideIcon = typeof Loader;
-
-	const statusInfo = $derived.by<{ icon: LucideIcon | null; label: string }>(() => {
-		switch (activeFileStore.status) {
-			case 'idle':
-				return { icon: null, label: '' };
-			case 'loading':
-				return { icon: Loader, label: 'Chargement' };
-			case 'modified':
-				return { icon: Pencil, label: 'Modifié' };
-			case 'saving':
-				return { icon: Save, label: 'Sauvegarde' };
-			case 'saved':
-				return { icon: Check, label: 'Sauvegardé' };
-			case 'error':
-				return { icon: AlertCircle, label: 'Erreur' };
-			default:
-				return { icon: null, label: '' };
-		}
-	});
-
 	function onContentChange(newContent: string) {
 		activeFileStore.updateContent(newContent);
 	}
 
 	function onCommand(cmd: Parameters<NonNullable<EditorApi>['runCommand']>[0]) {
 		editorApi?.runCommand(cmd);
+	}
+
+	async function copyActiveFilePath() {
+		const v = vaultsStore.activeVault;
+		const f = activeFileStore.activeFile;
+		if (!v || !f) return;
+		try {
+			await navigator.clipboard.writeText(joinPath(v.path, f.relativePath));
+		} catch (e) {
+			console.warn('[clipboard] copy failed', e);
+		}
 	}
 
 	// Re-key on file switch so Milkdown is fully reset.
@@ -100,41 +85,6 @@
 					{#if editorMode === 'preview'}
 						<EditorToolbar readonly={vaultsStore.isActiveVaultReadonly} {onCommand} />
 					{/if}
-
-					<div
-						class="mode-toggle"
-						role="group"
-						aria-label="Mode éditeur"
-					>
-						<button
-							type="button"
-							class="mode-btn"
-							class:is-active={editorMode === 'preview'}
-							onclick={() => (editorMode = 'preview')}
-							aria-pressed={editorMode === 'preview'}
-						>
-							Preview
-						</button>
-						<button
-							type="button"
-							class="mode-btn"
-							class:is-active={editorMode === 'source'}
-							onclick={() => (editorMode = 'source')}
-							aria-pressed={editorMode === 'source'}
-						>
-							Source
-						</button>
-					</div>
-
-					<div class="status">
-						{#if statusInfo.icon}
-							{@const StatusIcon = statusInfo.icon}
-							<StatusIcon size={12} />
-						{/if}
-						{#if statusInfo.label}
-							<span>{statusInfo.label}</span>
-						{/if}
-					</div>
 				</div>
 			</header>
 
@@ -163,6 +113,17 @@
 		{/if}
 	</main>
 </div>
+
+<StatusBar
+	vault={vaultsStore.activeVault}
+	relativePath={activeFileStore.activeFile?.relativePath ?? null}
+	readonly={vaultsStore.isActiveVaultReadonly}
+	content={activeFileStore.content}
+	status={activeFileStore.status}
+	mode={editorMode}
+	onModeChange={(m) => (editorMode = m)}
+	onCopyPath={copyActiveFilePath}
+/>
 
 <style>
 	.app {
@@ -225,45 +186,6 @@
 		align-items: center;
 		gap: var(--space-3);
 		flex-shrink: 0;
-	}
-
-	.mode-toggle {
-		display: inline-flex;
-		background: var(--color-surface-veil);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: var(--radius-md);
-		padding: 2px;
-	}
-
-	.mode-btn {
-		padding: 4px 10px;
-		border: 0;
-		border-radius: var(--radius-xs);
-		background: transparent;
-		color: var(--color-text-secondary);
-		font-family: inherit;
-		font-size: var(--text-caption);
-		cursor: pointer;
-	}
-
-	.mode-btn:hover {
-		color: var(--color-text-primary);
-	}
-
-	.mode-btn.is-active {
-		background: var(--color-surface-active);
-		color: var(--color-text-primary);
-	}
-
-	.status {
-		display: inline-flex;
-		align-items: center;
-		gap: 5px;
-		font-size: var(--text-caption);
-		color: var(--color-text-secondary);
-		font-family: var(--font-mono);
-		min-width: 110px;
-		justify-content: flex-end;
 	}
 
 	.content-body {
