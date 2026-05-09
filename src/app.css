@@ -133,11 +133,40 @@ body {
 	overflow: hidden;
 }
 
-#svelte,
-#app {
-	min-height: 100%;
+/* Make `body` the flex root. SvelteKit's static adapter wraps the app in a
+ * `<div style="display: contents">`, so the legacy `#svelte, #app` selectors
+ * never matched. Without a flex parent, `.app { flex: 1 }` had no effect and
+ * the sidebar/editor grew with their content instead of bounding the scroll
+ * regions. `display: contents` wrappers are layout-transparent, so children
+ * become flex items of body directly. */
+body {
 	display: flex;
 	flex-direction: column;
+}
+
+/* Custom scrollbar — overlay style, narrow, blends with the warm-dark canvas.
+ * Default 16px native scrollbars eat real estate inside the 280px sidebar. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.12);
+	border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 255, 255, 0.2);
 }
 
 h1,

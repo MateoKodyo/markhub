@@ -33,8 +33,18 @@ The slash menu opens at the caret when "/" is typed in an empty paragraph.`,
 
 Select this whole sentence to summon the floating toolbar above the selection.
 
-Another paragraph for context.`
+Another paragraph for context.`,
+
+		'long-doc': Array.from({ length: 80 }, (_, i) => `## Section ${i + 1}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n`).join('\n')
 	};
+
+	// Fake file-tree entries used by the `sidebar-overflow` fixture. We render
+	// a static layout that mirrors the real Sidebar's flex chain (body → .app
+	// → .sidebar → .files-section → tree) so the scroll test exercises the
+	// same CSS paths as the real app.
+	const FAKE_FILES = Array.from({ length: 60 }, (_, i) => ({
+		name: `note-${String(i + 1).padStart(2, '0')}.md`
+	}));
 
 	let fixture = $state<string>('headings');
 	let content = $derived(FIXTURES[fixture] ?? FIXTURES.headings);
@@ -43,7 +53,9 @@ Another paragraph for context.`
 	onMount(() => {
 		const params = new URLSearchParams(window.location.search);
 		const f = params.get('fixture');
-		if (f && f in FIXTURES) fixture = f;
+		if (f && (f in FIXTURES || f === 'sidebar-overflow' || f === 'editor-overflow')) {
+			fixture = f;
+		}
 		ready = true;
 	});
 </script>
@@ -68,7 +80,41 @@ Another paragraph for context.`
 
 <div class="visual-host" data-ready={ready}>
 	{#if ready}
-		<Editor {content} mode="preview" readonly={false} />
+		{#if fixture === 'sidebar-overflow'}
+			<!-- Mirrors the real Sidebar's CSS structure (flex root → .sidebar →
+			     .vaults-section + .files-section). 60 fake entries push the tree
+			     well past the viewport so the scroll behavior is observable. -->
+			<div class="app-mirror">
+				<aside class="sidebar-mirror">
+					<section class="vaults-section-mirror">
+						<span class="label">Vaults</span>
+						<div class="vault-row">Notes perso</div>
+						<div class="vault-row">Skills Claude</div>
+					</section>
+					<section class="files-section-mirror" data-testid="files-scroll">
+						<header class="files-header">
+							<span class="label">Fichiers</span>
+						</header>
+						<input class="filter" placeholder="Filtrer…" />
+						<ul class="tree-mirror">
+							{#each FAKE_FILES as f (f.name)}
+								<li class="entry">{f.name}</li>
+							{/each}
+						</ul>
+					</section>
+				</aside>
+				<main class="content-mirror">
+					<header class="content-header-mirror">/path/to/long-doc.md</header>
+					<div class="content-body-mirror" data-testid="editor-scroll">
+						<Editor content={FIXTURES['long-doc']} mode="preview" readonly={false} />
+					</div>
+				</main>
+			</div>
+		{:else if fixture === 'editor-overflow'}
+			<Editor content={FIXTURES['long-doc']} mode="preview" readonly={false} />
+		{:else}
+			<Editor {content} mode="preview" readonly={false} />
+		{/if}
 	{/if}
 </div>
 
@@ -76,8 +122,102 @@ Another paragraph for context.`
 	.visual-host {
 		display: flex;
 		flex-direction: column;
-		height: 100vh;
+		flex: 1;
+		min-height: 0;
 		width: 100vw;
 		background: var(--color-bg-base);
+	}
+
+	/* === sidebar-overflow fixture mirror styles ===
+	 * Match the real Sidebar/Editor flex structure so the scroll behaviour
+	 * we test here is the same as in the real app. */
+	.app-mirror {
+		flex: 1;
+		display: flex;
+		min-height: 0;
+	}
+
+	.sidebar-mirror {
+		display: flex;
+		flex-direction: column;
+		width: 280px;
+		flex-shrink: 0;
+		border-right: 1px solid var(--color-border-subtle);
+		overflow: hidden;
+	}
+
+	.vaults-section-mirror {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-3);
+		border-bottom: 1px solid var(--color-border-subtle);
+	}
+
+	.files-section-mirror {
+		flex: 1;
+		min-height: 0;
+		overflow: auto;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-3);
+	}
+
+	.label {
+		font-size: var(--text-label);
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--color-text-secondary);
+	}
+
+	.vault-row,
+	.entry {
+		padding: 4px var(--space-3);
+		font-size: var(--text-ui);
+		color: var(--color-text-body);
+	}
+
+	.tree-mirror {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.filter {
+		padding: 6px var(--space-3);
+		background: var(--color-surface-veil);
+		border: 1px solid var(--color-border-subtle);
+		border-radius: var(--radius-sm);
+		color: var(--color-text-primary);
+		font-family: inherit;
+		font-size: var(--text-ui);
+	}
+
+	.content-mirror {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		overflow: hidden;
+	}
+
+	.content-header-mirror {
+		padding: var(--space-2) var(--space-4);
+		border-bottom: 1px solid var(--color-border-subtle);
+		font-family: var(--font-mono);
+		font-size: var(--text-caption);
+		color: var(--color-text-secondary);
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+	}
+
+	.content-body-mirror {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		overflow: hidden;
 	}
 </style>
