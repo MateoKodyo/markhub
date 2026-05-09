@@ -19,4 +19,5 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 - Plugins, thèmes custom utilisateur
 - Sync, multi-fenêtres
 - Drag-drop de fichiers entre vaults
-- **Drag-drop de fichiers entre dossiers** (intra-vault) — la création contextuelle MVP couvre la création. **Le déplacement intra-vault est livré dans le menu contextuel via l'item « Déplacer vers… »** (cf. SPEC.md §3.4) ; le drag-drop pur reste backlog car il demande feedback visuel pendant le drag, drop zones, gestion conflits, accessibilité clavier — sa propre session de ~2h.
+- ~~**Drag-drop de fichiers entre dossiers** (intra-vault)~~ — **livré en Phase 6 (session autonome 2026-05-09T19:38)**. HTML5 native drag, MIME `application/x-markhub-path`, drop sur folder rows ou root, opacity 0.5 sur le source + accent-tint sur la drop zone, désactivé en readonly, follow l'onglet ouvert si déplacé. Pas de test Playwright automatique (dispatchDrop fragile) — smoke test interactif requis.
+- Réordonner manuellement des fichiers / dossiers (interface de tri custom au-delà de l'alphabétique) — backlog post-MVP.

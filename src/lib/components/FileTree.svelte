@@ -28,6 +28,7 @@
 		selectedPath = null,
 		creatingAt = null,
 		renamingPath = null,
+		readonly = false,
 		onFileClick = () => {},
 		onToggle = () => {},
 		onContextMenu = () => {},
@@ -36,7 +37,8 @@
 		onCreateCancel = () => {},
 		onStartRename = () => {},
 		onRenameSubmit = () => {},
-		onRenameCancel = () => {}
+		onRenameCancel = () => {},
+		onMoveFile = () => {}
 	}: {
 		root?: FileEntry | null;
 		filter?: string;
@@ -48,6 +50,8 @@
 		creatingAt?: CreatingAt | null;
 		/** When set, the entry at this relativePath shows an inline rename input. */
 		renamingPath?: string | null;
+		/** Disables drag-drop (and write items in the menus, externally). */
+		readonly?: boolean;
 		onFileClick?: (relativePath: string) => void;
 		onToggle?: (relativePath: string) => void;
 		onContextMenu?: (ctx: TreeContext, x: number, y: number) => void;
@@ -58,7 +62,70 @@
 		onStartRename?: (entry: FileEntry) => void;
 		onRenameSubmit?: (value: string) => void | Promise<void>;
 		onRenameCancel?: () => void;
+		/**
+		 * Drag-drop a file into a folder (or to the vault root with `''`).
+		 * Sidebar wires this to file_rename. Source is always a .md file path.
+		 */
+		onMoveFile?: (sourcePath: string, targetParentPath: string) => void | Promise<void>;
 	} = $props();
+
+	const DRAG_MIME = 'application/x-markhub-path';
+	let dragOverPath = $state<string | null>(null);
+	let dragSourcePath = $state<string | null>(null);
+
+	function handleDragStart(e: DragEvent, entry: FileEntry) {
+		if (readonly || entry.isDirectory) {
+			e.preventDefault();
+			return;
+		}
+		if (!e.dataTransfer) return;
+		e.dataTransfer.setData(DRAG_MIME, entry.relativePath);
+		e.dataTransfer.effectAllowed = 'move';
+		dragSourcePath = entry.relativePath;
+	}
+
+	function handleDragEnd() {
+		dragSourcePath = null;
+		dragOverPath = null;
+	}
+
+	function handleDragOverFolder(e: DragEvent, entry: FileEntry) {
+		if (readonly) return;
+		// Only react to our own drags. The MIME existence check below avoids
+		// hijacking foreign drags (image dropped from Finder, etc.).
+		if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+		dragOverPath = entry.relativePath;
+	}
+
+	function handleDragLeaveFolder(entry: FileEntry) {
+		if (dragOverPath === entry.relativePath) dragOverPath = null;
+	}
+
+	async function handleDropOnFolder(e: DragEvent, target: FileEntry | null) {
+		if (readonly) return;
+		const sourcePath = e.dataTransfer?.getData(DRAG_MIME);
+		if (!sourcePath) return;
+		e.preventDefault();
+		const targetParent = target ? target.relativePath : '';
+		dragOverPath = null;
+		dragSourcePath = null;
+		// Don't re-emit if the source is already inside this directory.
+		const currentParent = sourcePath.includes('/')
+			? sourcePath.slice(0, sourcePath.lastIndexOf('/'))
+			: '';
+		if (currentParent === targetParent) return;
+		await onMoveFile(sourcePath, targetParent);
+	}
+
+	function handleRootDragOver(e: DragEvent) {
+		if (readonly) return;
+		if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
+		// Only mark as "root drop zone" if we're not over a folder row already.
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+	}
 
 	// Filter the tree, keeping any directory whose name OR descendants match.
 	function filterTree(entry: FileEntry, q: string): FileEntry | null {
@@ -185,7 +252,13 @@
 	}
 </script>
 
-<div class="tree-wrap" oncontextmenu={onRootContextMenu} role="presentation">
+<div
+	class="tree-wrap"
+	oncontextmenu={onRootContextMenu}
+	ondragover={handleRootDragOver}
+	ondrop={(e) => handleDropOnFolder(e, null)}
+	role="presentation"
+>
 	{#if isEmpty && !(creatingAt && creatingAt.parentPath === '')}
 		<p class="empty">Vault vide — clic droit ou bouton « + » pour créer</p>
 	{:else}
@@ -211,12 +284,14 @@
 	{#if entry.isDirectory}
 		{@const isOpen = isExpanded(entry.relativePath)}
 		{@const isRenaming = renamingPath === entry.relativePath}
+		{@const isDropTarget = dragOverPath === entry.relativePath}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="directory"
 			class="entry directory"
 			class:is-expanded={isOpen}
 			class:is-selected={selectedPath === entry.relativePath}
+			class:is-drop-target={isDropTarget}
 		>
 			{#if isRenaming}
 				<div class="row inline-renaming" data-testid="inline-rename">
@@ -251,6 +326,9 @@
 					ondblclick={(e) => onEntryDoubleClick(e, entry)}
 					onkeydown={(e) => onEntryKeyDown(e, entry)}
 					oncontextmenu={(e) => onEntryContextMenu(e, entry)}
+					ondragover={(e) => handleDragOverFolder(e, entry)}
+					ondragleave={() => handleDragLeaveFolder(entry)}
+					ondrop={(e) => handleDropOnFolder(e, entry)}
 				>
 					<span class="chevron">
 						{#if isOpen}
@@ -289,11 +367,13 @@
 		</li>
 	{:else}
 		{@const isRenaming = renamingPath === entry.relativePath}
+		{@const isDragSource = dragSourcePath === entry.relativePath}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="file"
 			class="entry file"
 			class:is-selected={selectedPath === entry.relativePath}
+			class:is-drag-source={isDragSource}
 		>
 			{#if isRenaming}
 				<div class="row inline-renaming" data-testid="inline-rename">
@@ -317,6 +397,9 @@
 					ondblclick={(e) => onEntryDoubleClick(e, entry)}
 					onkeydown={(e) => onEntryKeyDown(e, entry)}
 					oncontextmenu={(e) => onEntryContextMenu(e, entry)}
+					draggable={!readonly}
+					ondragstart={(e) => handleDragStart(e, entry)}
+					ondragend={handleDragEnd}
 				>
 					<span class="icon icon-file">
 						<FileText size={14} />
@@ -373,6 +456,17 @@
 
 	.is-selected > .row {
 		background: var(--color-surface-active);
+		color: var(--color-text-primary);
+	}
+
+	/* Drag-drop visual feedback. Source dims to .5; drop target gets an
+	 * accent-tinted background so the user can see where the file will land. */
+	.is-drag-source > .row {
+		opacity: 0.5;
+	}
+
+	.is-drop-target > .row {
+		background: var(--color-selection);
 		color: var(--color-text-primary);
 	}
 

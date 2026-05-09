@@ -408,6 +408,31 @@
 		}
 	}
 
+	async function handleMoveFile(sourcePath: string, targetParentPath: string) {
+		const id = vaultsStore.activeVaultId;
+		if (!id || vaultsStore.isActiveVaultReadonly) return;
+		const baseName = getFileName(sourcePath);
+		const newRel = targetParentPath ? joinPath(targetParentPath, baseName) : baseName;
+		if (newRel === sourcePath) return;
+		try {
+			await fileRename(id, sourcePath, newRel);
+			await refreshScan();
+			// Auto-expand the destination folder so the user sees the moved file.
+			if (targetParentPath && !expandedSet.has(targetParentPath)) {
+				void vaultsStore.toggleFolderExpansion(id, targetParentPath);
+			}
+			// If the moved file was the open one, follow it to its new path.
+			if (
+				activeFileStore.activeFile?.vaultId === id &&
+				activeFileStore.activeFile?.relativePath === sourcePath
+			) {
+				void activeFileStore.openFile(id, newRel);
+			}
+		} catch (e) {
+			topLevelError = `Déplacement impossible : ${String(e)}`;
+		}
+	}
+
 	async function handleRevealInFinder(relativePath: string) {
 		const id = vaultsStore.activeVaultId;
 		if (!id) return;
@@ -657,6 +682,7 @@
 					selectedPath={selectedPath}
 					{creatingAt}
 					{renamingPath}
+					readonly={vaultsStore.isActiveVaultReadonly}
 					onFileClick={handleOpenFile}
 					onToggle={handleToggleFolder}
 					onContextMenu={openFileContextMenu}
@@ -666,6 +692,7 @@
 					onStartRename={startRenameEntry}
 					onRenameSubmit={commitRename}
 					onRenameCancel={cancelRename}
+					onMoveFile={handleMoveFile}
 				/>
 			{/if}
 		</section>
