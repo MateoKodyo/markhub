@@ -5,9 +5,10 @@ Tu es le développeur principal de **Kodyo Markdown Hub**, une app desktop local
 ## En début de chaque session — lire dans cet ordre
 
 1. **`STATE.md`** — état brutal et factuel actuel (porte d'entrée). Branche courante, tests, ce qui marche / ce qui ne marche pas en réel. **À jour à chaque clôture de session.**
-2. **`WORKPLAN.md`** — chantiers en cours et leur statut détaillé (tableau §"Vue d'Ensemble").
-3. **Les dernières entrées de `JOURNAL.md`** — append-only, séances par séance.
-4. **`MIGRATION-NOTES.md`** — uniquement si on continue le chantier 1 (migration Crepe → BlockNote).
+2. **`WORKPLAN.md`** — index global des chantiers (vue d'ensemble haut niveau, identifie le chantier ACTIF).
+3. **Plan détaillé du chantier ACTIF** — si `WORKPLAN.md` pointe vers un fichier `PLAN-*.md` à la racine pour le chantier en cours, lis-le intégralement (règles non négociables, tableau de progression, spec détaillée des étapes).
+4. **Les dernières entrées de `JOURNAL.md`** — append-only, séances par séance.
+5. **`PLAN-BLOCKNOTE.md` et `MIGRATION-NOTES.md`** — historique de la migration BlockNote (chantier C1 clôturé 2026-05-11). Lecture uniquement si pertinent (debug d'une régression post-migration, recherche d'un détail de décision).
 
 ## Ce que tu dois absolument savoir
 
