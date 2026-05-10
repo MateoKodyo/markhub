@@ -15,6 +15,9 @@
 	import BlockNoteTableHandles, {
 		type TableHandlesState
 	} from './BlockNoteTableHandles.svelte';
+	import BlockNoteLinkToolbar, {
+		type LinkToolbarState
+	} from './BlockNoteLinkToolbar.svelte';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 
 	export type EditorMode = 'preview' | 'source';
@@ -76,6 +79,36 @@
 	let tableHandlesState = $state<TableHandlesState | null>(null);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let tableHandlesExt: any = null;
+
+	// Link toolbar state — unlike the other plugins, `linkToolbar` does
+	// NOT expose a `.store`. We poll `getLinkAtSelection()` on every
+	// onSelectionChange to detect whether the cursor is inside a link.
+	let linkToolbarState = $state<LinkToolbarState | null>(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let linkToolbarExt: any = null;
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function refreshLinkToolbarState(editor: any) {
+		if (!linkToolbarExt) return;
+		try {
+			const data = linkToolbarExt.getLinkAtSelection?.();
+			if (data && data.position) {
+				linkToolbarState = {
+					show: true,
+					link: {
+						href: data.mark?.attrs?.href ?? '',
+						text: data.text ?? '',
+						position: data.position as DOMRect
+					}
+				};
+			} else {
+				linkToolbarState = null;
+			}
+		} catch {
+			linkToolbarState = null;
+		}
+		void editor;
+	}
 
 	function readSelectionRect(): DOMRect | null {
 		const sel = typeof window !== 'undefined' ? window.getSelection() : null;
@@ -222,8 +255,18 @@
 			}
 			const offSel = editor.onSelectionChange?.(() => {
 				if (formatVisible) refreshFormatState(editor);
+				refreshLinkToolbarState(editor);
 			});
 			if (typeof offSel === 'function') unsubscribers.push(offSel);
+
+			// === LinkToolbar wiring (query-only, no store) ===
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const ltExt = (editor as any).getExtension?.('linkToolbar');
+			if (ltExt) {
+				linkToolbarExt = ltExt;
+				// Initial poll in case the editor starts with cursor on a link.
+				refreshLinkToolbarState(editor);
+			}
 
 			// === SideMenu wiring (drag handle + transform menu) ===
 			// Store payload is `SideMenuState | undefined`. We only render
@@ -289,6 +332,8 @@
 			sideMenuExt = null;
 			tableHandlesState = null;
 			tableHandlesExt = null;
+			linkToolbarState = null;
+			linkToolbarExt = null;
 			onReady(null);
 		};
 	});
@@ -432,6 +477,40 @@
 		if (open) tableHandlesExt.freezeHandles?.();
 		else tableHandlesExt.unfreezeHandles?.();
 	}
+
+	// ============================================================
+	// Link toolbar handlers — bridge our Svelte component to the
+	// BlockNote linkToolbar plugin's query-only API.
+	// ============================================================
+
+	function onLinkSave(url: string) {
+		if (!linkToolbarExt || !editorInstance) return;
+		const current = linkToolbarExt.getLinkAtSelection?.();
+		if (!current || !current.range) return;
+		// `editLink(url, text, position?)` updates both. We pass the
+		// current text to preserve it and the link's start position.
+		try {
+			editorInstance.editLink?.(url, current.text ?? '', current.range.from);
+		} catch (e) {
+			console.warn('[Editor] editLink failed', e);
+		}
+		linkToolbarState = null;
+	}
+
+	function onLinkDelete() {
+		if (!linkToolbarExt || !editorInstance) return;
+		const current = linkToolbarExt.getLinkAtSelection?.();
+		try {
+			editorInstance.deleteLink?.(current?.range?.from);
+		} catch (e) {
+			console.warn('[Editor] deleteLink failed', e);
+		}
+		linkToolbarState = null;
+	}
+
+	function onLinkClose() {
+		linkToolbarState = null;
+	}
 </script>
 
 {#if mode === 'source'}
@@ -494,6 +573,13 @@
 	onAddRow={onTableAddRow}
 	onAddCol={onTableAddCol}
 	onFreezeChange={onTableFreezeChange}
+/>
+
+<BlockNoteLinkToolbar
+	menuState={linkToolbarState}
+	onSave={onLinkSave}
+	onDelete={onLinkDelete}
+	onClose={onLinkClose}
 />
 
 <style>
