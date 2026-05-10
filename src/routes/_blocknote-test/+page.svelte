@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { splitFrontmatter, joinFrontmatter } from '$lib/utils/markdown';
+	import BlockNoteSlashMenu, {
+		type SlashMenuState
+	} from '$lib/components/BlockNoteSlashMenu.svelte';
+	import type { DefaultSuggestionItem } from '@blocknote/core';
 	// Vite "?raw" loads the markdown file as a plain string at build time.
 	import f1 from '../../../tests/fixtures/c1/01-frontmatter-headings-lists.md?raw';
 	import f2 from '../../../tests/fixtures/c1/02-table-code-tasks.md?raw';
@@ -35,6 +39,12 @@
 	let interactiveEditor: HTMLDivElement | null = $state(null);
 	let results = $state<Result[]>([]);
 	let smokeReady = $state(false);
+
+	// Slash-menu state piped from BlockNote's suggestion plugin.
+	let slashState = $state<SlashMenuState | null>(null);
+	let slashItems = $state<DefaultSuggestionItem[]>([]);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let interactiveEditorInstance: any = null;
 
 	function buildDiffSummary(a: string, b: string): string {
 		if (a === b) return '— identical —';
@@ -108,14 +118,68 @@
 
 	async function mountInteractive(): Promise<void> {
 		if (!interactiveEditor) return;
-		const { BlockNoteEditor } = await import('@blocknote/core');
+		const { BlockNoteEditor, filterSuggestionItems, getDefaultSlashMenuItems } =
+			await import('@blocknote/core');
 		const editor = BlockNoteEditor.create();
 		editor.mount(interactiveEditor);
 		// Load the rich fixture so the smoke surface covers tables / code / tasks.
 		const split = splitFrontmatter(f2);
 		const blocks = editor.tryParseMarkdownToBlocks(split.body);
 		editor.replaceBlocks(editor.document, blocks);
+		interactiveEditorInstance = editor;
+
+		// === Wire the SuggestionMenu plugin store into our Svelte UI ===
+		// `editor.extensions` is a Map<string, ExtensionInstance>. The
+		// suggestionMenu extension exposes:
+		//   { key, store, addSuggestionMenu, removeSuggestionMenu, closeMenu,
+		//     clearQuery, shown, openSuggestionMenu, prosemirrorPlugins }
+		// `store` is a TanStack Store; its subscribe callback receives
+		// `{ prevVal, currentVal }`, not the state directly.
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const ext = (editor as any).getExtension?.('suggestionMenu');
+		if (!ext) {
+			console.warn('[blocknote-test] suggestionMenu extension not exposed');
+			smokeReady = true;
+			return;
+		}
+		// Default config already registers a "/" trigger; this is just safety.
+		try {
+			ext.addSuggestionMenu?.({ triggerCharacter: '/' });
+		} catch {
+			/* already registered — ignore */
+		}
+
+		ext.store.subscribe((payload: { currentVal: unknown }) => {
+			const s = payload.currentVal;
+			if (!s || !(s as { show?: boolean }).show) {
+				slashState = null;
+				slashItems = [];
+				return;
+			}
+			const next = s as SlashMenuState & { triggerCharacter: string };
+			slashState = {
+				show: next.show,
+				referencePos: next.referencePos,
+				query: next.query ?? '',
+				triggerCharacter: next.triggerCharacter
+			};
+			const all = getDefaultSlashMenuItems(editor);
+			slashItems = filterSuggestionItems(all, slashState.query);
+		});
+
 		smokeReady = true;
+	}
+
+	function onSlashSelect(item: DefaultSuggestionItem) {
+		// The item itself owns the transformation logic.
+		item.onItemClick();
+	}
+
+	function onSlashClose() {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const ext = (interactiveEditorInstance as any)?.extensions?.suggestionMenu;
+		ext?.closeMenu?.();
+		slashState = null;
 	}
 
 	onMount(async () => {
@@ -209,6 +273,14 @@
 		<div bind:this={interactiveEditor} class="bn-mount bn-interactive" data-ready={smokeReady}></div>
 	</section>
 </div>
+
+<!-- Slash-menu UI (2.5.a): driven by the SuggestionMenu plugin store -->
+<BlockNoteSlashMenu
+	menuState={slashState}
+	items={slashItems}
+	onSelect={onSlashSelect}
+	onClose={onSlashClose}
+/>
 
 <style>
 	.probe {

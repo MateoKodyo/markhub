@@ -224,3 +224,49 @@ Je propose de continuer en étape 2 dès ton OK : créer `/_blocknote-test` avec
 **GO sur la migration** côté round-trip markdown — pas de blocker fatal. Le bold-imbriqué-italic est le seul point d'attention, marginal en usage Markhub.
 
 **STOP avant l'étape 3** — l'étape 3 du workplan présuppose une UI fonctionnelle qu'on n'a pas. Soit on insère une "étape 2.5 — UI Svelte" (~1-2j), soit on revoit la décision de migration sachant que tout l'UI block-based est à coder.
+
+---
+
+## Étape 2.5.a — Slash menu Svelte UI (livré)
+
+### Pattern d'intégration confirmé en pratique
+
+```ts
+// 1. editor.extensions est un Map<string, ExtensionInstance> — utiliser
+//    editor.getExtension('suggestionMenu') (PAS editor.extensions.suggestionMenu).
+const ext = editor.getExtension('suggestionMenu');
+
+// 2. ext.store est un TanStack Store. subscribe() reçoit { prevVal, currentVal },
+//    PAS le state directement.
+ext.store.subscribe(({ currentVal }) => {
+  if (!currentVal?.show) return closeUI();
+  renderUI(currentVal); // { show, referencePos, query, triggerCharacter }
+});
+
+// 3. Items via getDefaultSlashMenuItems(editor) + filterSuggestionItems(items, query).
+//    Chaque item a onItemClick() qui dispatch la transaction ProseMirror —
+//    on n'écrit AUCUNE logique de transformation.
+
+// 4. Fermeture du menu après pick : ext.closeMenu() (le plugin ne le fait pas tout seul).
+```
+
+### Composant livré
+
+- `src/lib/components/BlockNoteSlashMenu.svelte` — rendu Svelte du store.
+  - Props : `menuState` (la prop a dû être renommée pour ne pas collider avec le rune `$state`), `items`, `onSelect`, `onClose`.
+  - Render : menu fixed positionné sur `referencePos.left / referencePos.bottom + 4`.
+  - Items groupés par `item.group` (header non-cliquable par groupe).
+  - Navigation clavier : ↑/↓/Enter/Escape, écouteur `window` pour ne pas perdre le focus de l'éditeur.
+  - **Selection via `mousedown.preventDefault()`** : sinon le blur de l'éditeur retire le caret avant que le pick ne tourne. Test E2E utilise `dispatchEvent('mousedown')` en conséquence.
+
+### Tests
+
+- `tests/visual/blocknote-slash-menu.spec.ts` :
+  - Test 1 : taper `/` ouvre le menu avec items par défaut (Heading, Bullet List, etc.). Filtrage par query (`/head` ne montre plus Bullet List). ✅
+  - Test 2 : sélectionner "Heading 1" transforme le block courant en H1 (compte les `<h1.bn-inline-content>` dans le DOM avant/après). ✅
+
+### Décisions autonomes
+
+- **Prop nommée `menuState`** au lieu de `state` : Svelte 5 confond `state.show` avec `$state.show` rune et émet 3 erreurs `store_rune_conflict`.
+- **Pas de wrapper du store** côté Svelte : on subscribe directement au TanStack Store dans la route. Si plus tard d'autres routes utilisent BlockNote, on extraira un helper `bridgeBlockNoteStore`.
+- **Pas de gestion focus avancée** : le caret reste dans l'éditeur grâce au `mousedown.preventDefault`. Pas de tabIndex / aria-activedescendant pour ce premier round — KISS.
