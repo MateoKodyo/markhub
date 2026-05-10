@@ -8,6 +8,10 @@
 		type ActiveStyles,
 		type FormattingMark
 	} from './BlockNoteFormattingToolbar.svelte';
+	import BlockNoteSideMenu, {
+		type SideMenuState,
+		type TransformType
+	} from './BlockNoteSideMenu.svelte';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 
 	export type EditorMode = 'preview' | 'source';
@@ -55,6 +59,12 @@
 	let formatRefPos = $state<DOMRect | null>(null);
 	let formatActive = $state<ActiveStyles>({});
 	let formatHasLink = $state(false);
+
+	// Side menu state — payload from the plugin's TanStack store, exposed
+	// when a block is hovered. `null` means the side menu must hide.
+	let sideMenuState = $state<SideMenuState | null>(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let sideMenuExt: any = null;
 
 	function readSelectionRect(): DOMRect | null {
 		const sel = typeof window !== 'undefined' ? window.getSelection() : null;
@@ -204,6 +214,23 @@
 			});
 			if (typeof offSel === 'function') unsubscribers.push(offSel);
 
+			// === SideMenu wiring (drag handle + transform menu) ===
+			// Store payload is `SideMenuState | undefined`. We only render
+			// when `show` is true; the host calls blockDragStart /
+			// blockDragEnd / freezeMenu / unfreezeMenu through the ext.
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const sideExt = (editor as any).getExtension?.('sideMenu');
+			if (sideExt?.store) {
+				sideMenuExt = sideExt;
+				const off = sideExt.store.subscribe(
+					(payload: { currentVal: unknown }) => {
+						const s = payload.currentVal as SideMenuState | undefined;
+						sideMenuState = s && s.show ? s : null;
+					}
+				);
+				if (typeof off === 'function') unsubscribers.push(off);
+			}
+
 			onReady(buildApi());
 		})();
 
@@ -231,6 +258,8 @@
 			formatRefPos = null;
 			formatActive = {};
 			formatHasLink = false;
+			sideMenuState = null;
+			sideMenuExt = null;
 			onReady(null);
 		};
 	});
@@ -276,6 +305,53 @@
 		editorInstance.createLink(trimmed);
 		refreshFormatState(editorInstance);
 	}
+
+	// ============================================================
+	// Side menu handlers — bridge our Svelte component to the
+	// BlockNote sideMenu plugin's imperative API.
+	// ============================================================
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function onSideDragStart(e: DragEvent, block: any) {
+		if (!sideMenuExt) return;
+		// BlockNote's plugin reads {dataTransfer, clientY} and sets the
+		// blocknote/html payload on the dataTransfer; the document-level
+		// listeners then drive the DropCursor + reorder transaction.
+		sideMenuExt.blockDragStart?.(
+			{ dataTransfer: e.dataTransfer, clientY: e.clientY },
+			block
+		);
+		sideMenuExt.freezeMenu?.();
+	}
+
+	function onSideDragEnd() {
+		if (!sideMenuExt) return;
+		sideMenuExt.blockDragEnd?.();
+		sideMenuExt.unfreezeMenu?.();
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function onSideAddBlock(block: any) {
+		if (!editorInstance) return;
+		// Insert an empty paragraph immediately after the hovered block.
+		editorInstance.insertBlocks?.([{ type: 'paragraph' }], block, 'after');
+	}
+
+	function onSideTransform(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		block: any,
+		type: TransformType,
+		props?: Record<string, unknown>
+	) {
+		if (!editorInstance) return;
+		editorInstance.updateBlock?.(block, props ? { type, props } : { type });
+	}
+
+	function onSideMenuOpenChange(open: boolean) {
+		if (!sideMenuExt) return;
+		if (open) sideMenuExt.freezeMenu?.();
+		else sideMenuExt.unfreezeMenu?.();
+	}
 </script>
 
 {#if mode === 'source'}
@@ -319,6 +395,15 @@
 	hasLink={formatHasLink}
 	onToggle={onFormatToggle}
 	onLink={onFormatLink}
+/>
+
+<BlockNoteSideMenu
+	menuState={sideMenuState}
+	onDragStart={onSideDragStart}
+	onDragEnd={onSideDragEnd}
+	onAddBlock={onSideAddBlock}
+	onTransform={onSideTransform}
+	onMenuOpenChange={onSideMenuOpenChange}
 />
 
 <style>
