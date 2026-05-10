@@ -546,7 +546,7 @@ Décision arbitrée par Matheo : Option A (garder + raffiner) plutôt que B (mas
 ### Lessons learned Round 2
 1. **Cascade Crepe sur `::selection`** : Crepe a sa propre règle scopée à `.milkdown .ProseMirror *::selection`, donc un `::selection` global ne suffit pas. Bumper la spécificité reste la solution propre.
 2. **Sélecteur `:has()` + cascade** : `.label-wrapper:has(.checked) ~ .children` propage à toute la branche (sub-list pending incluse). Restreindre à `> p:first-child` n'a pas marché à cause de la structure DOM Crepe (probablement un wrapper avant le `<p>`). Le pragmatisme : drop la feature secondaire (strike-through) puisque la différenciation principale (couleur accent) suffit.
-3. **Décision A vs B sur Crepe block-handle** : pas de menu de transformation natif au click sur ⋮⋮ → Crepe ne fait que drag-and-drop. Option A retenue : garder le drag-reorder + opacity progressive pour réduire le bruit. Le `+` reste le vector d'insertion via slash menu.
+3. **Décision A vs B sur Crepe block-handle** : pas de menu de transformation natif au click sur ⋮⋮. ~~Crepe ne fait que drag-and-drop. Option A retenue : garder le drag-reorder~~ — **CORRECTION (session 2026-05-10)** : cette affirmation était fausse. Lecture du source `block-edit/index.js:1042-1085` confirme que la `.operation-item` du ⋮⋮ N'A AUCUN handler attaché (ni click, ni drag). C'est purement décoratif côté natif. Le `+` est le seul item interactif (insert-below + slash menu). Décision révisée : **Option B** (cf. JOURNAL session 2026-05-10) — masquer le ⋮⋮ via CSS, garder le `+`. Phase 7 backlog pour un plugin custom qui apporterait transform-on-click + drag-to-reorder.
 
 ---
 
@@ -705,8 +705,36 @@ npm run test:visual     → 10 passed
 ### Commits poussés ?
 **Non.** Le brief disait "Aucun git push." 5 commits locaux à pusher quand Matheo valide à son retour : `b0ddb6b`, `0952ebd`, `f3b355c`, `8a15e99`, plus le commit closure ci-dessous.
 
+---
 
+# Session 2026-05-10 — Light mode + Crepe block handle + Status bar pills
 
+## Light mode complet (commit `c5a5ce9`)
+Voir le commit message — palette warm-light dans `:root[data-theme='light']`, store `theme.svelte.ts`, bouton Sun/Moon/Monitor dans la status bar, listener `prefers-color-scheme` en mode 'system'. Tests : 7 unit + 7 visual light. **Bug trouvé en passant** : `_visual/+page.svelte` avait un fallback `var(--color-bg-base, #0a0908)` (token inexistant → fallback dark hardcoded). Renommé en `var(--color-bg)`.
+
+## Investigation Crepe block handle (deux bugs UX)
+Diagnostic sourcé sur le code de Crepe :
+- **`block-edit/index.js:1042-1085`** : `.milkdown-block-handle` rend deux `.operation-item`. Le `+` a un `onPointerup` qui appelle `props.onAdd()` (insère un paragraphe + ouvre le slash menu). Le **`⋮⋮` n'a AUCUN handler** — purement décoratif. Pas de drag-and-drop natif côté Crepe non plus.
+- **`block-edit/index.js:476-501`** : le slash menu `onRun` appelle `clearTextInCurrentBlockCommand` puis `setBlockTypeCommand` — **transformation in-place**, pas insertion. L'UX Notion-like de transformation existe déjà via clavier (`/heading 1` sur un paragraphe → le paragraphe DEVIENT un H1).
+- **`components/table-block/view/operation.d.ts`** : les operations table exposées sont `onAddRow / onAddCol / selectCol / selectRow / deleteSelected / onAlign`. **Aucun resize de colonne**. Les `colHandle`/`rowHandle` servent au drag pour réordonner, pas à élargir.
+
+**Décision (Option B + B′)** : masquer le `⋮⋮` via `display: none` sur le 2ème `.operation-item` ; le `+` reste car il a une fonction réelle. Pas de tooltip sur le `+` (KISS — pattern universel). Tables resize laissé tel quel, backloggé.
+
+## Status bar refactor — pills sous l'éditeur (Warp pattern)
+Le status bar courait sur toute la largeur (sidebar + éditeur) avec les infos posées comme du texte. Refactor :
+- **Position** : `<StatusBar>` déplacé de body-level à l'intérieur de `<main class="content">` → ne couvre plus la sidebar. La sidebar court full-height à gauche.
+- **Pills** : chaque info/action devient un `.pill` avec son propre fond `--pill-bg = surface-veil`, radius `--pill-radius = 6px`, padding `8px 0`, hauteur `24px`, gap `4px`. Tokens ajoutés dans `:root` (auto-inversibles avec le thème via `surface-veil` qui s'inverse déjà).
+- **Mode toggle** : reste un segmented control (un pill avec deux boutons internes) plutôt que deux pills séparés — pattern segmented standard.
+- **Status bar background** : passe de `--color-bg-sidebar` à `transparent` (le canvas main passe à travers, les pills se détachent).
+
+### Tests
+- Avant : vitest 152, cargo 60, visual 17
+- Après : vitest **152** (1 test ajusté pour le nouveau texte "Aucun fichier"), cargo 60, visual **18** (+block-handle.spec.ts). Tous baselines régénérés (le ⋮⋮ disparaît, les pills apparaissent).
+
+### Décisions autonomes
+- Texte "Aucun fichier sélectionné" raccourci en "Aucun fichier" pour rentrer dans le pill.
+- Pas de tooltip sur le `+` (cf. analyse du brief).
+- ⋮⋮ caché par `display: none` plutôt que par `visibility: hidden` — on retire l'affordance complètement (cliquer sur l'espace ne fait plus rien, plus honnête).
 
 
 

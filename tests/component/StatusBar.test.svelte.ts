@@ -25,10 +25,10 @@ describe('StatusBar', () => {
 		expect(screen.getByText('Aucun vault')).toBeInTheDocument();
 	});
 
-	it('shows the vault name and "Aucun fichier sélectionné" when no file is open', () => {
+	it('shows the vault name and the "no file" pill when no file is open', () => {
 		render(StatusBar, { vault: editVault });
 		expect(screen.getByText('Notes perso')).toBeInTheDocument();
-		expect(screen.getByText('Aucun fichier sélectionné')).toBeInTheDocument();
+		expect(screen.getByText('Aucun fichier')).toBeInTheDocument();
 	});
 
 	it('shows the relative path when a file is open', () => {

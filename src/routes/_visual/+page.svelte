@@ -162,16 +162,18 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 					<div class="content-body-mirror">
 						<Editor content={APP_SHELL_BODY} mode="preview" readonly={false} />
 					</div>
+					<!-- Status bar lives inside the editor column (Warp pattern) so
+					     the sidebar runs full-height to its left. -->
+					<StatusBar
+						vault={FAKE_VAULT}
+						relativePath="subfolder/architecture.md"
+						readonly={false}
+						content={APP_SHELL_BODY}
+						status="saved"
+						mode="preview"
+					/>
 				</main>
 			</div>
-			<StatusBar
-				vault={FAKE_VAULT}
-				relativePath="subfolder/architecture.md"
-				readonly={false}
-				content={APP_SHELL_BODY}
-				status="saved"
-				mode="preview"
-			/>
 		{:else if fixture === 'sidebar-overflow'}
 			<!-- Mirrors the real Sidebar's CSS structure (flex root → .sidebar →
 			     .vaults-section + .files-section). 60 fake entries push the tree

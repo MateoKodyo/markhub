@@ -129,6 +129,21 @@
 	   Aligned with VS Code / Cursor / GitHub readme rendering. */
 	--content-max-width: 1280px;
 	--content-padding-x: 64px;
+
+	/* === Pills (status bar items, segmented controls) ===
+	 * Compact button-like surfaces with their own background, used in the
+	 * status bar and any inline IDE-style chips. Tokens reuse the existing
+	 * surface scale so they auto-invert with the theme. */
+	--pill-bg: var(--color-surface-veil);
+	--pill-bg-hover: var(--color-surface-hover);
+	--pill-bg-active: var(--color-surface-active);
+	--pill-fg: var(--color-text-secondary);
+	--pill-fg-active: var(--color-text-primary);
+	--pill-radius: var(--radius-sm);
+	--pill-padding-x: 8px;
+	--pill-padding-y: 3px;
+	--pill-gap: 4px;
+	--pill-height: 24px;
 }
 
 /* ============================================================
@@ -581,10 +596,22 @@ samp {
 	fill: var(--color-accent);
 }
 
-/* Block handle (the +/⋮⋮ pair that appears on the left gutter at hover).
- * Crepe makes it fully visible the moment data-show="true", which feels
- * shouty against the warm-dark canvas. Pattern Linear / Notion: present
- * but quiet, only fully visible when the user hovers it directly. */
+/* Block handle. Crepe paints two .operation-item children inside
+ * .milkdown-block-handle:
+ *   1) `+`  → click inserts a paragraph below + opens the slash menu.
+ *            Useful, kept visible.
+ *   2) `⋮⋮` → no handler attached upstream (verified in Crepe source
+ *            block-edit/index.js:1042–1085). Crepe paints the icon but
+ *            doesn't wire click-to-transform OR drag-to-reorder. We
+ *            hide it instead of misleading users with an affordance
+ *            that does nothing. The same UX (transform a block) is
+ *            already available by typing `/` on the block — Crepe's
+ *            slash menu calls `setBlockType` (transform), not insert.
+ *            Re-enable once we own a custom block-menu plugin (BACKLOG
+ *            Phase 7).
+ *
+ * Whole strip stays present-but-quiet via opacity, fully visible only
+ * on direct hover (Linear / Notion pattern). */
 .milkdown.milkdown .milkdown-block-handle {
 	transition: opacity 0.15s ease;
 }
@@ -595,6 +622,10 @@ samp {
 
 .milkdown.milkdown .milkdown-block-handle[data-show='true']:hover {
 	opacity: 1;
+}
+
+.milkdown.milkdown .milkdown-block-handle .operation-item:nth-child(2) {
+	display: none;
 }
 
 .milkdown.milkdown .milkdown-block-handle .operation-item {

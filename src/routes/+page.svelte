@@ -115,19 +115,21 @@
 				{/if}
 			</div>
 		{/if}
+
+		<!-- Status bar lives INSIDE <main.content> so it only spans the editor
+		     area — the sidebar runs full-height to its left. Warp pattern. -->
+		<StatusBar
+			vault={vaultsStore.activeVault}
+			relativePath={activeFileStore.activeFile?.relativePath ?? null}
+			readonly={vaultsStore.isActiveVaultReadonly}
+			content={activeFileStore.content}
+			status={activeFileStore.status}
+			mode={editorMode}
+			onModeChange={(m) => (editorMode = m)}
+			onCopyPath={copyActiveFilePath}
+		/>
 	</main>
 </div>
-
-<StatusBar
-	vault={vaultsStore.activeVault}
-	relativePath={activeFileStore.activeFile?.relativePath ?? null}
-	readonly={vaultsStore.isActiveVaultReadonly}
-	content={activeFileStore.content}
-	status={activeFileStore.status}
-	mode={editorMode}
-	onModeChange={(m) => (editorMode = m)}
-	onCopyPath={copyActiveFilePath}
-/>
 
 <style>
 	.app {

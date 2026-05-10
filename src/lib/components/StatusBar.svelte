@@ -26,12 +26,9 @@
 		onCopyPath?: () => void;
 	} = $props();
 
-	// Toggle the central counter between "X mots" and "Y caractères".
 	let countMode = $state<'words' | 'characters'>('words');
 	const stats = $derived(computeDocumentStats(content));
 
-	// Tooltip reflects the *preference* (so users see "Système — actuellement
-	// clair" rather than just the rendered value).
 	const themeTitle = $derived.by(() => {
 		switch (themeStore.preference) {
 			case 'dark':
@@ -45,10 +42,7 @@
 		}
 	});
 
-	const statusInfo = $derived.by<{
-		icon: typeof Loader | null;
-		label: string;
-	}>(() => {
+	const statusInfo = $derived.by<{ icon: typeof Loader | null; label: string }>(() => {
 		switch (status) {
 			case 'idle':
 				return { icon: null, label: '' };
@@ -72,15 +66,14 @@
 	<!-- LEFT — vault, path, readonly badge -->
 	<div class="zone left">
 		{#if vault}
-			<span class="vault-tag">
+			<span class="pill" data-testid="vault-pill">
 				<span class="dot" style="background: {vault.color}"></span>
-				<span class="vault-name">{vault.name}</span>
+				<span>{vault.name}</span>
 			</span>
 			{#if relativePath}
-				<span class="sep">·</span>
 				<button
 					type="button"
-					class="path-btn"
+					class="pill pill-btn pill-mono"
 					title="Copier le chemin absolu"
 					onclick={onCopyPath}
 					data-testid="path-copy-btn"
@@ -88,17 +81,16 @@
 					{relativePath}
 				</button>
 				{#if readonly}
-					<span class="badge-ro" title="Vault en lecture seule">
+					<span class="pill pill-badge" title="Vault en lecture seule" data-testid="ro-pill">
 						<Lock size={10} />
 						<span>RO</span>
 					</span>
 				{/if}
 			{:else}
-				<span class="sep">·</span>
-				<span class="muted">Aucun fichier sélectionné</span>
+				<span class="pill pill-muted">Aucun fichier</span>
 			{/if}
 		{:else}
-			<span class="muted">Aucun vault</span>
+			<span class="pill pill-muted">Aucun vault</span>
 		{/if}
 	</div>
 
@@ -107,7 +99,7 @@
 		{#if relativePath}
 			<button
 				type="button"
-				class="counter-btn"
+				class="pill pill-btn"
 				title="Cliquer pour basculer mots ↔ caractères"
 				onclick={() => (countMode = countMode === 'words' ? 'characters' : 'words')}
 				data-testid="counter-toggle"
@@ -118,16 +110,15 @@
 					{stats.characters.toLocaleString('fr-FR')} caractères
 				{/if}
 			</button>
-			<span class="sep">·</span>
-			<span class="reading">~{stats.readingMinutes} min</span>
+			<span class="pill pill-muted">~{stats.readingMinutes} min</span>
 		{/if}
 	</div>
 
-	<!-- RIGHT — save status, mode toggle, theme toggle -->
+	<!-- RIGHT — theme, save status, mode toggle -->
 	<div class="zone right">
 		<button
 			type="button"
-			class="theme-btn"
+			class="pill pill-btn pill-icon"
 			title={themeTitle}
 			aria-label={themeTitle}
 			onclick={() => void themeStore.cycle()}
@@ -144,7 +135,7 @@
 
 		{#if statusInfo.icon}
 			{@const StatusIcon = statusInfo.icon}
-			<span class="save-status" data-status={status}>
+			<span class="pill pill-status" data-status={status} data-testid="save-pill">
 				<StatusIcon size={11} />
 				{#if statusInfo.label}
 					<span>{statusInfo.label}</span>
@@ -153,10 +144,15 @@
 		{/if}
 
 		{#if relativePath}
-			<div class="mode-toggle" role="group" aria-label="Mode éditeur">
+			<div
+				class="pill pill-segmented"
+				role="group"
+				aria-label="Mode éditeur"
+				data-testid="mode-toggle"
+			>
 				<button
 					type="button"
-					class="mode-btn"
+					class="seg-btn"
 					class:is-active={mode === 'preview'}
 					onclick={() => onModeChange('preview')}
 					aria-pressed={mode === 'preview'}
@@ -165,7 +161,7 @@
 				</button>
 				<button
 					type="button"
-					class="mode-btn"
+					class="seg-btn"
 					class:is-active={mode === 'source'}
 					onclick={() => onModeChange('source')}
 					aria-pressed={mode === 'source'}
@@ -183,19 +179,18 @@
 		align-items: center;
 		gap: var(--space-3);
 		flex-shrink: 0;
-		min-height: 28px;
-		padding: 0 var(--space-3);
-		background: var(--color-bg-sidebar);
+		min-height: 38px;
+		padding: 6px var(--space-3);
+		background: transparent;
 		border-top: 1px solid var(--color-border-subtle);
 		font-size: var(--text-caption);
 		color: var(--color-text-secondary);
-		font-family: var(--font-mono);
 	}
 
 	.zone {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
+		gap: var(--pill-gap);
 		min-width: 0;
 	}
 
@@ -211,16 +206,72 @@
 
 	.right {
 		flex: 1;
-		justify-content: flex-end;
 		min-width: 0;
+		justify-content: flex-end;
 	}
 
-	.vault-tag {
+	/* === Pill base ===
+	 * Compact button-like surface — used for static info AND interactive
+	 * actions. Static pills get the `pill-muted` modifier (lower contrast,
+	 * not clickable cursor). Buttons get `pill-btn` (hover feedback). */
+	.pill {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		flex-shrink: 0;
+		gap: 5px;
+		min-height: var(--pill-height);
+		padding: 0 var(--pill-padding-x);
+		background: var(--pill-bg);
+		border: 0;
+		border-radius: var(--pill-radius);
+		color: var(--pill-fg);
 		font-family: var(--font-sans);
+		font-size: inherit;
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.pill-mono {
+		font-family: var(--font-mono);
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: inline-block; /* allow ellipsis */
+		line-height: var(--pill-height);
+		padding: 0 var(--pill-padding-x);
+	}
+
+	.pill-muted {
+		background: transparent;
+		color: var(--color-text-muted);
+		font-style: italic;
+	}
+
+	.pill-icon {
+		padding: 0;
+		width: var(--pill-height);
+		justify-content: center;
+	}
+
+	.pill-btn {
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.pill-btn:hover {
+		background: var(--pill-bg-hover);
+		color: var(--pill-fg-active);
+	}
+
+	.pill-btn:focus-visible {
+		outline: 1px solid var(--color-accent);
+		outline-offset: 1px;
+	}
+
+	.pill-badge {
+		gap: 3px;
+		padding: 0 6px;
+		font-size: var(--text-label);
+		letter-spacing: var(--tracking-label);
 	}
 
 	.dot {
@@ -230,103 +281,15 @@
 		flex-shrink: 0;
 	}
 
-	.vault-name {
-		color: var(--color-text-body);
-	}
-
-	.sep {
-		color: var(--color-text-muted);
-		flex-shrink: 0;
-	}
-
-	.muted {
-		color: var(--color-text-muted);
-		font-family: var(--font-sans);
-	}
-
-	.path-btn {
-		min-width: 0;
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: var(--color-text-secondary);
-		font-family: var(--font-mono);
-		font-size: inherit;
-		text-align: left;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		cursor: pointer;
-	}
-
-	.path-btn:hover {
-		color: var(--color-text-primary);
-	}
-
-	.badge-ro {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
-		flex-shrink: 0;
-		padding: 1px 5px;
-		font-family: var(--font-sans);
-		font-size: var(--text-label);
-		letter-spacing: var(--tracking-label);
-		color: var(--color-text-secondary);
-		background: var(--color-surface-veil);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: var(--radius-xs);
-	}
-
-	.counter-btn {
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: var(--color-text-secondary);
-		font-family: var(--font-mono);
-		font-size: inherit;
-		cursor: pointer;
-	}
-
-	.counter-btn:hover {
-		color: var(--color-text-primary);
-	}
-
-	.reading {
-		color: var(--color-text-muted);
-	}
-
-	.theme-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 22px;
-		height: 22px;
-		padding: 0;
-		border: 0;
-		border-radius: var(--radius-xs);
-		background: transparent;
-		color: var(--color-text-secondary);
-		cursor: pointer;
-	}
-
-	.theme-btn:hover {
-		background: var(--color-surface-hover);
-		color: var(--color-text-primary);
-	}
-
-	.save-status {
-		display: inline-flex;
-		align-items: center;
+	.pill-status {
 		gap: 4px;
-		flex-shrink: 0;
 	}
 
-	.save-status[data-status='error'] {
+	.pill-status[data-status='error'] {
 		color: var(--color-status-error);
 	}
 
-	.save-status[data-status='saving'] :global(svg) {
+	.pill-status[data-status='saving'] :global(svg) {
 		animation: status-bar-spin 1s linear infinite;
 	}
 
@@ -336,19 +299,19 @@
 		}
 	}
 
-	.mode-toggle {
-		display: inline-flex;
-		gap: 1px;
-		background: var(--color-surface-veil);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: var(--radius-xs);
+	/* === Segmented control (Preview / Source) ===
+	 * Single pill envelope, two buttons inside. Active button gets the
+	 * stronger surface; inactive stays transparent on the pill background. */
+	.pill-segmented {
 		padding: 1px;
+		gap: 1px;
 	}
 
-	.mode-btn {
-		padding: 1px 8px;
+	.seg-btn {
+		height: calc(var(--pill-height) - 4px);
+		padding: 0 8px;
 		border: 0;
-		border-radius: 2px;
+		border-radius: calc(var(--pill-radius) - 2px);
 		background: transparent;
 		color: var(--color-text-secondary);
 		font-family: var(--font-sans);
@@ -356,12 +319,12 @@
 		cursor: pointer;
 	}
 
-	.mode-btn:hover {
+	.seg-btn:hover {
 		color: var(--color-text-primary);
 	}
 
-	.mode-btn.is-active {
-		background: var(--color-surface-active);
+	.seg-btn.is-active {
+		background: var(--color-bg-raised);
 		color: var(--color-text-primary);
 	}
 </style>
