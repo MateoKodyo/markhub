@@ -4,6 +4,10 @@
 	import BlockNoteSlashMenu, {
 		type SlashMenuState
 	} from '$lib/components/BlockNoteSlashMenu.svelte';
+	import BlockNoteFormattingToolbar, {
+		type ActiveStyles,
+		type FormattingMark
+	} from '$lib/components/BlockNoteFormattingToolbar.svelte';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 	// Vite "?raw" loads the markdown file as a plain string at build time.
 	import f1 from '../../../tests/fixtures/c1/01-frontmatter-headings-lists.md?raw';
@@ -45,6 +49,46 @@
 	let slashItems = $state<DefaultSuggestionItem[]>([]);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let interactiveEditorInstance: any = null;
+
+	// Formatting toolbar state — store is just Store<boolean> in BlockNote
+	// core. The anchor rect is computed by us from the live selection.
+	let formatVisible = $state(false);
+	let formatRefPos = $state<DOMRect | null>(null);
+	let formatActive = $state<ActiveStyles>({});
+	let formatHasLink = $state(false);
+
+	function readSelectionRect(): DOMRect | null {
+		const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+		if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+		const r = sel.getRangeAt(0).getBoundingClientRect();
+		// Some browsers return a zero-rect for a single empty range; bail out
+		// so we don't anchor on (0,0).
+		if (r.width === 0 && r.height === 0) return null;
+		return r;
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function refreshFormatState(editor: any) {
+		if (!formatVisible) {
+			formatRefPos = null;
+			formatActive = {};
+			formatHasLink = false;
+			return;
+		}
+		formatRefPos = readSelectionRect();
+		try {
+			const styles = editor.getActiveStyles?.() ?? {};
+			formatActive = {
+				bold: Boolean(styles.bold),
+				italic: Boolean(styles.italic),
+				strike: Boolean(styles.strike),
+				code: Boolean(styles.code)
+			};
+		} catch {
+			formatActive = {};
+		}
+		formatHasLink = Boolean(editor.getSelectedLinkUrl?.());
+	}
 
 	function buildDiffSummary(a: string, b: string): string {
 		if (a === b) return '— identical —';
@@ -167,7 +211,47 @@
 			slashItems = filterSuggestionItems(all, slashState.query);
 		});
 
+		// === Wire the FormattingToolbar plugin store into our Svelte UI ===
+		// The store payload is just `currentVal: boolean` (visible / hidden).
+		// We compute the anchor rect ourselves from window.getSelection().
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const ftExt = (editor as any).getExtension?.('formattingToolbar');
+		if (ftExt?.store) {
+			ftExt.store.subscribe((payload: { currentVal: boolean }) => {
+				formatVisible = Boolean(payload.currentVal);
+				refreshFormatState(editor);
+			});
+		}
+		// Selection can move (arrow keys) without flipping the store; refresh
+		// the anchor + active styles on every selection change while visible.
+		editor.onSelectionChange?.(() => {
+			if (formatVisible) refreshFormatState(editor);
+		});
+
 		smokeReady = true;
+	}
+
+	function onFormatToggle(mark: FormattingMark) {
+		const editor = interactiveEditorInstance;
+		if (!editor) return;
+		editor.toggleStyles({ [mark]: true });
+		// Refresh active flags so the buttons reflect the new state immediately.
+		refreshFormatState(editor);
+	}
+
+	function onFormatLink() {
+		const editor = interactiveEditorInstance;
+		if (!editor) return;
+		const current = editor.getSelectedLinkUrl?.() ?? '';
+		// Pragmatic step-2.5.b UX: simple prompt(). The full inline link
+		// editor is the LinkToolbar of step 2.5.e.
+		// eslint-disable-next-line no-alert
+		const url = window.prompt('Lien (URL)', current);
+		if (url == null) return;
+		const trimmed = url.trim();
+		if (trimmed.length === 0) return;
+		editor.createLink(trimmed);
+		refreshFormatState(editor);
 	}
 
 	function onSlashSelect(item: DefaultSuggestionItem) {
@@ -280,6 +364,16 @@
 	items={slashItems}
 	onSelect={onSlashSelect}
 	onClose={onSlashClose}
+/>
+
+<!-- Formatting toolbar UI (2.5.b): driven by the FormattingToolbar plugin store -->
+<BlockNoteFormattingToolbar
+	visible={formatVisible}
+	referencePos={formatRefPos}
+	activeStyles={formatActive}
+	hasLink={formatHasLink}
+	onToggle={onFormatToggle}
+	onLink={onFormatLink}
 />
 
 <style>
