@@ -896,3 +896,86 @@ Aucun test ne tape le filesystem utilisateur réel.
 ### Prochaine étape
 
 Smoke test exhaustif Matheo dans l'app principale (11 étapes listées dans la spec étape 4). Si OK : étape 2.5.c (SideMenu — drag handle ⋮⋮ + transform menu) directement dans l'app principale.
+
+# Session 2026-05-11 — Clôture migration BlockNote (étapes 2.5.e + 3 + 5 + 6)
+
+## Mode d'exécution
+
+L'user a explicitement autorisé l'enchaînement étapes 2.5.e → 3 → 5 → 6 sans smoke entre chaque, "vas y jusqu'à 6 et on clôture". Risques acceptés (rollback plus coûteux après étape 5 si quelque chose casse en réel, mais étapes commitées une par une donc revert possible commit par commit).
+
+Travail parallélisé : 4 agents recherche dispatch en parallèle au démarrage pour préparer chaque étape (API LinkToolbar, mapping CSS, catalog cleanup Crepe, drafts docs clôture). ~10 min pour les 4 briefs, ensuite exécution séquentielle des écritures (évite les merge-conflicts sur Editor.svelte + app.css). Gain estimé ~60% vs séquentiel pur.
+
+## Étape 2.5.e — LinkToolbar (commit `be13afa`)
+
+Composant `BlockNoteLinkToolbar.svelte` pour l'édition inline d'un lien existant (URL + supprimer). Remplace partiellement le `window.prompt()` de 2.5.b : la **création** d'un lien reste sur le prompt (Option A du brief, MVP), l'**édition** d'un lien existant passe par la nouvelle toolbar.
+
+**Spécificité du plugin** : pas de `.store` TanStack contrairement aux 4 autres plugins. C'est une API query-only :
+- `getLinkAtSelection()` → `{ range, mark.attrs.href, text, position: DOMRect }`
+- `editLink(url, text, position)` / `deleteLink(position)`
+
+Le host poll `getLinkAtSelection()` à chaque `onSelectionChange` et drive sa propre visibilité.
+
+Tests : 8 unit vitest + 3 E2E Playwright sur fixture `link` ajoutée à `_visual`.
+
+## Étape 3 — Polish CSS Markhub (commit `7ae23e7`)
+
+Création de `src/lib/styles/editor-blocknote.css` (~270 lignes), importé dynamiquement après `@blocknote/core/style.css`. Couvre :
+
+- **Mapping des 6 variables `--bn-*`** exposées par BlockNote → tokens Markhub (`--bn-colors-editor-text` → `--color-text-primary`, `--bn-colors-hovered-background` → `--color-surface-hover`, `--bn-colors-side-menu` → `--color-text-muted`, etc.). Auto-inversion light/dark via les tokens.
+- **Échelle IDE-density** pour les headings (26/21/18/16/14/14) vs 42/36/32/28/24/18 par défaut BN.
+- **Override des hex hardcodés** lus dans `@blocknote/core/dist/style.css` (avec `!important` car BN utilise des sélecteurs équivalents) :
+  - code blocks (#161616/#fff → `--color-surface-veil` / `--color-text-primary`)
+  - blockquote (#7d797a → `--color-text-body` / `--color-border-strong`)
+  - tables (#ddd → `--color-border`)
+  - selected node outline (#64a0ff → `--color-accent`)
+  - drop cursors block + table + column-resize (#adf → `--color-accent`)
+  - file blocks (#f2f1ee → `--color-surface-veil`)
+- **Task list** : `accent-color: var(--color-accent)` sur les checkboxes.
+- **Light mode** : aucune duplication nécessaire, tokens auto-inversent. Seule exception le `<select>` picker du code block (texte forcé `text-muted` en light pour rester lisible).
+
+Les ~70 lignes de `<style>` scoped dans Editor.svelte (étape 4) migrent vers le fichier dédié (sans le wrapper `:global()` puisque le fichier est global). Aucune baseline visuelle régénérée — les diffs étaient sous le seuil de tolérance.
+
+Note : les 4 composants UI Svelte que j'avais écrits aux étapes 2.5.a-d utilisaient déjà les tokens Markhub directement → 0 refonte nécessaire.
+
+## Étape 5 — Cleanup Crepe (commit `e52536a`)
+
+Désinstallation `npm uninstall @milkdown/core @milkdown/crepe @milkdown/preset-commonmark`. Le lockfile perd 1456 lignes (purge de ~38 deps transitives Tiptap/ProseMirror).
+
+`src/app.css` perd les lignes 434-743 (311 lignes d'overrides Crepe : slash menu, toolbar, block handle, code block, list items, task checkboxes). Tout est déjà géré par `editor-blocknote.css` (étape 3).
+
+Specs Playwright supprimés : `tests/visual/block-handle.spec.ts` (28 refs Crepe, skippé étape 4) + `tests/visual/editor-slash-menu.spec.ts` (4 refs, skippé étape 4) + leurs snapshots PNG.
+
+Commentaires obsolètes nettoyés dans : `Editor.svelte` (stub EditorToolbar), `activeFile.svelte.ts` (race condition), 3 specs visuelles (`editor-frontmatter`, `task-list`, `text-selection`).
+
+**2 déviations du plan, documentées dans le message de commit** :
+- `src/routes/_blocknote-test/+page.svelte` CONSERVÉE (plan disait supprimer). 8 tests E2E actifs (slash-menu, formatting-toolbar, roundtrip) l'utilisent comme dev surface. Migrer aurait coûté plus que la valeur.
+- `MIGRATION-NOTES.md` CONSERVÉE (plan disait supprimer). Valeur historique, zéro coût.
+
+Vérification finale : `grep -rE "milkdown|crepe|Crepe" src/ tests/visual/ tests/component/` retourne 0 hit (sauf contenu textuel des fixtures `.md`).
+
+## Étape 6 — Clôture (ce commit)
+
+Documentation mise à jour : `STATE.md` (réécrit), `WORKPLAN.md` (C1 → ✅, C2/C3 débloqués), `BACKLOG.md` (items Phase 7 ré-annotés comme livrés via BN), `PLAN-BLOCKNOTE.md` tableau de progression (tous ✅ avec commits réels).
+
+## Bugs trouvés et fixés (récap session complète)
+
+1. **Drag preview leak** (étape 2.5.d) : `.preview { position: relative }` (reliquat Crepe) écrasait `.bn-drag-preview { position: absolute }` → clone 1280×410 en flow → status bar poussée à chaque dragstart. Fix : retrait de la règle, commentaire inline (`a250096`).
+2. **Tauri WKWebView interception drag** (post-2.5.c) : `dragDropEnabled: true` (défaut Tauri 2) absorbe les events drag pour l'API file-drop OS, bloquant tout drag HTML5 in-page. Fix : `dragDropEnabled: false`. Trade-off : pas d'API file-drop OS (non utilisée par Markhub). User validation explicite "OK ! bravo" (`21ac2ee`).
+3. **`replaceBlocks` initial déclenche `onChange`** (étape 4) : autosave inutile au mount. Flag `suppressNextChange`.
+4. **`Shift+Home` non-déterministe** dans BN Playwright : workaround `Shift+ArrowLeft × N`.
+
+## Tests finaux (branche `feat/blocknote-migration`)
+
+- cargo : **60/60 ✅**
+- vitest : **189/189 ✅** (152 au début → +37 nouveaux pour les 5 composants UI)
+- svelte-check : **0/0 ✅**
+- build : **OK ✅**
+- visual Playwright : **34/34 ✅** (les 2 specs Crepe skippées sont supprimées, plus aucun skipped résiduel côté visual)
+
+## Aucun chantier hors migration ouvert pendant cette session
+
+Strict respect du scope. C2 (toast), C3 (sidebar drag-drop), folder-delete EPERM (diagnostiqué hors plan le 2026-05-10 mais NON corrigé pendant cette session) attendent leur tour post-merge.
+
+## Prochaine session
+
+L'user merge `feat/blocknote-migration` sur `main` manuellement. Puis arbitrage entre C2 / C3 / folder-delete fix. La mémoire `pending_folder_delete.md` rappellera le diagnostic du folder-delete au moment voulu.
