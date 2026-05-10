@@ -8,8 +8,24 @@ import { expect, type Page } from '@playwright/test';
  *      first screenshot captures the fallback typeface and is unstable.
  *   4. A short settle frame for ProseMirror's internal layout to commit.
  */
-export async function gotoFixture(page: Page, fixture: string): Promise<void> {
-	await page.goto(`/_visual?fixture=${fixture}`);
+export async function gotoFixture(
+	page: Page,
+	fixture: string,
+	theme?: 'light' | 'dark'
+): Promise<void> {
+	const themeQS = theme === 'light' ? '&theme=light' : '';
+	await page.goto(`/_visual?fixture=${fixture}${themeQS}`);
+	// Force the theme attribute via Playwright too — onMount of the fixture
+	// page also does this, but setting it from the test side guarantees the
+	// attribute is in place even if Svelte's hydration runs in an order where
+	// the screenshot would otherwise capture the dark fallback.
+	await page.evaluate((t) => {
+		if (t === 'light') {
+			document.documentElement.setAttribute('data-theme', 'light');
+		} else {
+			document.documentElement.removeAttribute('data-theme');
+		}
+	}, theme ?? 'dark');
 	await page.waitForSelector('.milkdown .ProseMirror', { state: 'attached' });
 	await page.waitForFunction(() => {
 		const pm = document.querySelector('.milkdown .ProseMirror');

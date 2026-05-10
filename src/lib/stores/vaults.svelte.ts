@@ -143,6 +143,15 @@ class VaultsStore {
 		this.lastOpenedFile = lof;
 		await this.#persistConfig();
 	}
+
+	/**
+	 * Persist the user's theme preference (dark / light / system).
+	 * Mutates `settings.theme` in place and rewrites config.json.
+	 */
+	async setTheme(theme: string): Promise<void> {
+		this.settings = { ...this.settings, theme };
+		await this.#persistConfig();
+	}
 }
 
 export const vaultsStore = new VaultsStore();

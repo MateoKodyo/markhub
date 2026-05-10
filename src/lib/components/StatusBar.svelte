@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { AlertCircle, Check, Loader, Lock, Pencil, Save } from 'lucide-svelte';
+	import { AlertCircle, Check, Loader, Lock, Monitor, Moon, Pencil, Save, Sun } from 'lucide-svelte';
 	import type { EditorMode } from './Editor.svelte';
 	import type { Vault } from '$lib/tauri/types';
 	import type { SaveStatus } from '$lib/stores/activeFile.svelte';
 	import { computeDocumentStats } from '$lib/stores/documentStats.svelte';
+	import { themeStore } from '$lib/stores/theme.svelte';
 
 	let {
 		vault = null,
@@ -28,6 +29,21 @@
 	// Toggle the central counter between "X mots" and "Y caractères".
 	let countMode = $state<'words' | 'characters'>('words');
 	const stats = $derived(computeDocumentStats(content));
+
+	// Tooltip reflects the *preference* (so users see "Système — actuellement
+	// clair" rather than just the rendered value).
+	const themeTitle = $derived.by(() => {
+		switch (themeStore.preference) {
+			case 'dark':
+				return 'Thème : sombre — cliquer pour clair';
+			case 'light':
+				return 'Thème : clair — cliquer pour système';
+			case 'system':
+				return `Thème : système (${themeStore.effective}) — cliquer pour sombre`;
+			default:
+				return 'Thème';
+		}
+	});
 
 	const statusInfo = $derived.by<{
 		icon: typeof Loader | null;
@@ -107,8 +123,25 @@
 		{/if}
 	</div>
 
-	<!-- RIGHT — save status, mode toggle -->
+	<!-- RIGHT — save status, mode toggle, theme toggle -->
 	<div class="zone right">
+		<button
+			type="button"
+			class="theme-btn"
+			title={themeTitle}
+			aria-label={themeTitle}
+			onclick={() => void themeStore.cycle()}
+			data-testid="theme-toggle"
+		>
+			{#if themeStore.preference === 'light'}
+				<Sun size={12} />
+			{:else if themeStore.preference === 'dark'}
+				<Moon size={12} />
+			{:else}
+				<Monitor size={12} />
+			{/if}
+		</button>
+
 		{#if statusInfo.icon}
 			{@const StatusIcon = statusInfo.icon}
 			<span class="save-status" data-status={status}>
@@ -261,6 +294,25 @@
 
 	.reading {
 		color: var(--color-text-muted);
+	}
+
+	.theme-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-xs);
+		background: transparent;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+	}
+
+	.theme-btn:hover {
+		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
 	}
 
 	.save-status {

@@ -102,6 +102,15 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 		) {
 			fixture = f;
 		}
+		// Light-mode visual tests pass `?theme=light`. We set the attribute
+		// directly here (no themeStore.init required) since these fixtures don't
+		// boot the full app shell.
+		const t = params.get('theme');
+		if (t === 'light') {
+			document.documentElement.setAttribute('data-theme', 'light');
+		} else {
+			document.documentElement.removeAttribute('data-theme');
+		}
 		ready = true;
 	});
 </script>
@@ -117,7 +126,7 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 		body {
 			margin: 0;
 			padding: 0;
-			background: var(--color-bg-base, #0a0908);
+			background: var(--color-bg);
 			height: 100%;
 			overflow: hidden;
 		}
@@ -208,7 +217,7 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 		flex: 1;
 		min-height: 0;
 		width: 100vw;
-		background: var(--color-bg-base);
+		background: var(--color-bg);
 	}
 
 	/* === sidebar-overflow fixture mirror styles ===

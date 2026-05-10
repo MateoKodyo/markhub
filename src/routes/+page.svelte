@@ -7,6 +7,7 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
+	import { themeStore } from '$lib/stores/theme.svelte';
 	import { joinPath } from '$lib/utils/path';
 
 	let loadError = $state<string | null>(null);
@@ -16,6 +17,9 @@
 	onMount(async () => {
 		try {
 			await vaultsStore.load();
+			// Theme has to init AFTER vaultsStore.load so it sees the persisted
+			// `settings.theme`. Sets data-theme on <html> + listens to OS changes.
+			themeStore.init();
 			// Restore the last-opened file if any (and the vault still exists).
 			const lof = vaultsStore.lastOpenedFile;
 			if (lof && vaultsStore.vaults.some((v) => v.id === lof.vaultId)) {

@@ -1,14 +1,24 @@
 /* Markhub — design tokens
- * Source: design.md (warm-dark IDE aesthetic, Warp-inspired).
- * Calibrated against actual Warp app screenshots — denser than design.md's
- * marketing-site spec, with single accent color and ambient gradient.
- * SPEC.md §2 anchors this file as the canonical design system. */
+ * Source: design.md (warm-dark IDE aesthetic, Warp-inspired) + a derived
+ * warm-light palette for `data-theme="light"`.
+ * SPEC.md §2 anchors this file as the canonical design system.
+ *
+ * Theme strategy: tokens default to dark on bare `:root`. The light variant
+ * lives under `:root[data-theme="light"]` and only redefines the colour /
+ * shadow / gradient layer — typography, spacing and radius are theme-agnostic.
+ *
+ * The runtime store (`stores/theme.svelte.ts`) sets/removes `data-theme`
+ * directly on <html> based on user preference (saved in config.json) and the
+ * OS-level `prefers-color-scheme` media query when in 'system' mode.
+ */
 
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 
 :root {
-	/* === Color palette === */
+	/* ============================================================
+	 * COLOR PALETTE — DARK (default, applied on bare :root)
+	 * ============================================================ */
 
 	/* Canvas — warm near-black, never blue-tinted.
 	 * Three-tier hierarchy (darkest → lightest):
@@ -54,6 +64,13 @@
 	--color-status-ok: #4ade80;
 	--color-status-warn: #fbbf24;
 	--color-status-error: #f87171;
+
+	/* Modal / dialog backdrop. Used by InputDialog, ConfirmDialog. */
+	--color-backdrop: rgba(0, 0, 0, 0.5);
+
+	/* Popover shadow — slash menu, floating toolbar, link tooltip, dialogs.
+	 * Higher alpha on dark since the canvas swallows depth. */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.35);
 
 	/* Ambient gradient — Warp's signature warm-edge / cool-corner glow */
 	--gradient-ambient:
@@ -114,6 +131,54 @@
 	--content-padding-x: 64px;
 }
 
+/* ============================================================
+ * COLOR PALETTE — LIGHT (warm IDE light, NOT a Notion white)
+ * ============================================================
+ * Same hue family as the dark palette (warm parchment / earth gray),
+ * inverted lightness with manual tweaks for perceptual contrast.
+ * Sidebar stays the most recessed surface (darker tinted beige) to
+ * keep the chrome → canvas → raised hierarchy coherent across themes. */
+:root[data-theme='light'] {
+	--color-bg-sidebar: #f1efe9;
+	--color-bg: #faf9f6;
+	--color-bg-raised: #ffffff;
+
+	--color-surface-veil: rgba(0, 0, 0, 0.03);
+	--color-surface-active: rgba(0, 0, 0, 0.07);
+	--color-surface-hover: rgba(0, 0, 0, 0.04);
+	--color-surface-strong: rgba(0, 0, 0, 0);
+
+	--color-border-strong: rgba(0, 0, 0, 0.16);
+	--color-border: rgba(0, 0, 0, 0.1);
+	--color-border-subtle: rgba(0, 0, 0, 0.05);
+
+	--color-text-primary: #1c1b1a;
+	--color-text-body: #4a4948;
+	--color-text-secondary: #75736f;
+	--color-text-muted: #a09e9a;
+
+	--color-button-bg: #e0ddd6;
+	--color-button-text: #1c1b1a;
+	--color-button-bg-hover: #d6d2c9;
+
+	--color-accent: #2563eb;
+	--color-accent-hover: #1d4ed8;
+	--color-accent-text: #ffffff;
+	--color-selection: rgba(37, 99, 235, 0.18);
+
+	--color-status-ok: #16a34a;
+	--color-status-warn: #d97706;
+	--color-status-error: #dc2626;
+
+	--color-backdrop: rgba(0, 0, 0, 0.3);
+
+	/* Lighter shadow on light: dark shadows would punch holes. */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+	/* Neutralize the warm/cool ambient glow on light — would muddy the canvas. */
+	--gradient-ambient: none;
+}
+
 /* === Reset & base === */
 
 *,
@@ -170,11 +235,14 @@ body {
 	background-color: var(--color-selection);
 }
 
-/* Custom scrollbar — overlay style, narrow, blends with the warm-dark canvas.
- * Default 16px native scrollbars eat real estate inside the 280px sidebar. */
+/* Custom scrollbar — overlay style, narrow, theme-adaptive.
+ * Default 16px native scrollbars eat real estate inside the 280px sidebar.
+ * Thumb color reuses --color-border-strong so it auto-inverts with the theme:
+ *   dark  → rgba(226,226,226,0.16) (subtle white)
+ *   light → rgba(0,0,0,0.16)        (subtle black) */
 * {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+	scrollbar-color: var(--color-border-strong) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -187,12 +255,12 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.12);
+	background: var(--color-border-strong);
 	border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-	background: rgba(255, 255, 255, 0.2);
+	background: var(--color-border);
 }
 
 h1,
@@ -367,7 +435,7 @@ samp {
 	background: var(--color-bg-raised);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-md);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+	box-shadow: var(--shadow-popover);
 	color: var(--color-text-primary);
 	font-family: var(--font-sans);
 	font-size: var(--text-ui);
@@ -471,7 +539,7 @@ samp {
 	background: var(--color-bg-raised);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-md);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+	box-shadow: var(--shadow-popover);
 	padding: 2px;
 	gap: 1px;
 }
@@ -554,7 +622,7 @@ samp {
 	background: var(--color-bg-raised);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-md);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+	box-shadow: var(--shadow-popover);
 	color: var(--color-text-primary);
 	font-family: var(--font-sans);
 	font-size: var(--text-ui);
