@@ -1,0 +1,225 @@
+/* ============================================================
+ * Markhub BlockNote design polish (PLAN-BLOCKNOTE étape 3).
+ * ============================================================
+ *
+ * Maps BlockNote's CSS surface onto the Markhub design system
+ * (see design.md). Imported by Editor.svelte AFTER
+ * @blocknote/core/style.css so we override BN defaults.
+ *
+ * Layers (top to bottom):
+ *   1. --bn-* CSS variables (BN exposes 6, all mapped to Markhub tokens)
+ *   2. Editor container typography (font, scale, color)
+ *   3. Block-type-specific overrides for hardcoded hex in BN core
+ *      (code blocks, blockquote, tables, file blocks, drop cursors)
+ *   4. Light-mode adjustments for BN-rendered elements that hardcode
+ *      a "light-mode" look (file block, etc.)
+ *
+ * Markhub's token system auto-inverts via :root[data-theme="light"]
+ * in app.css, so most rules below don't need a light-mode duplicate —
+ * they get the right value through var(--…). The exceptions are
+ * elements where BN ships a hardcoded hex (e.g. code blocks always
+ * #161616 in BN), which we force to surface tokens that DO invert.
+ */
+
+/* ────────────────────────────────────────────────────────────
+ *  1. Map BlockNote's exposed CSS variables onto Markhub tokens.
+ * ──────────────────────────────────────────────────────────── */
+.bn-editor {
+	--bn-colors-editor-text: var(--color-text-primary);
+	--bn-colors-hovered-background: var(--color-surface-hover);
+	--bn-colors-side-menu: var(--color-text-muted);
+	--bn-border-radius-small: var(--radius-xs);
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  2. Editor container — typography baseline.
+ * ──────────────────────────────────────────────────────────── */
+.preview .bn-editor {
+	font-family: var(--font-sans);
+	font-size: 15px;
+	line-height: 1.6;
+	color: var(--color-text-primary);
+	background: transparent;
+}
+
+.preview .bn-editor h1,
+.preview .bn-editor h2,
+.preview .bn-editor h3,
+.preview .bn-editor h4,
+.preview .bn-editor h5,
+.preview .bn-editor h6 {
+	color: var(--color-text-primary);
+	font-family: var(--font-sans);
+	font-style: normal;
+	font-weight: var(--weight-medium);
+	letter-spacing: var(--tracking-heading);
+}
+.preview .bn-editor h1 {
+	font-size: 26px;
+	line-height: 1.25;
+}
+.preview .bn-editor h2 {
+	font-size: 21px;
+	line-height: 1.3;
+}
+.preview .bn-editor h3 {
+	font-size: 18px;
+	line-height: 1.35;
+}
+.preview .bn-editor h4 {
+	font-size: 16px;
+	line-height: 1.4;
+}
+.preview .bn-editor h5,
+.preview .bn-editor h6 {
+	font-size: 14px;
+	line-height: 1.4;
+	color: var(--color-text-body);
+}
+
+.preview .bn-editor p,
+.preview .bn-editor li {
+	font-family: var(--font-sans);
+	font-size: 15px;
+	line-height: 1.6;
+	color: var(--color-text-body);
+}
+
+.preview .bn-editor a {
+	color: var(--color-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+/* Inline code (not a code block — that's its own rule below). */
+.preview .bn-editor code {
+	font-family: var(--font-mono);
+	font-size: 0.92em;
+	background: var(--color-surface-veil);
+	padding: 1px 5px;
+	border-radius: var(--radius-xs);
+	color: var(--color-text-primary);
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  3. Block-type-specific overrides — kill BN's hardcoded hex.
+ *
+ *  `!important` is the only way: BN's own style.css uses similar
+ *  specificity AND hardcoded colors (e.g. #161616 on code blocks).
+ *  We scope to `.preview` so we don't leak outside the editor.
+ * ──────────────────────────────────────────────────────────── */
+
+/* Code block — BN default is #161616 bg / #fff text (Notion dark vibe).
+ * Mark with !important because BN's own rule has the same specificity. */
+.preview .bn-block-content[data-content-type='codeBlock'] {
+	background-color: var(--color-surface-veil) !important;
+	color: var(--color-text-primary) !important;
+	border: 1px solid var(--color-border-subtle);
+	border-radius: var(--radius-md);
+}
+.preview .bn-block-content[data-content-type='codeBlock'] > pre {
+	color: var(--color-text-primary);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	line-height: 1.55;
+}
+/* Language picker (`select` element inside code blocks). */
+.preview .bn-block-content[data-content-type='codeBlock'] > div > select {
+	color: var(--color-text-muted) !important;
+	font-family: var(--font-mono);
+}
+.preview .bn-block-content[data-content-type='codeBlock'] > div > select > option {
+	color: var(--color-text-primary) !important;
+	background: var(--color-bg-raised);
+}
+
+/* Blockquote — BN default is #7d797a color + border (mid-gray, low contrast). */
+.preview .bn-editor [data-content-type='quote'] blockquote {
+	color: var(--color-text-body) !important;
+	border-left-color: var(--color-border-strong) !important;
+	padding-left: var(--space-4);
+}
+
+/* Tables — BN borders default to #ddd (too pale on dark). */
+.preview .bn-editor [data-content-type='table'] th,
+.preview .bn-editor [data-content-type='table'] td {
+	border-color: var(--color-border) !important;
+	color: var(--color-text-body);
+}
+.preview .bn-editor [data-content-type='table'] th {
+	color: var(--color-text-primary);
+}
+
+/* Task list checkboxes — BN ships native browser checkbox, we tint
+ * with accent-color so checked state matches the design system. */
+.preview .bn-block-content[data-content-type='checkListItem'] > div > input {
+	accent-color: var(--color-accent);
+}
+
+/* Selected block outline — BN default is #64a0ff (sky blue), we want
+ * the Markhub accent for consistency. */
+.preview .bn-block-content.ProseMirror-selectednode > *,
+.preview .ProseMirror-selectednode > .bn-block-content > * {
+	outline-color: var(--color-accent) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  4. Drop indicators — BN ships sky blue (#adf), we want accent.
+ * ──────────────────────────────────────────────────────────── */
+
+/* Block-level drop indicator (used for cross-block drag-reorder via
+ * SideMenu). Plugin injects `<div class="prosemirror-dropcursor-block">`
+ * during drag. */
+.prosemirror-dropcursor-block,
+.prosemirror-dropcursor-vertical {
+	background-color: var(--color-accent) !important;
+}
+
+/* Table cell drop indicator (used during row/col reorder via
+ * TableHandles). Plugin injects `<div class="bn-table-drop-cursor">`. */
+.bn-table-drop-cursor {
+	background-color: var(--color-accent) !important;
+}
+
+/* Column resize handle (prosemirror-tables, surfaces on cell edges
+ * during column-resize drag). Also hardcoded #adf in BN. */
+.ProseMirror .column-resize-handle {
+	background-color: var(--color-accent) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  5. File block adjustments — BN hardcodes a light-mode look that
+ *  reads as "disabled" on the warm-dark canvas. Map to surface
+ *  tokens that auto-invert with the theme.
+ *  Markhub doesn't ship file/image blocks today (markdown-only),
+ *  but the rules are tiny and future-proof the design system.
+ * ──────────────────────────────────────────────────────────── */
+.preview [data-file-block] .bn-add-file-button {
+	background: var(--color-surface-veil) !important;
+	color: var(--color-text-muted) !important;
+}
+.preview [data-file-block] .bn-file-name-with-icon {
+	background: var(--color-surface-veil) !important;
+	color: var(--color-text-body) !important;
+}
+.preview [data-file-block] .bn-add-file-button:hover,
+.preview [data-file-block] .bn-file-name-with-icon:hover {
+	background: var(--color-surface-hover) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  6. Light-mode-specific tweaks.
+ *  Most things auto-invert via Markhub tokens (the !important
+ *  overrides above use --color-* vars that already flip in light).
+ *  Only thing left: BN's code-block `<select>` default color (#fff)
+ *  is set directly and doesn't pick up our override correctly when
+ *  the option dropdown opens on the page (native control). The
+ *  rule below ensures the on-page picker text reads on light.
+ * ──────────────────────────────────────────────────────────── */
+:root[data-theme='light']
+	.preview
+	.bn-block-content[data-content-type='codeBlock']
+	> div
+	> select {
+	color: var(--color-text-muted) !important;
+}

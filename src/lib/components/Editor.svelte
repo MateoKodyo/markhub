@@ -176,11 +176,13 @@
 			const [{ BlockNoteEditor, filterSuggestionItems, getDefaultSlashMenuItems }] =
 				await Promise.all([
 					import('@blocknote/core'),
-					// Style sheet brings the default block layout, drag handle
-					// drop indicator and inline UI primitives. Markhub-specific
-					// polish is layered on top via :global rules below and will
-					// be tightened in step 3.
-					import('@blocknote/core/style.css').catch(() => null)
+					// 1. Default BN layout, drag handle, drop indicators, etc.
+					import('@blocknote/core/style.css').catch(() => null),
+					// 2. Markhub design system polish on top (step 3) — maps
+					//    BN CSS variables to Markhub tokens, kills BN hardcoded
+					//    hex on code blocks / tables / drop cursors / file
+					//    blocks, applies the IDE-density heading scale, etc.
+					import('$lib/styles/editor-blocknote.css').catch(() => null)
 				]);
 			if (cancelled) return;
 
@@ -658,97 +660,8 @@
 		 * document.body during dragstart. */
 	}
 
-	/* === Minimal BlockNote token mapping. Step 3 will reconcile fully ===
-	 * The default @blocknote/core/style.css ships layout + drag affordances
-	 * + drop indicator. We only override the tokens the design system cares
-	 * about, plus the heading scale (BN defaults are too large for IDE
-	 * density). */
-	.preview :global(.bn-editor) {
-		font-family: var(--font-sans);
-		font-size: 15px;
-		line-height: 1.6;
-		color: var(--color-text-primary);
-		background: transparent;
-	}
-
-	.preview :global(.bn-editor h1),
-	.preview :global(.bn-editor h2),
-	.preview :global(.bn-editor h3),
-	.preview :global(.bn-editor h4),
-	.preview :global(.bn-editor h5),
-	.preview :global(.bn-editor h6) {
-		color: var(--color-text-primary);
-		font-family: var(--font-sans);
-		font-style: normal;
-		font-weight: var(--weight-medium);
-		letter-spacing: var(--tracking-heading);
-	}
-	.preview :global(.bn-editor h1) {
-		font-size: 26px;
-		line-height: 1.25;
-	}
-	.preview :global(.bn-editor h2) {
-		font-size: 21px;
-		line-height: 1.3;
-	}
-	.preview :global(.bn-editor h3) {
-		font-size: 18px;
-		line-height: 1.35;
-	}
-	.preview :global(.bn-editor h4) {
-		font-size: 16px;
-		line-height: 1.4;
-	}
-	.preview :global(.bn-editor h5),
-	.preview :global(.bn-editor h6) {
-		font-size: 14px;
-		line-height: 1.4;
-		color: var(--color-text-body);
-	}
-
-	.preview :global(.bn-editor p),
-	.preview :global(.bn-editor li) {
-		font-family: var(--font-sans);
-		font-size: 15px;
-		line-height: 1.6;
-		color: var(--color-text-body);
-	}
-
-	.preview :global(.bn-editor code) {
-		font-family: var(--font-mono);
-		font-size: 0.92em;
-		background: var(--color-surface-veil);
-		padding: 1px 5px;
-		border-radius: var(--radius-xs);
-		color: var(--color-text-primary);
-	}
-
-	.preview :global(.bn-editor pre) {
-		font-family: var(--font-mono);
-		background: var(--color-surface-veil);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: var(--radius-md);
-		padding: var(--space-3) var(--space-4);
-		overflow-x: auto;
-	}
-
-	.preview :global(.bn-editor pre code) {
-		background: transparent;
-		padding: 0;
-		font-size: 13px;
-		line-height: 1.55;
-	}
-
-	.preview :global(.bn-editor a) {
-		color: var(--color-accent);
-		text-decoration: underline;
-		text-underline-offset: 2px;
-	}
-
-	.preview :global(.bn-editor blockquote) {
-		margin: 0;
-		padding: 0 var(--space-4);
-		border-left: 3px solid var(--color-border-strong);
-		color: var(--color-text-body);
-	}
+	/* BlockNote polish lives in src/styles/editor-blocknote.css
+	 * (imported dynamically alongside @blocknote/core/style.css in the
+	 * mount effect above). Keeping it global rather than scoped avoids
+	 * Svelte's :global() noise for every selector. */
 </style>
