@@ -377,6 +377,7 @@
 		>
 			{#if isRenaming}
 				<div class="row inline-renaming" data-testid="inline-rename">
+					<span class="chevron chevron-empty" aria-hidden="true"></span>
 					<span class="icon icon-file">
 						<FileText size={14} />
 					</span>
@@ -392,7 +393,7 @@
 				<button
 					type="button"
 					class="row"
-					style="padding-left: {8 + depth * 16 + 12}px"
+					style="padding-left: {8 + depth * 16}px"
 					onclick={() => clickFile(entry)}
 					ondblclick={(e) => onEntryDoubleClick(e, entry)}
 					onkeydown={(e) => onEntryKeyDown(e, entry)}
@@ -401,6 +402,7 @@
 					ondragstart={(e) => handleDragStart(e, entry)}
 					ondragend={handleDragEnd}
 				>
+					<span class="chevron chevron-empty" aria-hidden="true"></span>
 					<span class="icon icon-file">
 						<FileText size={14} />
 					</span>
