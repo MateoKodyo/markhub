@@ -39,6 +39,18 @@ Another paragraph for context.`,
 
 		'long-doc': Array.from({ length: 80 }, (_, i) => `## Section ${i + 1}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n`).join('\n'),
 
+		table: `# Tables fixture
+
+A short text before the table.
+
+| Phase | Owner | Status |
+| --- | --- | --- |
+| 0 | Matheo | Done |
+| 1 | Claude | In review |
+| 2 | Both | Planned |
+
+A short text after the table.`,
+
 		'task-list': `# Sprint todos
 
 - [x] Fix slash menu double-render (P0 #1)

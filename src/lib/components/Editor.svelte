@@ -12,6 +12,9 @@
 		type SideMenuState,
 		type TransformType
 	} from './BlockNoteSideMenu.svelte';
+	import BlockNoteTableHandles, {
+		type TableHandlesState
+	} from './BlockNoteTableHandles.svelte';
 	import type { DefaultSuggestionItem } from '@blocknote/core';
 
 	export type EditorMode = 'preview' | 'source';
@@ -65,6 +68,14 @@
 	let sideMenuState = $state<SideMenuState | null>(null);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let sideMenuExt: any = null;
+
+	// Table handles state — payload from the tableHandles plugin store
+	// when a table cell is hovered. The plugin renders drop indicators
+	// natively; we only render the affordances (row/col drag handles +
+	// add row/col buttons).
+	let tableHandlesState = $state<TableHandlesState | null>(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let tableHandlesExt: any = null;
 
 	function readSelectionRect(): DOMRect | null {
 		const sel = typeof window !== 'undefined' ? window.getSelection() : null;
@@ -231,6 +242,22 @@
 				if (typeof off === 'function') unsubscribers.push(off);
 			}
 
+			// === TableHandles wiring (row/col drag + add row/col) ===
+			// Plugin renders drop indicator (`bn-table-drop-cursor`)
+			// natively; we only render the affordances.
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const thExt = (editor as any).getExtension?.('tableHandles');
+			if (thExt?.store) {
+				tableHandlesExt = thExt;
+				const off = thExt.store.subscribe(
+					(payload: { currentVal: unknown }) => {
+						const s = payload.currentVal as TableHandlesState | undefined;
+						tableHandlesState = s && s.show ? s : null;
+					}
+				);
+				if (typeof off === 'function') unsubscribers.push(off);
+			}
+
 			onReady(buildApi());
 		})();
 
@@ -260,6 +287,8 @@
 			formatHasLink = false;
 			sideMenuState = null;
 			sideMenuExt = null;
+			tableHandlesState = null;
+			tableHandlesExt = null;
 			onReady(null);
 		};
 	});
@@ -352,6 +381,57 @@
 		if (open) sideMenuExt.freezeMenu?.();
 		else sideMenuExt.unfreezeMenu?.();
 	}
+
+	// ============================================================
+	// Table handles handlers — bridge our Svelte component to the
+	// BlockNote tableHandles plugin's imperative API.
+	// ============================================================
+
+	function onTableRowDragStart(e: DragEvent) {
+		if (!tableHandlesExt) return;
+		tableHandlesExt.rowDragStart?.({
+			dataTransfer: e.dataTransfer,
+			clientY: e.clientY
+		});
+		tableHandlesExt.freezeHandles?.();
+	}
+
+	function onTableColDragStart(e: DragEvent) {
+		if (!tableHandlesExt) return;
+		tableHandlesExt.colDragStart?.({
+			dataTransfer: e.dataTransfer,
+			clientX: e.clientX
+		});
+		tableHandlesExt.freezeHandles?.();
+	}
+
+	function onTableDragEnd() {
+		if (!tableHandlesExt) return;
+		tableHandlesExt.dragEnd?.();
+		tableHandlesExt.unfreezeHandles?.();
+	}
+
+	function onTableAddRow(side: 'above' | 'below') {
+		if (!tableHandlesExt || tableHandlesState?.rowIndex == null) return;
+		tableHandlesExt.addRowOrColumn?.(tableHandlesState.rowIndex, {
+			orientation: 'row',
+			side
+		});
+	}
+
+	function onTableAddCol(side: 'left' | 'right') {
+		if (!tableHandlesExt || tableHandlesState?.colIndex == null) return;
+		tableHandlesExt.addRowOrColumn?.(tableHandlesState.colIndex, {
+			orientation: 'column',
+			side
+		});
+	}
+
+	function onTableFreezeChange(open: boolean) {
+		if (!tableHandlesExt) return;
+		if (open) tableHandlesExt.freezeHandles?.();
+		else tableHandlesExt.unfreezeHandles?.();
+	}
 </script>
 
 {#if mode === 'source'}
@@ -404,6 +484,16 @@
 	onAddBlock={onSideAddBlock}
 	onTransform={onSideTransform}
 	onMenuOpenChange={onSideMenuOpenChange}
+/>
+
+<BlockNoteTableHandles
+	tableState={tableHandlesState}
+	onColDragStart={onTableColDragStart}
+	onRowDragStart={onTableRowDragStart}
+	onDragEnd={onTableDragEnd}
+	onAddRow={onTableAddRow}
+	onAddCol={onTableAddCol}
+	onFreezeChange={onTableFreezeChange}
 />
 
 <style>
@@ -473,7 +563,13 @@
 	.preview {
 		flex: 1;
 		min-height: 0;
-		position: relative;
+		/* No `position: relative` here: BlockNote merges `editor.mount(...)`
+		 * target's classes into the editor DOM, and the SideMenu plugin's
+		 * drag-preview clone (`.bn-drag-preview { position: absolute }`)
+		 * loses the specificity fight against this rule — leaving a
+		 * 1280×410px invisible-but-in-flow element that pushes the status
+		 * bar down on every drag. Diagnosed 2026-05-10 by probing
+		 * document.body during dragstart. */
 	}
 
 	/* === Minimal BlockNote token mapping. Step 3 will reconcile fully ===
