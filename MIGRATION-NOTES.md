@@ -270,3 +270,131 @@ ext.store.subscribe(({ currentVal }) => {
 - **Prop nommée `menuState`** au lieu de `state` : Svelte 5 confond `state.show` avec `$state.show` rune et émet 3 erreurs `store_rune_conflict`.
 - **Pas de wrapper du store** côté Svelte : on subscribe directement au TanStack Store dans la route. Si plus tard d'autres routes utilisent BlockNote, on extraira un helper `bridgeBlockNoteStore`.
 - **Pas de gestion focus avancée** : le caret reste dans l'éditeur grâce au `mousedown.preventDefault`. Pas de tabIndex / aria-activedescendant pour ce premier round — KISS.
+
+---
+
+## Étape 2.5.b — FormattingToolbar Svelte UI (livré)
+
+### Pattern d'intégration confirmé en pratique
+
+```ts
+// 1. Le store de `formattingToolbar` est Store<boolean> (PAS un objet d'état
+//    avec referencePos comme suggestionMenu). On calcule le positionnement
+//    nous-mêmes depuis window.getSelection().
+const ext = editor.getExtension('formattingToolbar');
+ext.store.subscribe(({ currentVal }) => {
+  // currentVal est un boolean : true = toolbar visible, false = cachée
+  if (!currentVal) return closeUI();
+  const range = window.getSelection()?.getRangeAt(0);
+  const rect = range?.getBoundingClientRect();
+  renderUI({ visible: true, referencePos: rect });
+});
+
+// 2. Refresh aussi sur editor.onSelectionChange (la sélection peut bouger
+//    au clavier sans flip du store).
+editor.onSelectionChange(() => updateActiveStyles());
+
+// 3. Lecture des actifs : editor.getActiveStyles() retourne { bold, italic, ... }.
+//    Détection lien : editor.getSelectedLinkUrl() (string | undefined).
+
+// 4. Application : editor.toggleStyles({ bold: true }) etc.
+//    Lien : editor.createLink(url) (avec prompt() inline pour MVP, vrai
+//    LinkToolbar = étape 2.5.e).
+```
+
+### Composant livré
+
+- `src/lib/components/BlockNoteFormattingToolbar.svelte` — rendu Svelte du store.
+  - Props : `visible`, `referencePos`, `activeStyles` (`{ bold, italic, strike, code }`), `hasLink`, `onToggle(style)`, `onLink()`.
+  - Render : toolbar `position: fixed` au-dessus de `referencePos.top - height - 8px`, auto-flip en dessous si pas la place en haut.
+  - 5 boutons : B / I / S / `</>` / 🔗, classe `is-active` selon `activeStyles[style]`.
+  - **`mousedown.preventDefault()`** : sinon le blur de l'éditeur retire le caret avant que le toggle ne tourne.
+
+### Découvertes API
+
+- Le store de `formattingToolbar` est `Store<boolean>` (PAS `Store<UiElementPosition>`). Différence majeure avec `suggestionMenu` qui expose un objet d'état complet.
+- Le `n()` interne du plugin retourne `false` si la sélection contient un block code → toolbar cachée sur les code blocks (comportement natif voulu, à connaître pour les futurs tests).
+- Plain `Shift+Home` est unreliable dans le contenteditable BlockNote via Playwright ; on tape puis on recule avec `Shift+ArrowLeft` × N pour avoir une sélection déterministe (consigné dans le helper `typeAndSelect`).
+
+### Tests
+
+- `tests/component/BlockNoteFormattingToolbar.test.svelte.ts` — 7 tests unitaires (montage, rendu boutons, click toggle, mousedown.preventDefault, classes is-active, auto-flip, hasLink).
+- `tests/visual/blocknote-formatting-toolbar.spec.ts` — 3 tests E2E (sélection texte → toolbar apparaît ; bold → `<strong>` ; italic → `<em>`).
+
+### Décisions autonomes
+
+- **API du composant** : pure présentation (visible, referencePos, activeStyles, hasLink + callbacks onToggle/onLink). Toute la logique éditeur reste côté host. Plus testable, et identique au pattern slash menu : la wiring (subscribe store + selection rect) vit dans la route, pas dans le composant.
+- **UX du lien** : `prompt()` natif. Cohérent avec « minimal » de la spec étape 2.5.b ; le vrai LinkToolbar est l'étape 2.5.e.
+- **Auto-flip** : si la sélection est trop haute pour que la toolbar tienne au-dessus, elle bascule en dessous (offset 8px).
+- **Pas de polish CSS poussé** (étape 3) : tokens Markhub directs, pas de `!important`.
+
+---
+
+## Stratégie révisée (2026-05-10 fin journée)
+
+Après la livraison de 2.5.b, on a révisé la stratégie de migration. Voir `PLAN-BLOCKNOTE.md` §"Stratégie révisée".
+
+**TL;DR** : la bascule de `Editor.svelte` (étape 4) se fait MAINTENANT, avec les 2 composants UI livrés. Les 3 composants UI restants (SideMenu, TableHandles, LinkToolbar) seront écrits ensuite directement dans l'app principale.
+
+Raison : 4 étapes invisibles d'affilée (composants UI sur la route de test sans bascule) deviennent psychologiquement insoutenables et empêchent tout test en conditions réelles. La bascule anticipée débloque le smoke test sur de vrais fichiers Markdown.
+
+---
+
+## Étape 4 — Bascule `Editor.svelte` (livrée)
+
+### Refactor (770 → ~270 lignes)
+
+**Retiré** :
+- Imports `@milkdown/crepe` + `@milkdown/kit/preset/commonmark`/`gfm`/CSS Crepe.
+- Block menu transform/duplicate/delete custom (`buildBlockMenuItems`, `transformTargetBlock`, `duplicateTargetBlock`, `deleteTargetBlock`).
+- Drag-reorder pointer events (`onHandlePointerDown`, `onWindowPointerMove/Up`, `updateDropIndicator`, `applyBlockReorder`).
+- Drop indicator (`<div class="block-drop-indicator">`).
+- `wireBlockHandle` (poll DOM Crepe pour attacher click+pointerdown sur `.operation-item`).
+- État `blockMenuOpen / blockTargetStart / dropIndicatorTop / dragSourceStart …`.
+- Override `--crepe-*` sur `.preview :global(.milkdown)`.
+
+**Introduit** :
+- Mount BlockNote : `BlockNoteEditor.create()` + `editor.mount(container)`.
+- Initial doc : `editor.replaceBlocks(editor.document, editor.tryParseMarkdownToBlocks(initialBody))`.
+- `editor.isEditable = !readonly` (réactif sur changement de prop via `$effect`).
+- Save flow : `editor.onChange(() => editor.blocksToMarkdownLossy() → joinFrontmatter(initialFrontmatter, md) → onChange(...))`.
+- Wiring `BlockNoteSlashMenu` + `BlockNoteFormattingToolbar` (mêmes patterns que `_blocknote-test/+page.svelte`).
+- `unsubscribers[]` cleanup (onChange, onSelectionChange, store subscriptions, unmount).
+
+**Préservé** :
+- API publique : props `content / readonly / mode / onChange / onReady`.
+- Frontmatter `<details>` au-dessus.
+- Source-mode `<textarea>`.
+- `EditorApi { runCommand }` en stub no-op (header `EditorToolbar` était déjà cosmétique).
+
+### Bug latent évité — `replaceBlocks` initial déclenche `onChange`
+
+Sans précaution, le mount du fichier ré-emit le contenu identique vers `onChange` qui déclenche un autosave inutile. Flag `suppressNextChange = true` initialisé avant le `replaceBlocks` initial, reset au premier `onChange` reçu.
+
+### CSS
+
+- Override `--crepe-*` supprimé.
+- Tokens Markhub appliqués sur `.preview :global(.bn-editor) {…}` : font-family Geist, scale headings IDE-density (26/21/18/16/14), code/pre/blockquote/links cohérents.
+- `app.css` : règle `::selection` retargetée de `.milkdown.milkdown .ProseMirror` vers `.bn-editor.ProseMirror`.
+- Polish CSS complet → étape 3.
+
+### Tests
+
+- `tests/component/Editor.test.svelte.ts` : mock `@milkdown/crepe` remplacé par mock `@blocknote/core` (BlockNoteEditor stub minimal). Les 7 tests existants (source-mode, frontmatter rendering, toggle preview/source) passent.
+- `tests/visual/_helpers.ts` : sélecteur d'attente `.milkdown .ProseMirror` → `.bn-editor.ProseMirror`.
+- Specs Crepe-spécifiques skippées via `test.describe.skip` :
+  - `tests/visual/block-handle.spec.ts` (drag handle / transform / duplicate / delete) → réactivé / remplacé à 2.5.c.
+  - `tests/visual/editor-slash-menu.spec.ts` → déjà couvert par `tests/visual/blocknote-slash-menu.spec.ts`.
+- Baselines régénérées (rendu BlockNote ≠ rendu Crepe) : `editor-headings(-light)`, `app-shell-light`, `task-list(-light)`, `editor-slash-menu-light`, `sidebar-overflow`.
+
+### Bugs acceptés temporairement (cf. PLAN-BLOCKNOTE.md §"Bugs ACCEPTÉS")
+
+- Pas de drag handle ⋮⋮ visible (rétabli à 2.5.c)
+- Pas de transform menu au clic ⋮⋮ (slash menu via `/` accessible)
+- Pas de toolbar custom sur les liens (`prompt()` du formatting toolbar)
+- Tables : pas de boutons `+` row/col custom, drag natif fonctionnel
+- Polish CSS imparfait (étape 3)
+
+### Smoke test attendu
+
+URL : `http://localhost:1420/` (app principale, **PAS** `/_blocknote-test`). Procédure 11 étapes documentée dans le plan. Bugs INTERDITS = STOP : fichier ne s'ouvre pas, sauvegarde cassée (perte de données), frontmatter perdu, crash, régression sidebar/status bar/vaults, drag-and-drop totalement impossible.

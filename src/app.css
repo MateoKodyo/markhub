@@ -241,12 +241,11 @@ body {
 	background-color: var(--color-selection);
 }
 
-/* Crepe ships its own `.milkdown .ProseMirror *::selection` rule pointing
- * at --crepe-color-selected (which we map to surface-active = ~5% white),
- * making the highlight invisible in editor body. Bump our specificity to
- * (0,0,3,1) > Crepe's (0,0,2,1) so the accent-tinted blue wins. */
-.milkdown.milkdown .ProseMirror *::selection,
-.milkdown.milkdown .ProseMirror::selection {
+/* BlockNote's default style.css ships its own selection rules under
+ * `.bn-container .ProseMirror`. Bump our specificity above so the
+ * accent-tinted highlight wins inside the editor too. */
+.bn-editor.ProseMirror *::selection,
+.bn-editor.ProseMirror::selection {
 	background-color: var(--color-selection);
 }
 

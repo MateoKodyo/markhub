@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { gotoFixture, snap } from './_helpers';
 
-// Phase 7: both .operation-item children stay visible. The first (`+`)
-// keeps its native Crepe behaviour (insert below). The second (⋮⋮) is
-// wired by Editor.svelte to open a Notion-like block menu on click and
-// to start a drag-reorder on dragstart.
+// SUSPENDED — these specs target the Crepe block-handle (`.milkdown
+// .operation-item`) and our custom transform/duplicate/delete menu, both
+// removed at PLAN-BLOCKNOTE étape 4 (commit replacing Crepe with
+// BlockNote). The native BlockNote SideMenu Svelte component lands at
+// step 2.5.c — these specs will then be replaced by their BlockNote
+// equivalents.
+test.describe.skip('Crepe block handle (suspended — replaced by BlockNote SideMenu at step 2.5.c)', () => {
 test('block handle ⋮⋮ is visible AND the + is visible', async ({ page }) => {
 	await gotoFixture(page, 'headings');
 	const h1 = page.locator('.milkdown .ProseMirror h1').first();
@@ -173,4 +176,5 @@ test('block menu near the bottom of the viewport flips up to stay visible', asyn
 	// Both top and bottom items must be reachable (rendered, not clipped).
 	await expect(menu.getByText('Texte', { exact: true })).toBeVisible();
 	await expect(menu.getByText('Supprimer', { exact: true })).toBeVisible();
+});
 });

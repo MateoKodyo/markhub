@@ -3,13 +3,13 @@ import { gotoFixture, snap } from './_helpers';
 
 test('floating toolbar appears above the selection (P0 bug #4)', async ({ page }) => {
 	await gotoFixture(page, 'toolbar');
-	const editor = page.locator('.milkdown .ProseMirror');
+	const editor = page.locator('.bn-editor.ProseMirror');
 	await editor.click();
 
 	// Select the second paragraph entirely via DOM range — more deterministic
 	// than triple-click for a screenshot test.
 	await page.evaluate(() => {
-		const pm = document.querySelector('.milkdown .ProseMirror');
+		const pm = document.querySelector('.bn-editor.ProseMirror');
 		if (!pm) return;
 		const paragraphs = pm.querySelectorAll('p');
 		if (paragraphs.length === 0) return;

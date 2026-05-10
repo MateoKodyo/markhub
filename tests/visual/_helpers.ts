@@ -2,8 +2,9 @@ import { expect, type Page } from '@playwright/test';
 
 /**
  * Navigate to a visual fixture and wait until the editor is fully painted:
- *   1. Crepe has produced its `.milkdown` wrapper.
- *   2. The ProseMirror contenteditable has rendered the body content.
+ *   1. BlockNote has produced its `.bn-container` (`.ProseMirror` lives
+ *      inside, but BlockNote also wraps it with its own root).
+ *   2. The contenteditable has rendered the body content.
  *   3. Web fonts (Geist Sans / Geist Mono) have loaded — otherwise the
  *      first screenshot captures the fallback typeface and is unstable.
  *   4. A short settle frame for ProseMirror's internal layout to commit.
@@ -26,9 +27,12 @@ export async function gotoFixture(
 			document.documentElement.removeAttribute('data-theme');
 		}
 	}, theme ?? 'dark');
-	await page.waitForSelector('.milkdown .ProseMirror', { state: 'attached' });
+	// BlockNote (post-bascule) renders blocks under `.bn-container` /
+	// `.bn-editor` with the ProseMirror surface inside. Match the deepest
+	// container that exists in both modes so we wait for actual paint.
+	await page.waitForSelector('.bn-editor.ProseMirror', { state: 'attached' });
 	await page.waitForFunction(() => {
-		const pm = document.querySelector('.milkdown .ProseMirror');
+		const pm = document.querySelector('.bn-editor.ProseMirror');
 		return !!pm && pm.children.length > 0;
 	});
 	await page.evaluate(() => document.fonts.ready);

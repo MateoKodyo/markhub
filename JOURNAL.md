@@ -832,3 +832,67 @@ Voir `STATE.md` pour le détail factuel.
 
 ## Prochaine session
 Nouveau plan à recevoir de Matheo. Cette session se termine sur la branche `feat/blocknote-migration` (3 commits ahead de `main`, non mergée).
+
+# Session 2026-05-10 (suite) — Étape 2.5.b + Bascule étape 4
+
+## Étape 2.5.b — FormattingToolbar BlockNote en Svelte (commit `c8587d7`)
+
+Deuxième des cinq composants UI BlockNote.
+
+- `src/lib/components/BlockNoteFormattingToolbar.svelte` : 5 boutons (B / I / S / </> / 🔗), position fixed au-dessus de `referencePos`, auto-flip si pas la place en haut, `is-active` selon `activeStyles`, `mousedown.preventDefault()` pour ne pas perdre la sélection.
+- Wiring dans `_blocknote-test/+page.svelte` : subscribe au plugin `formattingToolbar` (store `Store<boolean>`, **pas** d'objet d'état comme le slash menu — on calcule `referencePos` via `window.getSelection().getRangeAt(0).getBoundingClientRect()`). Lecture des marks actifs via `editor.getActiveStyles()`. Lien via `editor.createLink(prompt(...))` (LinkToolbar inline = étape 2.5.e).
+- 7 tests vitest (composant pur), 3 tests Playwright sur la route dev.
+
+**Découverte API supplémentaire** : le `n()` interne du plugin retourne `false` si la sélection contient un block code → toolbar cachée sur les code blocks (comportement natif voulu, à connaître pour les futurs tests).
+
+**Souci de test E2E** : `Shift+Home` est unreliable dans le contenteditable BlockNote via Playwright. Workaround consigné dans le helper `typeAndSelect` du spec : on tape puis recule avec `Shift+ArrowLeft` × N pour avoir une sélection déterministe.
+
+## Bascule étape 4 anticipée — `Editor.svelte` passe sur BlockNote (commit `???`)
+
+Décision conjointe avec Matheo en fin de session : la spec d'étape 4 du plan est avancée AVANT 2.5.c/d/e. Raison : 5 étapes de plus à attendre Crepe dans l'app principale = psychologiquement insoutenable et empêche tout test en conditions réelles. Plan révisé documenté dans `PLAN-BLOCKNOTE.md`.
+
+### Ce qui change dans `Editor.svelte`
+
+Refactor complet (770 → ~270 lignes) :
+
+- **Out** : `@milkdown/crepe` + `@milkdown/kit/*`, `wireBlockHandle`, `resolveTargetBlock`, block menu transform/duplicate/delete custom (`buildBlockMenuItems`, `transformTargetBlock`, …), drag-reorder pointer events (`onHandlePointerDown`, `updateDropIndicator`, `applyBlockReorder`), drop indicator div, override `--crepe-*`.
+- **In** : `BlockNoteEditor.create()` + `editor.mount(container)` + `editor.replaceBlocks(editor.document, editor.tryParseMarkdownToBlocks(initialBody))`. `editor.onChange(() => editor.blocksToMarkdownLossy() → joinFrontmatter(initialFrontmatter, md) → onChange(...))`. `BlockNoteSlashMenu` + `BlockNoteFormattingToolbar` montés en frères, alimentés par les stores des plugins via `getExtension`. `editor.isEditable = !readonly` (réactif sur changement de prop).
+- **Préservé** : props `content / readonly / mode / onChange / onReady`, frontmatter `<details>` au-dessus, source-mode `<textarea>`, `EditorApi { runCommand }` en stub no-op (la EditorToolbar du header était déjà cosmétique).
+
+### Bug latent évité — `replaceBlocks` initial
+
+`editor.onChange` se déclenche aussi pour `replaceBlocks`. Sans précaution, le mount du fichier ré-emit le contenu identique vers `onChange` qui déclenche un autosave inutile. Flag `suppressNextChange = true` initialisé avant le `replaceBlocks` initial, puis reset au premier `onChange` reçu.
+
+### Documentation mise à jour
+
+- `MIGRATION-NOTES.md` : section bascule, décisions, bugs acceptés temporairement.
+- Tests :
+  - `tests/component/Editor.test.svelte.ts` : mock `@milkdown/crepe` remplacé par mock `@blocknote/core` (BlockNoteEditor stub). Les 7 tests existants passent.
+  - `tests/visual/_helpers.ts` : sélecteur d'attente `.milkdown .ProseMirror` → `.bn-editor.ProseMirror`.
+  - `tests/visual/text-selection.spec.ts`, `editor-toolbar.spec.ts`, `light-mode.spec.ts` : sélecteurs adaptés.
+  - `tests/visual/block-handle.spec.ts` : `test.describe.skip` (réactivé / remplacé à 2.5.c).
+  - `tests/visual/editor-slash-menu.spec.ts` : `test.describe.skip` (déjà couvert par `blocknote-slash-menu.spec.ts`).
+  - Baselines visuelles : `editor-headings`, `editor-headings-light`, `app-shell-light`, `task-list-light`, `editor-slash-menu-light`, `task-list`, `sidebar-overflow` régénérées (pixel diffs attendus, rendu BlockNote ≠ rendu Crepe).
+- `app.css` : règle `::selection` Crepe-spécifique (`.milkdown.milkdown .ProseMirror …`) remplacée par l'équivalent BlockNote (`.bn-editor.ProseMirror …`).
+
+### Bugs acceptés temporairement (cf. PLAN-BLOCKNOTE.md §"Bugs ACCEPTÉS à cette étape")
+
+- Pas de drag handle ⋮⋮ visible (étape 2.5.c)
+- Pas de transform menu au clic ⋮⋮ (slash menu via `/` accessible en attendant)
+- Pas de toolbar custom sur les liens (`prompt()` du formatting toolbar)
+- Tables : pas de boutons `+` row/col custom, drag natif fonctionnel
+- Polish CSS imparfait (étape 3)
+
+### Tests post-bascule
+
+- cargo : 60/60 ✅
+- vitest : 159/159 ✅
+- check : 0 erreur, 0 warning ✅
+- build : OK ✅
+- visual : 22 passants + 7 skipped (5 block-handle Crepe + 1 slash-menu Crepe + 1 e2e placeholder) ✅
+
+Aucun test ne tape le filesystem utilisateur réel.
+
+### Prochaine étape
+
+Smoke test exhaustif Matheo dans l'app principale (11 étapes listées dans la spec étape 4). Si OK : étape 2.5.c (SideMenu — drag handle ⋮⋮ + transform menu) directement dans l'app principale.

@@ -8,12 +8,12 @@ import { gotoFixture, snap } from './_helpers';
 
 test('preview-mode selection uses the accent-tinted highlight', async ({ page }) => {
 	await gotoFixture(page, 'toolbar');
-	const editor = page.locator('.milkdown .ProseMirror');
+	const editor = page.locator('.bn-editor.ProseMirror');
 	await editor.click();
 
 	// Select the body paragraph. (Triple-click selects a paragraph in PM.)
 	await page.evaluate(() => {
-		const pm = document.querySelector('.milkdown .ProseMirror');
+		const pm = document.querySelector('.bn-editor.ProseMirror');
 		if (!pm) return;
 		const para = pm.querySelector('p');
 		if (!para) return;
@@ -33,7 +33,7 @@ test('preview-mode selection uses the accent-tinted highlight', async ({ page })
 		document.body.appendChild(probe);
 		const bodyBg = getComputedStyle(probe, '::selection').backgroundColor;
 		probe.remove();
-		const pmEl = document.querySelector('.milkdown .ProseMirror p');
+		const pmEl = document.querySelector('.bn-editor.ProseMirror p');
 		const pmBg = pmEl
 			? getComputedStyle(pmEl, '::selection').backgroundColor
 			: null;
