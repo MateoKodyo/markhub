@@ -173,17 +173,15 @@
 				setTimeout(tryWire, 50);
 				return;
 			}
-			drag.setAttribute('draggable', 'true');
+			// Pointer-based drag flow. We deliberately AVOID HTML5 native
+			// drag-and-drop (`draggable=true` + dragstart/over/drop): it's
+			// notoriously unreliable across browsers (custom MIMEs aren't in
+			// dataTransfer.types in Chromium drop targets, headless drag
+			// dispatch doesn't always fire the chain, etc). Pointer events
+			// give us a deterministic mousedown→move→up sequence that we
+			// drive ourselves.
 			drag.addEventListener('click', onHandleClick);
-			drag.addEventListener('dragstart', onHandleDragStart);
-			drag.addEventListener('dragend', onHandleDragEnd);
-			// Editor-wide drop target for reorder. We attach on the root
-			// element the handle lives in, which contains the .ProseMirror.
-			// `dragenter` is required on Chromium — without preventDefault()
-			// there, `drop` never fires even if `dragover` did its job.
-			root.addEventListener('dragenter', onEditorDragEnter);
-			root.addEventListener('dragover', onEditorDragOver);
-			root.addEventListener('drop', onEditorDrop);
+			drag.addEventListener('pointerdown', onHandlePointerDown);
 		};
 		tryWire();
 	}
@@ -219,8 +217,13 @@
 	}
 
 	function onHandleClick(e: MouseEvent) {
-		// Native drag swallows mousedown→click, so reaching here means the user
-		// did a true click without dragging.
+		// Suppress the synthetic click that follows a drag: if the user
+		// crossed the drag threshold during the pointer interaction, we
+		// do NOT want to open the menu on top of the just-dropped block.
+		if (clickSuppressed) {
+			clickSuppressed = false;
+			return;
+		}
 		const target = e.currentTarget as HTMLElement;
 		const block = resolveTargetBlock(target);
 		if (!block) return;
@@ -231,6 +234,9 @@
 		blockMenuY = rect.top;
 		blockMenuOpen = true;
 	}
+
+	// Set on pointerup-after-drag, consumed by the very next click event.
+	let clickSuppressed = false;
 
 	function closeBlockMenu() {
 		blockMenuOpen = false;
@@ -371,99 +377,145 @@
 	}
 
 	// ============================================================
-	// Drag-and-drop reorder of blocks
+	// Drag-and-drop reorder of blocks (pointer-event based, NOT HTML5
+	// native drag-and-drop). The native API has too many cross-browser
+	// pitfalls (custom MIMEs missing from dataTransfer.types, dragenter
+	// requirement on Chromium, headless flakiness). Pointer events give
+	// us a deterministic mousedown→move→up sequence we control.
 	// ============================================================
 
-	function onHandleDragStart(e: DragEvent) {
+	const DRAG_THRESHOLD_PX = 4;
+	let pointerDownX = 0;
+	let pointerDownY = 0;
+	let isDragging = false;
+	let pointerActive = false;
+
+	function onHandlePointerDown(e: PointerEvent) {
+		if (e.button !== 0) return;
 		const target = e.currentTarget as HTMLElement;
 		const block = resolveTargetBlock(target);
-		if (!block || !e.dataTransfer) return;
+		if (!block) return;
 		dragSourceStart = block.start;
 		dragSourceEnd = block.end;
 		dragSourceLevel = block.level;
-		e.dataTransfer.effectAllowed = 'move';
-		// Both a custom MIME (semantic) AND text/plain (fallback). Some browsers
-		// strip custom application/* MIMEs from `dataTransfer.types` during
-		// dragover/drop for security — we don't rely on `.types` to gate the
-		// handlers, we use the in-memory `dragSourceStart` instead.
-		e.dataTransfer.setData('application/x-markhub-block', String(block.start));
-		e.dataTransfer.setData('text/plain', String(block.start));
+		pointerDownX = e.clientX;
+		pointerDownY = e.clientY;
+		isDragging = false;
+		pointerActive = true;
+		// Capture the pointer so we keep getting move/up even when the
+		// cursor wanders out of the small ⋮⋮ hit-area.
+		try {
+			target.setPointerCapture(e.pointerId);
+		} catch {
+			/* old browsers — fine, we still get window-level events */
+		}
+		window.addEventListener('pointermove', onWindowPointerMove);
+		window.addEventListener('pointerup', onWindowPointerUp);
+		window.addEventListener('pointercancel', onWindowPointerUp);
+		// Don't preventDefault yet — let `click` fire if no drag follows.
 	}
 
-	function onHandleDragEnd() {
-		dragSourceStart = null;
-		dragSourceEnd = null;
+	function onWindowPointerMove(e: PointerEvent) {
+		if (!pointerActive) return;
+		if (!isDragging) {
+			const dx = e.clientX - pointerDownX;
+			const dy = e.clientY - pointerDownY;
+			if (dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) return;
+			// Threshold crossed — commit to a drag.
+			isDragging = true;
+			document.body.style.cursor = 'grabbing';
+			// Suppress the synthetic click that would otherwise follow the
+			// pointer-up by adding a one-shot capture-phase listener on the
+			// handle's click target.
+		}
+		updateDropIndicator(e.clientX, e.clientY);
+	}
+
+	function onWindowPointerUp(e: PointerEvent) {
+		if (!pointerActive) return;
+		pointerActive = false;
+		window.removeEventListener('pointermove', onWindowPointerMove);
+		window.removeEventListener('pointerup', onWindowPointerUp);
+		window.removeEventListener('pointercancel', onWindowPointerUp);
+		document.body.style.cursor = '';
+		if (!isDragging) {
+			// Pure click — onHandleClick will run. Reset state and bail.
+			dragSourceStart = null;
+			dragSourceEnd = null;
+			dropIndicatorTop = null;
+			return;
+		}
+		isDragging = false;
+		clickSuppressed = true; // swallow the synthetic click that follows
+		applyBlockReorder(e.clientX, e.clientY);
 		dropIndicatorTop = null;
 	}
 
 	/**
-	 * Required for Chromium: without preventDefault() in dragenter, `drop`
-	 * never fires regardless of what dragover does.
+	 * Recompute the drop-indicator Y position by snapping to the nearest
+	 * block boundary under the cursor. Skips drawing when the cursor is
+	 * over the source itself (no-op drop).
 	 */
-	function onEditorDragEnter(e: DragEvent) {
-		if (dragSourceStart === null) return;
-		e.preventDefault();
-		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-	}
-
-	function onEditorDragOver(e: DragEvent) {
-		// Gate on the in-memory state — `dataTransfer.types` is unreliable
-		// for custom MIMEs across browsers (Chromium strips them).
-		if (dragSourceStart === null || !crepe?.editor || !crepeKit) return;
-		e.preventDefault();
-		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-		// Snap the drop indicator to the nearest block boundary.
+	function updateDropIndicator(clientX: number, clientY: number) {
+		if (!crepe?.editor || !crepeKit || dragSourceStart === null || dragSourceEnd === null) return;
+		const srcStart = dragSourceStart;
+		const srcEnd = dragSourceEnd;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		crepe.editor.action((ctx: any) => {
 			const view = ctx.get(crepeKit.editorViewCtx);
-			const posInfo = view.posAtCoords({ left: e.clientX, top: e.clientY });
-			if (!posInfo) return;
+			const posInfo = view.posAtCoords({ left: clientX, top: clientY });
+			if (!posInfo) {
+				dropIndicatorTop = null;
+				return;
+			}
 			const resolvedPos = view.state.doc.resolve(posInfo.pos);
-			const before = resolvedPos.before(Math.max(resolvedPos.depth, 1));
-			const after = resolvedPos.after(Math.max(resolvedPos.depth, 1));
-			// Decide whether to snap to the start or end edge of the hovered
-			// block based on which half of the block the cursor is over.
+			const depth = Math.max(resolvedPos.depth, 1);
+			const before = resolvedPos.before(depth);
+			const after = resolvedPos.after(depth);
 			const startCoords = view.coordsAtPos(before);
 			const endCoords = view.coordsAtPos(after);
 			const mid = (startCoords.top + endCoords.bottom) / 2;
+			const dropPos = clientY < mid ? before : after;
+			// Hide indicator when hovering inside the source block itself.
+			if (dropPos >= srcStart && dropPos <= srcEnd) {
+				dropIndicatorTop = null;
+				return;
+			}
 			const wrap = container?.getBoundingClientRect();
 			if (!wrap) return;
-			const snapY = e.clientY < mid ? startCoords.top : endCoords.bottom;
+			const snapY = clientY < mid ? startCoords.top : endCoords.bottom;
 			dropIndicatorTop = snapY - wrap.top;
 		});
 	}
 
-	function onEditorDrop(e: DragEvent) {
-		if (dragSourceStart === null || dragSourceEnd === null || !crepe?.editor || !crepeKit) return;
-		e.preventDefault();
+	function applyBlockReorder(clientX: number, clientY: number) {
+		if (!crepe?.editor || !crepeKit || dragSourceStart === null || dragSourceEnd === null) {
+			dragSourceStart = null;
+			dragSourceEnd = null;
+			return;
+		}
 		const srcStart = dragSourceStart;
 		const srcEnd = dragSourceEnd;
 		dragSourceStart = null;
 		dragSourceEnd = null;
-		dropIndicatorTop = null;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		crepe.editor.action((ctx: any) => {
 			const view = ctx.get(crepeKit.editorViewCtx);
 			const { state, dispatch } = view;
-			const posInfo = view.posAtCoords({ left: e.clientX, top: e.clientY });
+			const posInfo = view.posAtCoords({ left: clientX, top: clientY });
 			if (!posInfo) return;
 			const resolvedPos = state.doc.resolve(posInfo.pos);
-			const before = resolvedPos.before(Math.max(resolvedPos.depth, 1));
-			const after = resolvedPos.after(Math.max(resolvedPos.depth, 1));
+			const depth = Math.max(resolvedPos.depth, 1);
+			const before = resolvedPos.before(depth);
+			const after = resolvedPos.after(depth);
 			const startCoords = view.coordsAtPos(before);
 			const endCoords = view.coordsAtPos(after);
 			const mid = (startCoords.top + endCoords.bottom) / 2;
-			let dropPos = e.clientY < mid ? before : after;
-			// No-op drop on itself.
+			let dropPos = clientY < mid ? before : after;
 			if (dropPos >= srcStart && dropPos <= srcEnd) return;
 			const slice = state.doc.slice(srcStart, srcEnd);
-			let tr = state.tr;
-			// Delete first, then insert. Order matters: if the destination is
-			// AFTER the source, deleting shifts it left — adjust.
-			tr = tr.delete(srcStart, srcEnd);
-			if (dropPos > srcEnd) {
-				dropPos -= srcEnd - srcStart;
-			}
+			let tr = state.tr.delete(srcStart, srcEnd);
+			if (dropPos > srcEnd) dropPos -= srcEnd - srcStart;
 			tr = tr.insert(dropPos, slice.content);
 			dispatch(tr);
 			view.focus();

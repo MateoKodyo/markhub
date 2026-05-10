@@ -98,11 +98,46 @@ test('"Supprimer" removes the targeted block', async ({ page }) => {
 	).toHaveCount(1);
 });
 
-// Native HTML5 drag-and-drop is notoriously brittle in Playwright headless
-// (mouse.down/move/up does not always trigger the dragstart→drop chain in
-// Chromium). The reorder logic itself is straightforward (tr.delete + tr.insert)
-// and is exercised by the smoke test. Keep this as a manual smoke checkpoint.
-test.skip('dragging the ⋮⋮ reorders the block (smoke-test only)', () => {});
+test('dragging the H1 ⋮⋮ down past H2 reorders the document', async ({ page }) => {
+	await gotoFixture(page, 'headings');
+
+	const initialOrder = await page.evaluate(() =>
+		Array.from(
+			document.querySelectorAll('.milkdown .ProseMirror h1, .milkdown .ProseMirror h2')
+		).map((el) => `${el.tagName.toLowerCase()}:${el.textContent}`)
+	);
+	expect(initialOrder[0]).toMatch(/^h1:H1 heading example/);
+	expect(initialOrder[1]).toMatch(/^h2:H2 heading example/);
+
+	await page.locator('.milkdown .ProseMirror h1').first().hover();
+	await page.waitForFunction(
+		() =>
+			document.querySelector('.milkdown-block-handle')?.getAttribute('data-show') === 'true'
+	);
+
+	const handle = page.locator('.milkdown-block-handle .operation-item').nth(1);
+	const handleBox = await handle.boundingBox();
+	const h2Box = await page.locator('.milkdown .ProseMirror h2').first().boundingBox();
+	if (!handleBox || !h2Box) throw new Error('missing bounding boxes');
+
+	// Pointer events: mouse.move/down/up dispatches them natively in Chromium,
+	// unlike native HTML5 drag-and-drop. Our impl is pointer-based, so this
+	// drives the real flow end-to-end.
+	await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(handleBox.x + 4, handleBox.y + handleBox.height / 2 + 30, { steps: 5 });
+	await page.mouse.move(h2Box.x + h2Box.width / 2, h2Box.y + h2Box.height + 8, { steps: 10 });
+	await page.mouse.up();
+	await page.waitForTimeout(150);
+
+	const finalOrder = await page.evaluate(() =>
+		Array.from(
+			document.querySelectorAll('.milkdown .ProseMirror h1, .milkdown .ProseMirror h2')
+		).map((el) => `${el.tagName.toLowerCase()}:${el.textContent}`)
+	);
+	// H1 was dropped below the H2 → H2 now comes first among headings.
+	expect(finalOrder[0]).toMatch(/^h2:H2 heading example/);
+});
 
 test('block menu near the bottom of the viewport flips up to stay visible', async ({ page }) => {
 	// Use the long-doc fixture so we have a heading near the bottom of the
