@@ -180,3 +180,47 @@ Sites blocknotejs.org/docs renvoient parfois 404 sur certains paths — la doc o
 L'API vanilla est confirmée et l'investigation montre que la migration EST viable, avec un coût UI modéré (3-4 composants Svelte à écrire pour wrapper les plugins). Les gains fonctionnels (drag-drop natif propre, table resize, transform menu propre) justifient le chantier.
 
 Je propose de continuer en étape 2 dès ton OK : créer `/_blocknote-test` avec un éditeur minimal et faire le round-trip markdown sur 3 fichiers représentatifs.
+
+---
+
+## Étape 2 — Round-trip + smoke (résultats)
+
+**Probe** : route `src/routes/_blocknote-test/+page.svelte` qui parse → mount → re-export les 3 fixtures de `tests/fixtures/c1/` et affiche source/rendered/output côte-à-côte avec un badge OK/DIFFERS et un diff résumé. Test Playwright `tests/visual/blocknote-roundtrip.spec.ts` qui visite la route et logge le markdown re-exporté complet (sortie test ≅ rapport).
+
+### Résultats round-trip — gravités
+
+| Fixture | Statut | Diffs observés | Verdict |
+|---|---|---|---|
+| 01 frontmatter + headings + lists | BODY DIFFERS | listes : `-` source → `*` export ; "tight list" → "loose list" (ligne vide entre items) | **MINEUR** cosmétique. Sémantique préservée. |
+| 02 table + code + tasks + quote | BODY DIFFERS | table : padding colonnes recompacté ; code-block sans langage → ` ```text ` (langage par défaut injecté) ; tasks : `- [x]` → `* [x]` + tight→loose ; quote : multi-lignes reflowed sur une ligne | **MINEUR**. Tout récupérable + idempotent au 2ème round-trip. |
+| 03 links + emphases + hr | BODY DIFFERS | `---` → `***` (deux formes valides du HR) ; bold imbriqué `**bold *with italic***` → `**bold&#x20;*****with italic***` (encode l'espace + 5 asterisks). Liens, autolinks, strike, inline code, italic simple : tous préservés. | ⚠️ **POINT D'ATTENTION** sur le bold-imbriqué-italic — cas extrême, à vérifier en réel. Le reste **OK / MINEUR**. |
+
+### Verdict round-trip
+
+**Pas de blocker fatal.** Les diffs sont tous cosmétiques ou idempotents :
+- Bullet style (`-` ↔ `*`), tight↔loose, HR (`---` ↔ `***`) : Crepe avait probablement les mêmes idiosyncrasies, on ne perd pas de qualité fonctionnelle.
+- Code-block sans langage qui devient ` ```text ` : sémantique correcte, le 2ème round-trip ne change plus rien.
+- Bold imbriqué : pattern marginal (rarement écrit en pratique). À surveiller.
+
+**Frontmatter** : conservé via notre `splitFrontmatter` / `joinFrontmatter` existants (BlockNote ne le voit jamais). Stratégie identique à Crepe → aucun risque.
+
+### Smoke des features UI natives — ⚠️ point méthodologique
+
+`@blocknote/core` mounté seul **ne rend AUCUNE UI** par défaut :
+- Pas de drag handle ⋮⋮ visible
+- Pas de slash menu visible quand on tape `/`
+- Pas de toolbar flottante au survol de sélection
+- Pas de table handles
+- Pas de language picker
+
+**C'est attendu** : le core fournit la LOGIQUE des plugins (`SideMenu`, `FormattingToolbar`, `SuggestionMenu`, `TableHandles`) via des `PluginView` ProseMirror qui appellent un `emitUpdate(state)` — l'UI doit être rendue par notre code Svelte. Le rendering React natif est dans `@blocknote/react` / `@blocknote/mantine` qu'on ne peut pas utiliser.
+
+→ Le smoke test interactif demandé par le brief (drag handle, slash menu, toolbar flottante, etc.) n'est **pas testable en l'état**. Il devient testable une fois qu'on a écrit les composants UI Svelte. Estimation honnête de cet effort : **1-2 jours** (4-5 composants Svelte à wrapper, un par plugin).
+
+**Implication pour le workplan** : entre l'étape 2 et l'étape 3 telles que rédigées, il manque une étape dédiée "écrire l'UI Svelte des plugins BlockNote". À cadrer avec Matheo avant de continuer.
+
+### Recommandation
+
+**GO sur la migration** côté round-trip markdown — pas de blocker fatal. Le bold-imbriqué-italic est le seul point d'attention, marginal en usage Markhub.
+
+**STOP avant l'étape 3** — l'étape 3 du workplan présuppose une UI fonctionnelle qu'on n'a pas. Soit on insère une "étape 2.5 — UI Svelte" (~1-2j), soit on revoit la décision de migration sachant que tout l'UI block-based est à coder.
