@@ -26,7 +26,7 @@ test('preview-mode selection uses the accent-tinted highlight', async ({ page })
 	await page.waitForTimeout(150);
 
 	// Resolved selection background must be our token, BOTH on a body element
-	// AND on a ProseMirror descendant where Crepe also injects a rule.
+	// AND on the BlockNote editor's ProseMirror descendant.
 	const selBgs = await page.evaluate(() => {
 		const probe = document.createElement('span');
 		probe.textContent = 'x';

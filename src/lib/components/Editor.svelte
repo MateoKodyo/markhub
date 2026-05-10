@@ -144,10 +144,9 @@
 	function buildApi(): EditorApi {
 		return {
 			runCommand(cmd) {
-				// The header EditorToolbar is currently cosmetic (its buttons
-				// were already a stub under Crepe). The new floating
-				// FormattingToolbar over the selection is the real entry
-				// point for marks.
+				// EditorToolbar in the header is cosmetic; the real entry
+				// point for marks is the floating FormattingToolbar that
+				// appears over text selections.
 				console.debug(`[Editor] runCommand stub: ${cmd}`);
 			}
 		};

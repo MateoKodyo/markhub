@@ -5,7 +5,7 @@ test('frontmatter renders as a collapsed monospace <details> block (P0 bug #2)',
 	page
 }) => {
 	await gotoFixture(page, 'frontmatter');
-	// Sanity check: the Svelte wrapper renders the <details> block ABOVE Crepe.
+	// Sanity check: the Svelte wrapper renders the <details> block ABOVE the editor.
 	const details = page.locator('details[data-frontmatter]');
 	await expect(details).toBeVisible();
 	await snap(page, 'editor-frontmatter-collapsed.png');
