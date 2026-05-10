@@ -97,3 +97,45 @@ test('"Supprimer" removes the targeted block', async ({ page }) => {
 		page.locator('.milkdown .ProseMirror h2').filter({ hasText: 'H2 heading example' })
 	).toHaveCount(1);
 });
+
+// Native HTML5 drag-and-drop is notoriously brittle in Playwright headless
+// (mouse.down/move/up does not always trigger the dragstart→drop chain in
+// Chromium). The reorder logic itself is straightforward (tr.delete + tr.insert)
+// and is exercised by the smoke test. Keep this as a manual smoke checkpoint.
+test.skip('dragging the ⋮⋮ reorders the block (smoke-test only)', () => {});
+
+test('block menu near the bottom of the viewport flips up to stay visible', async ({ page }) => {
+	// Use the long-doc fixture so we have a heading near the bottom of the
+	// editor scroll area. Scroll the editor to the bottom, then hover the
+	// last heading and open its block menu — without auto-flip the bottom
+	// items would be clipped.
+	await gotoFixture(page, 'long-doc');
+	await page.evaluate(() => {
+		const scroller = document.querySelector('.canvas-scroll');
+		if (scroller) scroller.scrollTop = scroller.scrollHeight;
+	});
+	await page.waitForTimeout(100);
+
+	const lastHeading = page.locator('.milkdown .ProseMirror h2').last();
+	await lastHeading.hover();
+	await page.waitForFunction(
+		() =>
+			document
+				.querySelector('.milkdown-block-handle')
+				?.getAttribute('data-show') === 'true'
+	);
+	await page.locator('.milkdown-block-handle .operation-item').nth(1).click();
+
+	const menu = page.locator('.ctx-menu');
+	await expect(menu).toBeVisible();
+	const menuBox = await menu.boundingBox();
+	const vh = await page.evaluate(() => window.innerHeight);
+	expect(menuBox).not.toBeNull();
+	if (!menuBox) return;
+	// The whole menu must fit inside the viewport (auto-flip / clamp).
+	expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(vh);
+	expect(menuBox.y).toBeGreaterThanOrEqual(0);
+	// Both top and bottom items must be reachable (rendered, not clipped).
+	await expect(menu.getByText('Texte', { exact: true })).toBeVisible();
+	await expect(menu.getByText('Supprimer', { exact: true })).toBeVisible();
+});

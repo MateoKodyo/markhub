@@ -666,6 +666,69 @@ samp {
 	font-size: var(--text-ui);
 }
 
+/* Code-block language picker. Crepe's `.list-wrapper` defaults to
+ * --crepe-color-surface-low which we mapped to surface-veil
+ * (rgba(255,255,255,0.03)) → quasi-transparent, the document text
+ * visibly bleeds through. Force an opaque raised surface, our shadow,
+ * and theme-aware borders. Same treatment for the search box and the
+ * list items so the whole popover reads as a single Markhub panel. */
+.milkdown.milkdown .milkdown-code-block .list-wrapper {
+	background: var(--color-bg-raised);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-popover);
+	color: var(--color-text-primary);
+	font-family: var(--font-sans);
+}
+
+.milkdown.milkdown .milkdown-code-block .language-picker {
+	z-index: 100;
+}
+
+.milkdown.milkdown .milkdown-code-block .search-box {
+	background: var(--color-surface-veil);
+	border-radius: var(--radius-xs);
+	outline: 1px solid var(--color-border);
+}
+
+.milkdown.milkdown .milkdown-code-block .search-box:has(input:focus) {
+	outline: 1px solid var(--color-accent);
+}
+
+.milkdown.milkdown .milkdown-code-block .search-box input {
+	background: transparent;
+	color: var(--color-text-primary);
+	font-family: var(--font-sans);
+	font-size: var(--text-ui);
+	border: 0;
+}
+
+.milkdown.milkdown .milkdown-code-block .language-list-item {
+	font-family: var(--font-sans);
+	font-size: var(--text-ui);
+	font-weight: var(--weight-regular);
+	color: var(--color-text-body);
+	padding: 6px var(--space-3);
+}
+
+.milkdown.milkdown .milkdown-code-block .language-list-item:hover,
+.milkdown.milkdown .milkdown-code-block .language-list-item:focus-visible {
+	background: var(--color-surface-hover);
+	color: var(--color-text-primary);
+	outline: none;
+}
+
+.milkdown.milkdown .milkdown-code-block .language-button {
+	font-family: var(--font-sans);
+	font-size: var(--text-caption);
+	color: var(--color-text-secondary);
+}
+
+.milkdown.milkdown .milkdown-code-block .language-button:hover {
+	background: var(--color-surface-hover);
+	color: var(--color-text-primary);
+}
+
 /* Task list checkboxes — Crepe ships .checked / .unchecked SVG icons in
  * .label-wrapper, both filled with --crepe-color-outline (one gray tone),
  * making "done" and "todo" near-indistinguishable. We retheme:

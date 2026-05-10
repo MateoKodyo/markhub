@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+
 	export type MenuItem =
 		| { separator: true }
 		| { header: string }
@@ -22,6 +24,51 @@
 		items?: MenuItem[];
 		onClose?: () => void;
 	} = $props();
+
+	let menuEl: HTMLUListElement | null = $state(null);
+	// Effective coords after viewport-aware adjustment (auto-flip + clamp).
+	// Seeded at 0; the $effect below sets them from x/y on every render.
+	// svelte-ignore state_referenced_locally
+	let effX = $state(0);
+	// svelte-ignore state_referenced_locally
+	let effY = $state(0);
+
+	$effect(() => {
+		// Re-run on x/y/items change. We need to wait for the DOM to lay out
+		// the menu so we can read its real height before deciding to flip.
+		void x;
+		void y;
+		void items;
+		(async () => {
+			await tick();
+			if (!menuEl) {
+				effX = x;
+				effY = y;
+				return;
+			}
+			const margin = 8;
+			const vw = window.innerWidth;
+			const vh = window.innerHeight;
+			const rect = menuEl.getBoundingClientRect();
+
+			// Vertical: if the menu would overflow below, flip up. If it
+			// still overflows when flipped (taller than viewport), clamp
+			// to the top with a margin and let max-height + scroll handle it.
+			let nextY = y;
+			if (y + rect.height > vh - margin) {
+				const flipped = y - rect.height;
+				nextY = flipped >= margin ? flipped : margin;
+			}
+
+			// Horizontal: clamp into the viewport.
+			let nextX = x;
+			if (x + rect.width > vw - margin) nextX = vw - rect.width - margin;
+			if (nextX < margin) nextX = margin;
+
+			effX = nextX;
+			effY = nextY;
+		})();
+	});
 
 	function handleKey(e: KeyboardEvent) {
 		if (e.key === 'Escape') onClose();
@@ -47,9 +94,10 @@
 	}}
 >
 	<ul
+		bind:this={menuEl}
 		class="ctx-menu panel"
 		role="menu"
-		style="left: {x}px; top: {y}px"
+		style="left: {effX}px; top: {effY}px"
 		onclick={(e) => e.stopPropagation()}
 	>
 		{#each items as item, i (i)}
@@ -85,11 +133,14 @@
 	.ctx-menu {
 		position: absolute;
 		min-width: 180px;
+		max-height: calc(100vh - 16px);
+		overflow-y: auto;
 		margin: 0;
 		padding: var(--space-1);
 		list-style: none;
 		background: var(--color-bg-raised);
 		border: 1px solid var(--color-border);
+		box-shadow: var(--shadow-popover);
 	}
 
 	.ctx-item {

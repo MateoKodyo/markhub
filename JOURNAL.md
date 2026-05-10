@@ -771,7 +771,7 @@ Hier (option B) : ⋮⋮ masqué, Phase 7 backloggée. À l'usage, frustration U
 - Test `:first-child` initial cassé car Crepe ajoute un `<div class="ProseMirror-widget">` en première position. Tests réécrits pour cibler les blocks par `tagName` + texte au lieu de position DOM.
 
 ### Commit
-- Hash : à venir
+- Hash : `abff5fd`
 
 
 

@@ -179,6 +179,9 @@
 			drag.addEventListener('dragend', onHandleDragEnd);
 			// Editor-wide drop target for reorder. We attach on the root
 			// element the handle lives in, which contains the .ProseMirror.
+			// `dragenter` is required on Chromium — without preventDefault()
+			// there, `drop` never fires even if `dragover` did its job.
+			root.addEventListener('dragenter', onEditorDragEnter);
 			root.addEventListener('dragover', onEditorDragOver);
 			root.addEventListener('drop', onEditorDrop);
 		};
@@ -379,8 +382,12 @@
 		dragSourceEnd = block.end;
 		dragSourceLevel = block.level;
 		e.dataTransfer.effectAllowed = 'move';
-		// Set a custom MIME so we ignore foreign drags.
+		// Both a custom MIME (semantic) AND text/plain (fallback). Some browsers
+		// strip custom application/* MIMEs from `dataTransfer.types` during
+		// dragover/drop for security — we don't rely on `.types` to gate the
+		// handlers, we use the in-memory `dragSourceStart` instead.
 		e.dataTransfer.setData('application/x-markhub-block', String(block.start));
+		e.dataTransfer.setData('text/plain', String(block.start));
 	}
 
 	function onHandleDragEnd() {
@@ -389,11 +396,22 @@
 		dropIndicatorTop = null;
 	}
 
-	function onEditorDragOver(e: DragEvent) {
-		if (dragSourceStart === null || !crepe?.editor || !crepeKit) return;
-		if (!e.dataTransfer?.types.includes('application/x-markhub-block')) return;
+	/**
+	 * Required for Chromium: without preventDefault() in dragenter, `drop`
+	 * never fires regardless of what dragover does.
+	 */
+	function onEditorDragEnter(e: DragEvent) {
+		if (dragSourceStart === null) return;
 		e.preventDefault();
-		e.dataTransfer.dropEffect = 'move';
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+	}
+
+	function onEditorDragOver(e: DragEvent) {
+		// Gate on the in-memory state — `dataTransfer.types` is unreliable
+		// for custom MIMEs across browsers (Chromium strips them).
+		if (dragSourceStart === null || !crepe?.editor || !crepeKit) return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
 		// Snap the drop indicator to the nearest block boundary.
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		crepe.editor.action((ctx: any) => {
@@ -417,7 +435,6 @@
 
 	function onEditorDrop(e: DragEvent) {
 		if (dragSourceStart === null || dragSourceEnd === null || !crepe?.editor || !crepeKit) return;
-		if (!e.dataTransfer?.types.includes('application/x-markhub-block')) return;
 		e.preventDefault();
 		const srcStart = dragSourceStart;
 		const srcEnd = dragSourceEnd;
