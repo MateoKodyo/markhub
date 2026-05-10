@@ -1,103 +1,130 @@
-# STATE — État du projet pour reprise de session
+# STATE — état brutal et factuel du projet
 
-## Date de clôture
-2026-05-09T17:25:50+02:00 (initial) · 2026-05-09T18:05 (Round 1) · 2026-05-09T19:15 (Round 2) · 2026-05-09T19:42 (Session autonome soirée)
+> Porte d'entrée pour reprise de session. Lecture obligatoire avant tout.
+> Pas de récap de progrès, pas d'optimisme. Faits seulement.
 
-## Phase actuelle
-Phase 6 (Polish visuel) terminée + Phase 5b (menus) + Status bar + Drag-drop intra-vault :
-- Étape 1 : root cause investigation (jsdom blind + Crepe mocked) ✅
-- Étape 2 : harnais Playwright `/_visual` + baselines ✅
-- Round 1 (Crepe popovers) : #1 slash menu + #4 toolbar via spécificité bumpée ✅
-- Round 1 P0 fonctionnels (smoke validé) : #1 scroll, #2 click fiable, #3 auto-open après création ✅
-- Round 2 (chantiers visuels) : #1 grayscale 3-tier, #2 sélection accent-tinted, #3 task list différenciées, #4 block-handle opacity progressive ✅
-- Session soirée 2026-05-09T19:22→19:42 (autonome, 20 min) :
-  - Phase 5b menus contextuels (file/folder/vault avec items completes : Ouvrir / Renommer / Dupliquer / Déplacer / Copier chemin (rel|abs) / Révéler Finder / Supprimer ; nouveau séparateur natif ; commandes Rust `file_duplicate` + `file_reveal_in_finder`) ✅
-  - Status bar (vault+path+RO / mots+lecture / save status + mode toggle, click path = copy absolu, click mots = toggle caractères) ✅
-  - Drag-drop intra-vault (HTML5 native, MIME custom, opacity source + accent-tint cible, désactivé readonly) ✅
-- Phase 5c (onglets) : SKIP volontaire — refactor 2-3h hors budget soirée. À reprendre en session encadrée.
+## Date de mise à jour
 
-## Avancement global
-- Phase 0 : ✅ Bootstrap
-- Phase 1 : ✅ Modèles + Config Rust
-- Phase 2 : ✅ Commandes vaults + files Rust
-- Phase 3 : ✅ Logique sidebar + stores (visuel à revérifier)
-- Phase 4 : ✅ Logique éditeur + sauvegarde auto (visuel CASSÉ)
-- Phase 5 : 🟡 Logique faite (vault menu, file menu, persistence, inline rename) — VISUEL CASSÉ
-- Phase 6 : ❌ Polish (à faire — c'est la priorité de la prochaine session)
+2026-05-10 — fin de session, avant nouvelle session avec nouveau plan.
 
-## Tests (2026-05-09T19:42)
-- cargo test : **60/60** passants ✅ (+9 : 7 duplicate + 2 reveal)
-- npm run test : **145/145** passants ✅ (+24 : 15 documentStats + 9 StatusBar)
+## Branche courante
+
+`feat/blocknote-migration` — **non mergée**, 3 commits ahead de `main` :
+
+```
+9256f57 feat(blocknote-ui): step 2.5.a — Svelte slash menu over SuggestionMenu plugin
+64f6482 chore(c1-step2): blocknote round-trip probe + 3 fixtures + report
+abccc90 chore(c1-step1): install @blocknote/core + investigation notes
+```
+
+`main` reste l'app fonctionnelle de référence (Crepe + tous les patches custom + light mode + status bar pills + block menu Crepe + drag-drop pointer events Crepe).
+
+## Tests (état actuel sur la branche)
+
+- cargo test : 60/60 ✅
+- npm run test : 152/152 ✅
 - npm run check : 0 erreur, 0 warning ✅
 - npm run build : OK ✅
-- npm run test:visual : **10/10** passants ✅ (+1 app-shell)
+- npm run test:visual : 23 passants + 1 skipped ✅
+  - dont 2/2 sur le slash menu BlockNote (route dev `_blocknote-test`)
 - npm run test:e2e : 1 placeholder skipped, real-binary jamais monté
 
-## BUGS VISUELS P0 — État FERMÉ (clôture 2026-05-09T18:05, commit 48be55d)
+## Moteur d'éditeur dans l'app principale
 
-Tous les 4 bugs P0 résolus en un seul fix architectural (`src/app.css`) lors de l'Étape 3 round 1 :
+**Crepe** (`@milkdown/crepe@^7.20.0`). Monté dans `src/lib/components/Editor.svelte`.
 
-1. **Slash menu double-panel (P0 #1)** — ✅ FIXÉ. Root cause : (a) `flex-direction: column` mal scopé écrasait le tab-group horizontal, (b) cascade Crepe lazy-load battait nos overrides à spécificité égale. Fix : restreindre flex column à `.menu-group ul` + bump spécificité via `.milkdown.milkdown` (0,0,3,0). Aucun `!important`.
-2. **Frontmatter italique géant (P0 #2)** — ✅ NON REPRODUIT EN BASELINE. Le wrapper Svelte (Editor.svelte:137-142) rend correctement le `<details>` collapsed mono. Le fix de spécificité de #1 garantit en plus que les overrides Editor.svelte gagnent la cascade. **Smoke test full app par Matheo recommandé** pour confirmer définitivement.
-3. **Headings non conformes (P0 #3)** — ✅ NON REPRODUIT EN BASELINE. Override Editor.svelte:263-285 (26/21/18/16/14 Geist Sans normal) appliqué correctement. Idem #2.
-4. **Toolbar flottante stylée Material (P0 #4)** — ✅ FIXÉ collatéralement par le bump de spécificité. Fond `--color-bg-raised`, 6 icônes lisibles (B / I / strike / `<>` / Σ / link), styling IDE-cohérent.
+Patches custom empilés au-dessus de Crepe :
+1. Block menu de transformation (click sur ⋮⋮ → notre `<ContextMenu>` avec items "Texte / Titre 1-3 / Liste à puces / Liste numérotée / Citation / Bloc de code / Séparateur / Dupliquer / Supprimer")
+2. Drag-reorder en pointer events (mousedown/move/up + transaction ProseMirror manuelle)
+3. Drop indicator visuel custom (ligne accent 2px)
+4. Override CSS lourd dans `app.css` (~56 occurrences `milkdown` / `crepe` / `bn-` / `@blocknote`) : slash menu, toolbar flottante, block handle, link tooltip, code-mirror picker, ::selection scoped sur `.milkdown.milkdown`
+5. Frontmatter pré-traitement (split / join hors flux Crepe)
+6. `untrack` sur `frontmatter`/`body` dans le `$effect` Editor (anti-flicker remount à chaque keystroke)
+7. Auto-flip + max-height sur `ContextMenu` (anti-clipping)
 
-**Mécanisme de régression** : 5 baselines Playwright dans `tests/visual/` détectent désormais toute régression de rendu Crepe. Les unit tests Vitest sur le rendu Crepe sont **interdits** par décision Étape 1 (jsdom n'évalue pas les CSS cascadées + Crepe est mocké).
+## BlockNote
 
-## Bugs structurels en attente
-- E2E real-binary jamais monté (Phase 5 incomplète sur ce point).
-- Outline panel skippé (pas de spec dans `SPEC.md`, à scoper si on le veut).
-- Drag-drop intra-vault confirmé en backlog post-MVP.
+**Pas branché dans l'app principale.** Vit uniquement sur la route dev `src/routes/_blocknote-test/+page.svelte`.
 
-## Décisions D1-D4 statut
-- **D1** (auto-add `.md` skip dotfiles) : figé.
-- **D2** (rename dossier ajouté au menu) : figé, gain UX validé.
-- **D3** (box-shadow léger sur slash/toolbar) : NON-VALIDÉ — peut-être à supprimer si on revoit complètement le styling.
-- **D4** (`selectionRange` null pour fichiers sans extension) : figé.
+- `@blocknote/core@^0.50.0` installé
+- Round-trip markdown validé sur 3 fixtures : pas de blocker fatal, diffs cosmétiques
+- 1 composant UI Svelte écrit / 5 nécessaires : `BlockNoteSlashMenu.svelte` (slash menu)
+- Restent à écrire : FormattingToolbar, SideMenu, TableHandles, LinkToolbar
+- Restent à faire après ça : intégration `Editor.svelte` + nettoyage Crepe + polish CSS Markhub
 
-## Refactors I1/I2 préparés mais NON-MERGÉS
-Stash `agents-prep-work-stash` contient :
-- I1 : `findEntryByPath` migré vers `utils/tree.ts` + tests
-- I2 : `enforceMarkdownExtension` extrait vers `utils/path.ts` + tests
-- Section closure de JOURNAL.md
-- STATE.md (version stashée — celle-ci la remplace)
+Notes d'investigation dans `MIGRATION-NOTES.md` (à supprimer en fin de chantier).
 
-À pop avec : `git stash apply agents-prep-work-stash`
-À jeter si la prochaine session refonde le code : `git stash drop agents-prep-work-stash`
+## Bugs CONFIRMÉS en réel sur l'app principale
 
-## À FAIRE EN PRIORITÉ — prochaine session
+- **Drag-drop block ⋮⋮ dans l'éditeur** : "pas de ligne bleue rien" en réel (smoke utilisateur). Tests Playwright passent en isolation, smoke réel échoue. Cause non re-investiguée depuis.
+- **Drag-drop fichier → dossier dans la sidebar** : "doesn't work at all" en réel. Implémentation HTML5 native (`FileTree.svelte`). Workplan §C3 prévoit la migration vers pointer events — pas démarrée.
 
-### P0 — Smoke test soirée (à charge de Matheo)
-Lancer `npm run tauri dev` puis `Cmd+R` pour reload le frontend. À tester :
-- **Menus contextuels (Phase 5b)** : right-click sur fichier / dossier / vault → vérifier les 3 menus complets (Ouvrir / Renommer / Dupliquer / Déplacer / Copier chemin / Révéler / Supprimer côté file ; nouvelle note ici / nouveau dossier ici / Renommer / Copier chemin / Révéler / Supprimer côté folder ; nouvelle note racine / Renommer vault / Mode RO ↔ Edit / Révéler / Copier path / Retirer côté vault). Items disabled si vault readonly.
-- **Status bar** : ancrée en bas pleine largeur, vault + path + word count + save status + Preview/Source toggle. Click sur path → copie absolu. Click sur word counter → toggle caractères/mots.
-- **Drag-drop** : drag d'un fichier sur un dossier → opacity 0.5 + accent-tint sur la cible → drop → fichier déplacé + dossier déplié auto + onglet suit le fichier si actif. Drop sur la zone vide racine = move à la racine. Vault readonly = drag bloqué.
-- **Régression Round 2** : confirmer que les fixes visuels précédents tiennent (sidebar plus sombre, sélection bleue, checkboxes différenciées, block handle subtil).
+## Bugs PROBABLES (smoke réel non re-confirmé après les derniers commits)
 
-### P1 — Phase 5c (onglets) à reprendre en session encadrée
-Refactor activeFile → openFiles[] est un 2-3h pas piloté en autonomie ce soir (explicitement marqué risqué dans le brief). À attaquer en présence de Matheo car ça touche +page.svelte / Editor / Sidebar / persistence config + plusieurs tests existants.
+- Block menu transformation au click sur ⋮⋮ : tests passent, mais smoke réel post-tous-les-derniers-commits non explicitement re-validé par toi
+- Code block langage picker : restylé mais smoke réel post-fix non re-validé
+- Régression visuelle éventuelle après la migration `display: contents` body→flex column : à reconfirmer
 
-### P2 — Dette technique mineure (post-MVP)
-- **Route `/_visual` en build de prod** : la route fixture est incluse dans le bundle prod. Inoffensive mais idéalement DEV-only. Guard avec `import.meta.env.DEV` ou hook SvelteKit. ~5 min.
-- **Stash `agents-prep-work-stash`** : non touché ce soir. Refactors I1/I2 — Matheo décide pop/drop.
-- **Décider de D3 (box-shadow popovers)** — toned-down possible si « depth via borders only » strict.
-- **Heading actif au scroll dans la status bar** : intersection observer sur `.ProseMirror h1, h2, h3` → afficher dans la zone centre.
-- **Outline panel** : pas implémenté, bouton non rendu dans la status bar.
-- **Settings panel** : pas implémenté, bouton non rendu.
-- **Couleurs custom vault** (color picker) : backlog.
+## Ce qui MARCHE en réel (smoke confirmé)
 
-### P3 — Compléter Phase 5
-- Monter `tauri-driver` pour E2E real-binary OU étendre Playwright avec un mock de la couche Tauri sur la full app.
-- Tests Playwright pour le drag-drop (`dispatchDrop` historiquement fragile, à valider).
+- Sidebar : ajout/suppression vault (picker macOS), navigation arborescence, expand/collapse persisté, alignement icônes propre
+- File tree : filtre récursif, création/suppression/rename inline, F2 / dblclick / context menu rename
+- Menus contextuels file/folder/vault complets (Renommer / Dupliquer / Déplacer / Copier chemin / Révéler Finder / Supprimer)
+- Lecture/écriture fichiers `.md` via Tauri (autosave debounced 1.5s, atomic openFile + requestId guard)
+- Frontmatter : split + rendu `<details>` collapsed monospace + round-trip préservé
+- Status bar pills (vault, path, mots, save status, theme toggle, mode Preview/Source) sous l'éditeur uniquement
+- Theme dark/light/system avec persistence + listener `prefers-color-scheme`
+- Editor Crepe : édition WYSIWYG basique, headings, paragraphes, listes, code blocks (avec coloration), task lists, citations
+- Slash menu Crepe (`/`)
+- Toolbar flottante Crepe au survol de sélection
+- ContextMenu auto-flip
+- Scroll vertical sidebar + éditeur (avec scrollbar 8px overlay)
+- Theme bouton Sun/Moon/Monitor
 
-## Skills Claude pertinents pour ce projet
-À identifier en début de prochaine session via : `ls /Users/lkid/Ressources/Skills/`
+## État des autres chantiers (workplan + briefs)
 
-## Fichiers de référence à relire en début de prochaine session
-1. `CLAUDE.md` (méthodologie permanente)
-2. `SPEC.md` (vision et contrat)
-3. `design.md` (design system Warp-inspired)
-4. `PLAN.md` (phases)
-5. `JOURNAL.md` (historique des sessions)
-6. `STATE.md` (ce fichier — porte d'entrée)
-7. `BACKLOG.md` (hors-scope)
+| Chantier | Statut |
+|---|---|
+| C1 — Migration Crepe → BlockNote | EN COURS — étape 2.5.a faite (1 composant UI sur 5), reste 4 composants + intégration + nettoyage |
+| C2 — Système de toast / notifications | PAS DÉMARRÉ |
+| C3 — Drag-drop sidebar (HTML5 → pointer events) | PAS DÉMARRÉ — bug CASSÉ confirmé en réel |
+| Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — explicitement skippé |
+| Outline panel (sommaire) | PAS DÉMARRÉ — brief `features/sommaire.md` posé, aucun code |
+| Empty state | PAS DÉMARRÉ — brief `features/empty-state.md` posé, aucun code |
+
+## Si on shipperait le MVP demain
+
+3 chantiers critiques (frustration quotidienne sans eux) :
+1. Drag-drop sidebar fonctionnel (workplan C3, ~3-4h)
+2. Drag-drop block + drop indicator vraiment fonctionnel (Crepe re-fix OU BlockNote terminé)
+3. Système de toast pour feedback des actions (workplan C2, ~3-4h)
+
+Nice-to-have (perception "fini") :
+- Outline panel
+- Onglets fichiers
+- Empty state propre
+
+Durée minimale honnête :
+- **Voie A** (abandonner BlockNote, finir Crepe) : 3-4 jours
+- **Voie B** (finir BlockNote) : 8-12 jours
+
+## Fichiers temporaires en cours
+
+- `MIGRATION-NOTES.md` (racine) : notes d'investigation BlockNote, à **supprimer** quand chantier C1 clos.
+- `src/routes/_blocknote-test/+page.svelte` : route dev BlockNote, à **supprimer** quand chantier C1 clos.
+- `src/routes/_visual/+page.svelte` : route dev pour tests visuels Playwright. Reste utile.
+- `tests/fixtures/c1/*.md` : 3 fixtures de round-trip BlockNote. À garder ou à déplacer en fin de chantier.
+
+## Stash
+
+- `agents-prep-work-stash` (probablement obsolète à 1+ semaine, refactors I1/I2 anciens). Pop ou drop à arbitrer.
+
+## Fichiers à relire en début de prochaine session
+
+1. `STATE.md` (ce fichier — porte d'entrée)
+2. `CLAUDE.md` (méthodologie permanente)
+3. `WORKPLAN.md` (plan global des chantiers, le tableau §"Vue d'Ensemble" est la liste)
+4. `MIGRATION-NOTES.md` (uniquement si on continue C1)
+5. `JOURNAL.md` (dernières entrées seulement)
+6. `BACKLOG.md` (hors-scope MVP)
+7. `SPEC.md` / `design.md` / `PLAN.md` (référence)

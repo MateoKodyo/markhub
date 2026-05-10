@@ -8,9 +8,9 @@
 
 ## Statut Global
 
-**Date de mise à jour** : 2026-05-10
+**Date de mise à jour** : 2026-05-10 (fin de session, avant reprise avec nouveau plan)
 
-**Chantier en cours** : 1 (Migration éditeur Crepe → BlockNote)
+**Chantier en cours** : 1 (Migration éditeur Crepe → BlockNote) — étape **2.5.a livrée**, 4 composants UI restant
 
 **Bloqueurs MVP shippable** : 3 chantiers ci-dessous
 
@@ -20,9 +20,9 @@
 
 | Ordre | Chantier | Priorité | État | Branche |
 |-------|----------|----------|------|---------|
-| 1 | Migration éditeur Crepe → BlockNote | P0 | À démarrer | `feat/blocknote-migration` |
-| 2 | Système de Toast / Notifications | P1 | En attente C1 | `feat/toast-system` |
-| 3 | Smoke test + fix Drag-drop sidebar | P1 | En attente C1 | `fix/sidebar-dnd` |
+| 1 | Migration éditeur Crepe → BlockNote | P0 | EN COURS — 1/5 composants UI faits, intégration `Editor.svelte` non démarrée | `feat/blocknote-migration` |
+| 2 | Système de Toast / Notifications | P1 | PAS DÉMARRÉ | `feat/toast-system` |
+| 3 | Drag-drop sidebar (HTML5 → pointer events) | P1 | PAS DÉMARRÉ — bug CASSÉ confirmé en réel | `fix/sidebar-dnd` |
 
 **Règles permanentes** (à respecter dans tous les chantiers) :
 - TDD strict : tests RED avant code GREEN
@@ -67,6 +67,20 @@ git checkout -b feat/blocknote-migration
 ```
 
 ### Étapes
+
+#### Statut détaillé Chantier 1 (au 2026-05-10)
+- ✅ Étape 1 (audit + install `@blocknote/core@^0.50.0`) — commit `abccc90`
+- ✅ Étape 2 (route dev `_blocknote-test` + round-trip 3 fixtures) — commit `64f6482`. Verdict : **GO migration côté markdown**, diffs cosmétiques uniquement.
+- 🟡 Étape 2.5 (UI Svelte, INSÉRÉE après audit) :
+  - ✅ 2.5.a — Slash menu — commit `9256f57`
+  - ❌ 2.5.b — FormattingToolbar — pas démarré
+  - ❌ 2.5.c — SideMenu (drag handle + transform menu) — pas démarré
+  - ❌ 2.5.d — TableHandles — pas démarré
+  - ❌ 2.5.e — LinkToolbar — pas démarré
+- ❌ Étape 3 — Customisation visuelle (alignement design.md)
+- ❌ Étape 4 — Intégration dans `Editor.svelte`
+- ❌ Étape 5 — Tests, nettoyage, suppression Crepe
+- ❌ Étape 6 — Commit final
 
 #### Étape 1 — Audit préalable et installation
 

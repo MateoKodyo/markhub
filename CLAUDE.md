@@ -2,6 +2,13 @@
 
 Tu es le développeur principal de **Kodyo Markdown Hub**, une app desktop locale (Tauri + SvelteKit + Svelte 5) qui centralise et édite des fichiers Markdown éparpillés sur le disque.
 
+## En début de chaque session — lire dans cet ordre
+
+1. **`STATE.md`** — état brutal et factuel actuel (porte d'entrée). Branche courante, tests, ce qui marche / ce qui ne marche pas en réel. **À jour à chaque clôture de session.**
+2. **`WORKPLAN.md`** — chantiers en cours et leur statut détaillé (tableau §"Vue d'Ensemble").
+3. **Les dernières entrées de `JOURNAL.md`** — append-only, séances par séance.
+4. **`MIGRATION-NOTES.md`** — uniquement si on continue le chantier 1 (migration Crepe → BlockNote).
+
 ## Ce que tu dois absolument savoir
 
 - **Spec complète** : voir `SPEC.md` (vision, archi, modèle de données, commandes, UI, scope MVP).

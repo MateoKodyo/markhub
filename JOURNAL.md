@@ -776,3 +776,59 @@ Hier (option B) : ⋮⋮ masqué, Phase 7 backloggée. À l'usage, frustration U
 
 
 
+
+---
+
+# Session 2026-05-10 — Polish drag-drop + ContextMenu overflow + code picker, puis migration BlockNote (interrompue)
+
+## Audit fixes Crepe (commit `74b0066`)
+Trois bugs identifiés en usage réel par Matheo :
+1. **Drag-drop block ne déplaçait rien** — Chromium exige `preventDefault()` dans `dragenter` ; `dataTransfer.types.includes(MIME)` est unreliable côté drop pour les MIMEs custom. Fix : ajout d'un `dragenter` handler ; gating sur `dragSourceStart !== null` (variable JS) au lieu du check `.types`.
+2. **Block menu clippé en bas du viewport** — pas de max-height, pas d'auto-flip. Fix : `tick() + getBoundingClientRect` dans `ContextMenu.svelte`, auto-flip si `y + height > viewport - 8`, clamp horizontal, `max-height: calc(100vh - 16px)` + `overflow-y: auto`, `box-shadow: var(--shadow-popover)`.
+3. **Picker langage code blocks see-through** — Crepe `.list-wrapper` mappé sur `--crepe-color-surface-low` (~3% white). Fix : override `.list-wrapper` opaque (`--color-bg-raised`) + bordure + popover shadow + Markhub fonts. Search-box, language-list-item, language-button restylés en cohérence. z-index: 100.
+
+Tests : cargo 60/60, vitest 152/152, visual 22 passed + 1 skipped (drag manuel).
+
+## Drag-reorder ré-implémenté en pointer events (commit `103cdfe`)
+**Smoke réel utilisateur** : "drag and drop marche pas... pas de ligne bleue rien". Les fix HTML5 ne tenaient pas. Rewrite complet en pointer events :
+- `pointerdown` sur ⋮⋮ → resolve target block, `setPointerCapture`, écoute `window`
+- `pointermove` → seuil 4px → commit drag → drop indicator continu via `posAtCoords`
+- `pointerup` → si drag : `tr.delete + tr.insert` ; si click pur : laisser le menu s'ouvrir
+- Flag `clickSuppressed` pour swallow le click synthétique post-drop
+
+Le test Playwright drag E2E qui était skippé tourne maintenant et passe (page.mouse.down + move + up dispatchent des pointer events natifs).
+
+**Ce qui est encore inconnu** : malgré ce rewrite, smoke réel utilisateur post-103cdfe non explicitement re-confirmé.
+
+## Investigation BlockNote (commits `abccc90`, `64f6482`)
+Hors workplan initial. Décision Matheo (2026-05-10) : remplacer Crepe par BlockNote.
+
+- Étape 1 : install `@blocknote/core@^0.50.0`. API vanilla confirmée par lecture des `.d.ts` du package : `BlockNoteEditor.create()` + `editor.mount(el)` + `onChange()` + `blocksToMarkdownLossy()` + `tryParseMarkdownToBlocks()`. Plugins UI logiques dans `@blocknote/core/extensions` exposent leur état via `emitUpdate(state)` callbacks → on rendra l'UI en Svelte custom (pas React). Notes complètes dans `MIGRATION-NOTES.md`.
+- Étape 2 : route dev `_blocknote-test` avec round-trip sur 3 fixtures représentatives (`tests/fixtures/c1/`). Verdict : **pas de blocker fatal**. Tous les diffs sont cosmétiques (`-`↔`*`, tight↔loose lists, table padding, `---`↔`***`) ou idempotents (default `text` lang on code blocks). Un cas marginal à surveiller : nested bold-italic re-encodé.
+
+**Smoke des features UI natives non-testable en l'état** : `@blocknote/core` mounté seul ne rend AUCUN chrome (drag handle, slash menu, toolbar, etc.). Logique dans les plugins, UI à coder en Svelte. Estimation 1-2j pour 4-5 composants.
+
+## Étape 2.5.a — Slash menu BlockNote en Svelte (commit `9256f57`)
+Premier des 5 composants UI BlockNote.
+- `src/lib/components/BlockNoteSlashMenu.svelte` consomme le TanStack Store du `SuggestionMenu` plugin via `editor.getExtension('suggestionMenu').store.subscribe(...)`.
+- Items via `getDefaultSlashMenuItems(editor)` + `filterSuggestionItems(items, query)`.
+- Nav clavier ↑/↓/Enter/Escape sur listener `window` (pas de blur de l'éditeur).
+- Sélection via `mousedown.preventDefault()` pour préserver le caret.
+- Tests : 2/2 (menu opens with default items + transform H1).
+
+**Découvertes BlockNote-API** (réutilisables pour les composants à venir) :
+1. `editor.extensions` est un `Map<string, ExtensionInstance>` — accès via `editor.getExtension(key)` (pas `editor.extensions.suggestionMenu`).
+2. `ext.store.subscribe(callback)` reçoit `{ prevVal, currentVal }`, **pas** le state directement.
+
+## État brutal (audit demandé par Matheo en fin de session, avant nouvelle session)
+- App principale : **Crepe** + patches custom. BlockNote NON branché, vit sur route dev.
+- Drag-drop block : "pas de ligne bleue rien" en réel (post-103cdfe — non confirmé fixé).
+- Drag-drop sidebar : "doesn't work at all" en réel. HTML5 native, jamais migré en pointer events. Workplan §C3 prévoit la migration.
+- Toast / notifications : pas démarré.
+- Onglets fichiers / Outline panel / Empty state : briefs posés (`features/sommaire.md`, `features/empty-state.md`), aucun code.
+- Tests : cargo 60/60, vitest 152/152, visual 23 + 1 skipped, check 0/0, build OK.
+
+Voir `STATE.md` pour le détail factuel.
+
+## Prochaine session
+Nouveau plan à recevoir de Matheo. Cette session se termine sur la branche `feat/blocknote-migration` (3 commits ahead de `main`, non mergée).
