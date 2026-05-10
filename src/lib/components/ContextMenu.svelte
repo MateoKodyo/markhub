@@ -1,10 +1,10 @@
 <script lang="ts">
 	export type MenuItem =
-		| {
-				separator: true;
-		  }
+		| { separator: true }
+		| { header: string }
 		| {
 				separator?: false;
+				header?: undefined;
 				label: string;
 				onClick: () => void;
 				danger?: boolean;
@@ -53,8 +53,10 @@
 		onclick={(e) => e.stopPropagation()}
 	>
 		{#each items as item, i (i)}
-			{#if item.separator}
+			{#if 'separator' in item && item.separator}
 				<li role="separator" class="ctx-sep" aria-hidden="true"></li>
+			{:else if 'header' in item}
+				<li role="presentation" class="ctx-header">{item.header}</li>
 			{:else}
 				<li role="none">
 					<button
@@ -123,5 +125,15 @@
 		height: 1px;
 		margin: var(--space-1) 0;
 		background: var(--color-border-subtle);
+	}
+
+	.ctx-header {
+		padding: 6px var(--space-3) 2px;
+		font-size: var(--text-label);
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--color-text-muted);
+		font-weight: var(--weight-regular);
+		pointer-events: none;
 	}
 </style>

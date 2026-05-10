@@ -736,5 +736,43 @@ Le status bar courait sur toute la largeur (sidebar + éditeur) avec les infos p
 - Pas de tooltip sur le `+` (cf. analyse du brief).
 - ⋮⋮ caché par `display: none` plutôt que par `visibility: hidden` — on retire l'affordance complètement (cliquer sur l'espace ne fait plus rien, plus honnête).
 
+## Block menu Notion-like + drag-reorder (Phase 7) — 15:09 → ~15:35
+
+### Changement de cap par rapport à hier
+Hier (option B) : ⋮⋮ masqué, Phase 7 backloggée. À l'usage, frustration UX confirmée : transformer un block via clavier (taper `/heading 2`) demande de se rappeler les commandes ; cliquer sur ⋮⋮ pour avoir un menu Notion-like est ce que les utilisateurs attendent. Décision révisée : implémenter Phase 7 maintenant.
+
+### Implémentation
+- `app.css` : restauré la visibilité du ⋮⋮, `cursor: grab` / `grabbing` pour signaler l'affordance drag.
+- `ContextMenu.svelte` : `MenuItem` étendu en discriminated union à 3 cas : `{ separator: true }` | `{ header: string }` | item interactif. Le `{ header }` rend un `<li role="presentation">` non-cliquable, uppercase tracké, pour les sections type « Transformer en ». Pas de sub-menu nested (KISS — flat avec section header suffit).
+- `Editor.svelte` : 
+  - Capture `crepe.editor.action(ctx => …)` + les imports `commandsCtx`, `editorViewCtx` du `@milkdown/kit/core` + les schemas/commandes de `@milkdown/kit/preset/commonmark`.
+  - `wireBlockHandle()` : poll bref pour `.milkdown-block-handle .operation-item:nth-child(2)`, attache click + dragstart + dragend. Et `dragover` + `drop` sur le root.
+  - `resolveTargetBlock()` : utilise `view.posAtCoords({ left: handleRect.right + 30, top: handleRect.top + handleHeight/2 })` — le handle vit dans le gutter gauche, on probe à droite pour atterrir dans le block. Renvoie `{ start, end, level }`.
+  - `transformTargetBlock(kind)` : place la sélection au début du block via `state.selection.constructor.near()` (pas d'import statique de `prosemirror-state`), puis dispatche `setBlockTypeCommand` ou `wrapInBlockTypeCommand` selon le `kind`. Pas d'appel à `clearTextInCurrentBlockCommand` — c'est ce qui supprime le `/heading 2` tapé dans le slash menu, ici on veut PRÉSERVER le contenu existant.
+  - `duplicateTargetBlock()` : `tr.insert(end, doc.slice(start, end).content)`.
+  - `deleteTargetBlock()` : `tr.delete(start, end)`.
+  - Drag : `dragstart` capture `{ srcStart, srcEnd, level }` + MIME `application/x-markhub-block`. `dragover` calcule le drop indicator en snappant au boundary block hovered (start ou end selon `clientY < mid`). `drop` applique `tr.delete(src) + tr.insert(dropPos, slice)` avec ajustement de `dropPos` si la destination est après la source.
+
+### Décisions autonomes
+- **Pas de sub-menu** : ContextMenu a déjà la structure flat avec `{ header }`. Implémenter du nested aurait demandé une grosse refonte du composant pour un gain UX marginal.
+- **Pas de `clearTextInCurrentBlockCommand`** : on veut transformer un block existant SANS perdre son contenu, contrairement au slash menu Crepe qui efface le `/heading 2` tapé.
+- **Drop indicator simple** : ligne accent 2px snappée au boundary, pas de ghost preview du block. Le ghost preview demanderait un layer custom au-dessus du DOM ProseMirror — disproportionné pour MVP.
+- **Pas de patch monkey de Crepe** : tout le wiring se fait depuis l'extérieur via `posAtCoords` et le `crepe.editor.action(ctx)` API publique. Robuste aux maj Crepe.
+
+### Tests
+- Avant : vitest 152, cargo 60, visual 18
+- Après : vitest 152, cargo 60, visual **21** (+3 nouveaux dans `block-handle.spec.ts` : ⋮⋮ visible, menu open + items, transform H1→H2, delete bloc).
+- E2E fonctionnels intentionnellement minimaux — Playwright peut tester `posAtCoords` + click via réel browser ; les transactions ProseMirror sont alors testées de bout en bout.
+- **Drag-drop pas testé en automatique** — `dispatchDrop` Playwright fragile, smoke test interactif. Logique couverte par le code (resolveTargetBlock + tr.delete/insert).
+
+### Bugs/blocages
+- 1ère version `transformTargetBlock` : code TypeScript brouillon avec une `TextSelection` mal importée. Refactor pour utiliser `state.selection.constructor.near($pos)` — pas de dépendance statique sur `prosemirror-state`, plus léger.
+- Variables locales préfixées `$pos` rejetées par Svelte 5 (réservé aux runes). Renommées en `resolvedPos` / `posStart` via sed.
+- Test `:first-child` initial cassé car Crepe ajoute un `<div class="ProseMirror-widget">` en première position. Tests réécrits pour cibler les blocks par `tagName` + texte au lieu de position DOM.
+
+### Commit
+- Hash : à venir
+
+
 
 

@@ -624,15 +624,22 @@ samp {
 	opacity: 1;
 }
 
-.milkdown.milkdown .milkdown-block-handle .operation-item:nth-child(2) {
-	display: none;
-}
-
 .milkdown.milkdown .milkdown-block-handle .operation-item {
 	width: 24px;
 	height: 24px;
 	border-radius: var(--radius-xs);
 	color: var(--color-text-secondary);
+}
+
+/* Phase 7 — block menu: the ⋮⋮ icon (second .operation-item) is wired to
+ * open a Notion-like transform menu via Editor.svelte. The drag-cursor
+ * makes the affordance honest. */
+.milkdown.milkdown .milkdown-block-handle .operation-item:nth-child(2) {
+	cursor: grab;
+}
+
+.milkdown.milkdown .milkdown-block-handle .operation-item:nth-child(2):active {
+	cursor: grabbing;
 }
 
 .milkdown.milkdown .milkdown-block-handle .operation-item svg {

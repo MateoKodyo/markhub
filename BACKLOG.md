@@ -12,12 +12,12 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 ### Phase 1
 - ~~Palette rotative pour `Vault.color`~~ — **fait en Phase 5** : `src/lib/utils/palette.ts` avec rotation `pickNextColor(vaults.length)`. Reste à backlog : color picker custom (voir Phase 5 ci-dessus).
 
-## Phase 7 — block manipulation Notion-like (custom ProseMirror plugins)
-Crepe ne fournit PAS nativement les comportements suivants — investigué dans le source `block-edit/index.js:1042-1135` et `components/table-block/view/operation.d.ts` (cf. session 2026-05-10).
+## Phase 7 — block manipulation Notion-like
 
-- **Block transform menu au click sur ⋮⋮** — Crepe rend la `.operation-item` du ⋮⋮ sans aucun handler. Pour avoir un menu Notion-like de transformation au click (Heading/List/Quote/Code/etc.), il faut un plugin custom qui intercepte le mousedown, place le caret dans le block parent, et ouvre le slash menu en mode "transform" (l'`onRun` actuel utilise déjà `setBlockType` → transformation, mais il faut wire le menu sur le ⋮⋮). Estimation : 3-4h.
-- **Drag-and-drop pour réorganiser les blocks** — Crepe ne wire AUCUN drag handler. HTML5 dragstart/dragend + manipulation de transaction ProseMirror. Estimation : 2-3h. (À ne pas confondre avec le drag-drop fichiers→dossier de la sidebar, qui est livré.)
+- ~~**Block transform menu au click sur ⋮⋮**~~ — **livré 2026-05-10** : `Editor.svelte` intercepte click + dragstart sur le ⋮⋮ et utilise les commandes Crepe (`setBlockTypeCommand`, `wrapInBlockTypeCommand`) via `crepe.editor.action(ctx => …)`. Items : Texte / Titre 1-3 / Liste à puces / Liste numérotée / Citation / Bloc de code / Séparateur + Dupliquer + Supprimer. Header non-cliquable « Transformer en » (ContextMenu étendu avec `{ header: string }`).
+- ~~**Drag-and-drop pour réorganiser les blocks**~~ — **livré 2026-05-10** : HTML5 dragstart sur le ⋮⋮, MIME `application/x-markhub-block`, dragover sur l'éditeur calcule le drop indicator (snap au boundary block via `posAtCoords`), drop applique `tr.delete + tr.insert` avec ajustement de la position si destination après source.
 - **Column resize sur tables** — `prosemirror-tables` (upstream) fournit un plugin `columnResizing` officiel ; Crepe ne l'active pas. Probablement installable comme plugin Milkdown supplémentaire au-dessus de Crepe. Estimation : 2-3h, attention à la compat avec le plugin `tableEditing` que Crepe customise déjà.
+- **Block menu enrichi (Color / Copy link to block / Move to / etc.)** — items du menu Notion qui dépassent le besoin Markhub MVP. Color demande un plugin de coloration de block que Crepe n'a pas. "Copy link to block" demande un système d'ancres permanents. "Move to" n'a pas de sens (Markhub édite des fichiers .md plats). À évaluer après usage du MVP.
 
 ## Hors-scope MVP (gelé, ne pas démarrer)
 - Recherche full-text cross-vaults
