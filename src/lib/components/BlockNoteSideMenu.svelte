@@ -264,7 +264,7 @@
 		color: inherit;
 		cursor: pointer;
 		opacity: 0.45;
-		transition: opacity 0.15s ease;
+		transition: opacity var(--duration-fast) var(--easing-standard);
 	}
 
 	.bn-side-btn:hover {

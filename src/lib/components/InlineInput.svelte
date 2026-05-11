@@ -122,6 +122,11 @@
 		font-family: inherit;
 		font-size: var(--text-ui);
 		outline: none;
+		transition: box-shadow var(--duration-base) var(--easing-standard);
+	}
+
+	.field:focus-visible {
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
 	}
 
 	.field.has-error {

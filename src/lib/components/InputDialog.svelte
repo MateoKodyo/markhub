@@ -113,9 +113,16 @@
 		font-size: var(--text-ui);
 	}
 
-	.text-input:focus {
+	.text-input {
+		transition:
+			border-color var(--duration-base) var(--easing-standard),
+			box-shadow var(--duration-base) var(--easing-standard);
+	}
+
+	.text-input:focus-visible {
 		outline: none;
 		border-color: var(--color-accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
 	}
 
 	.error {

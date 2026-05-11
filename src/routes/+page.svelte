@@ -237,6 +237,9 @@
 		font-size: var(--text-label);
 		line-height: 1;
 		cursor: pointer;
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
 	}
 
 	.seg-btn:hover {
@@ -249,7 +252,7 @@
 	}
 
 	.seg-btn:focus-visible {
-		outline: 1px solid var(--color-accent);
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
 		outline-offset: 1px;
 	}
 

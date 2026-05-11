@@ -222,6 +222,9 @@
 	.pill-btn {
 		cursor: pointer;
 		text-align: left;
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
 	}
 
 	.pill-btn:hover {
@@ -230,7 +233,7 @@
 	}
 
 	.pill-btn:focus-visible {
-		outline: 1px solid var(--color-accent);
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
 		outline-offset: 1px;
 	}
 

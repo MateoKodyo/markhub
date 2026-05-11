@@ -241,7 +241,7 @@
 		color: var(--color-text-muted);
 		cursor: pointer;
 		opacity: 0.5;
-		transition: opacity 0.15s ease;
+		transition: opacity var(--duration-fast) var(--easing-standard);
 	}
 
 	.bn-th-btn:hover {

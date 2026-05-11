@@ -828,10 +828,14 @@
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
 		border-radius: var(--radius-sm);
+		transition:
+			border-color var(--duration-base) var(--easing-standard),
+			box-shadow var(--duration-base) var(--easing-standard);
 	}
 
 	.filter-row:focus-within {
 		border-color: var(--color-accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
 	}
 
 	.filter-icon {

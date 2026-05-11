@@ -449,6 +449,9 @@
 		text-align: left;
 		cursor: pointer;
 		border-radius: var(--radius-sm);
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
 	}
 
 	.row:hover {

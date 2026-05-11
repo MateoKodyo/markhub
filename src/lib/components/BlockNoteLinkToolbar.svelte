@@ -161,10 +161,14 @@
 		font-family: var(--font-mono);
 		font-size: var(--text-caption);
 		outline: none;
+		transition:
+			border-color var(--duration-base) var(--easing-standard),
+			box-shadow var(--duration-base) var(--easing-standard);
 	}
 
-	.bn-link-input:focus {
+	.bn-link-input:focus-visible {
 		border-color: var(--color-accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
 	}
 
 	.bn-link-btn {
@@ -179,11 +183,19 @@
 		background: transparent;
 		color: var(--color-text-body);
 		cursor: pointer;
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
 	}
 
 	.bn-link-btn:hover {
 		background: var(--color-surface-hover);
 		color: var(--color-text-primary);
+	}
+
+	.bn-link-btn:focus-visible {
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
+		outline-offset: 1px;
 	}
 
 	.bn-link-danger:hover {

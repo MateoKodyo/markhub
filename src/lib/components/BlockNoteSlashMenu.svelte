@@ -192,12 +192,20 @@
 		text-align: left;
 		border-radius: var(--radius-xs);
 		cursor: pointer;
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
 	}
 
 	.bn-slash-item:hover,
 	.bn-slash-item.is-active {
 		background: var(--color-surface-active);
 		color: var(--color-text-primary);
+	}
+
+	.bn-slash-item:focus-visible {
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
+		outline-offset: -2px;
 	}
 
 	.bn-slash-title {
