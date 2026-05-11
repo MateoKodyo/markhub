@@ -249,7 +249,7 @@
 	}
 
 	.pill-status {
-		gap: 4px;
+		gap: var(--space-1);
 	}
 
 	.pill-status[data-status='error'] {

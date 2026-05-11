@@ -114,7 +114,7 @@
 	.field {
 		flex: 1;
 		min-width: 0;
-		padding: 4px 8px;
+		padding: var(--space-1) var(--space-2);
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-accent);
 		border-radius: var(--radius-sm);

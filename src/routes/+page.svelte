@@ -189,9 +189,9 @@
 	.badge-readonly {
 		display: inline-flex;
 		align-items: center;
-		gap: 4px;
+		gap: var(--space-1);
 		flex-shrink: 0;
-		padding: 2px 8px;
+		padding: 2px var(--space-2);
 		font-size: var(--text-label);
 		letter-spacing: var(--tracking-caption);
 		color: var(--color-text-secondary);

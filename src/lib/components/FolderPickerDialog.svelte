@@ -144,7 +144,7 @@
 		min-height: 0;
 		overflow: auto;
 		margin: 0;
-		padding: 4px;
+		padding: var(--space-1);
 		list-style: none;
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
@@ -157,7 +157,7 @@
 		gap: 6px;
 		width: 100%;
 		min-height: 28px;
-		padding: 4px var(--space-3);
+		padding: var(--space-1) var(--space-3);
 		border: 0;
 		border-radius: var(--radius-xs);
 		background: transparent;
