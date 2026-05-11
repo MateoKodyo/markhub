@@ -34,8 +34,8 @@ class ActiveFileStore {
 			if (myRequestId !== this.#openRequestId) return;
 			// Atomic update — activeFile and content move together, AFTER the read,
 			// so the {#key editorKey} in +page.svelte remounts Editor with the
-			// correct content already in place. Fixes the race where Crepe captured
-			// stale content via untrack() at mount.
+			// correct content already in place. Fixes the race where the editor
+			// captured stale content via untrack() at mount.
 			this.activeFile = { vaultId, relativePath };
 			this.content = newContent;
 			this.status = 'saved';

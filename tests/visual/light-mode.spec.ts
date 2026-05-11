@@ -29,7 +29,7 @@ test('task list — light theme', async ({ page }) => {
 
 test('slash menu — light theme', async ({ page }) => {
 	await gotoFixture(page, 'slash', 'light');
-	const editor = page.locator('.milkdown .ProseMirror');
+	const editor = page.locator('.bn-editor.ProseMirror');
 	await editor.click();
 	await page.keyboard.press('End');
 	await page.keyboard.press('Enter');
@@ -41,10 +41,10 @@ test('slash menu — light theme', async ({ page }) => {
 
 test('floating toolbar — light theme', async ({ page }) => {
 	await gotoFixture(page, 'toolbar', 'light');
-	const editor = page.locator('.milkdown .ProseMirror');
+	const editor = page.locator('.bn-editor.ProseMirror');
 	await editor.click();
 	await page.evaluate(() => {
-		const pm = document.querySelector('.milkdown .ProseMirror');
+		const pm = document.querySelector('.bn-editor.ProseMirror');
 		if (!pm) return;
 		const para = pm.querySelector('p');
 		if (!para) return;

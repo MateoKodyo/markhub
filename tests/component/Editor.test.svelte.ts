@@ -1,29 +1,50 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 
-// Mock Milkdown so jsdom doesn't choke on contenteditable / ProseMirror.
-// Real Milkdown is exercised in Phase 5 E2E.
-vi.mock('@milkdown/crepe', () => {
-	class MockCrepe {
-		opts: { defaultValue?: string; root?: HTMLElement };
-		isReadonly = false;
-		constructor(opts: { defaultValue?: string; root?: HTMLElement }) {
-			this.opts = opts;
+// Mock @blocknote/core so jsdom doesn't try to mount a real ProseMirror
+// view (contenteditable + DOM observers don't behave under jsdom). The
+// real editor is exercised by Playwright in tests/visual.
+vi.mock('@blocknote/core', () => {
+	class MockEditor {
+		document: unknown[] = [];
+		isEditable = true;
+		mount(_el: HTMLElement) {}
+		unmount() {}
+		tryParseMarkdownToBlocks(_md: string) {
+			return [];
 		}
-		async create() {
-			return this;
+		async blocksToMarkdownLossy() {
+			return '';
 		}
-		setReadonly(v: boolean) {
-			this.isReadonly = v;
+		replaceBlocks(_a: unknown, _b: unknown) {}
+		onChange(_cb: () => void) {
+			return () => {};
 		}
-		on(_listener: unknown) {}
-		destroy() {}
-		getMarkdown() {
-			return this.opts.defaultValue ?? '';
+		onSelectionChange(_cb: () => void) {
+			return () => {};
+		}
+		getExtension(_k: string) {
+			return null;
+		}
+		getActiveStyles() {
+			return {};
+		}
+		getSelectedLinkUrl() {
+			return undefined;
+		}
+		toggleStyles(_s: unknown) {}
+		createLink(_url: string) {}
+		static create() {
+			return new MockEditor();
 		}
 	}
-	return { Crepe: MockCrepe };
+	return {
+		BlockNoteEditor: MockEditor,
+		filterSuggestionItems: () => [],
+		getDefaultSlashMenuItems: () => []
+	};
 });
+vi.mock('@blocknote/core/style.css', () => ({}));
 
 import Editor from '../../src/lib/components/Editor.svelte';
 
