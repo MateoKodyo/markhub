@@ -744,8 +744,8 @@
 	.top-error {
 		margin: 0;
 		padding: var(--space-3);
-		background: rgba(248, 113, 113, 0.08);
-		border-bottom: 1px solid rgba(248, 113, 113, 0.25);
+		background: var(--color-danger-bg);
+		border-bottom: 1px solid var(--color-danger-border);
 		color: var(--color-status-error);
 		font-size: var(--text-caption);
 	}

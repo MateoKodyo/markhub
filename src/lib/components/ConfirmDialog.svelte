@@ -99,8 +99,8 @@
 	.error {
 		margin: 0;
 		padding: var(--space-2) var(--space-3);
-		background: rgba(248, 113, 113, 0.08);
-		border: 1px solid rgba(248, 113, 113, 0.25);
+		background: var(--color-danger-bg);
+		border: 1px solid var(--color-danger-border);
 		border-radius: var(--radius-sm);
 		color: var(--color-status-error);
 		font-size: var(--text-caption);

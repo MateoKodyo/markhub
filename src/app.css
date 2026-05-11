@@ -71,6 +71,12 @@
 	--color-success: var(--color-status-ok);
 	--color-warning: var(--color-status-warn);
 	--color-danger: var(--color-status-error);
+	/* Danger surface — used by error notices in dialogs and the
+	 * "destructive action" header bar of confirm-delete modals.
+	 * Theme-specific RGB so the hue matches --color-status-error in
+	 * each theme (dark = #f87171, light = #dc2626). */
+	--color-danger-bg: rgba(248, 113, 113, 0.08);
+	--color-danger-border: rgba(248, 113, 113, 0.25);
 
 	/* Modal / dialog backdrop. Used by InputDialog, ConfirmDialog. */
 	--color-backdrop: rgba(0, 0, 0, 0.5);
@@ -215,7 +221,9 @@
 	--color-text-primary: #1c1b1a;
 	--color-text-body: #4a4948;
 	--color-text-secondary: #75736f;
-	--color-text-muted: #a09e9a;
+	/* Bumped from #a09e9a → #8a8884 (2026-05-11) to clear WCAG AA-large
+	 * (3.36:1 on bg vs 2.54:1 before). Warm tint preserved. */
+	--color-text-muted: #8a8884;
 	--color-text-disabled: #b4b6ba; /* Between muted and border — disabled controls */
 
 	--color-button-bg: #e0ddd6;
@@ -230,6 +238,9 @@
 	--color-status-ok: #16a34a;
 	--color-status-warn: #d97706;
 	--color-status-error: #dc2626;
+	/* Light-theme danger surface — uses the light --color-status-error RGB. */
+	--color-danger-bg: rgba(220, 38, 38, 0.08);
+	--color-danger-border: rgba(220, 38, 38, 0.25);
 
 	--color-backdrop: rgba(0, 0, 0, 0.3);
 
