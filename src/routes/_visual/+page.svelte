@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { PanelLeft } from 'lucide-svelte';
 	import Editor from '$lib/components/Editor.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import type { Vault } from '$lib/tauri/types';
 
@@ -92,6 +94,21 @@ Mixed sub-list:
 		color: '#A78BFA'
 	};
 
+	// Recent-vaults list used by the EmptyState fixture. Mix of warm hues
+	// from the palette + a longer path that triggers the ellipsis layout.
+	const FAKE_RECENT_VAULTS: Vault[] = [
+		{ id: 'r1', name: 'Notes perso', path: '/Users/demo/Notes', mode: 'edit', color: '#A78BFA' },
+		{ id: 'r2', name: 'Skills Claude', path: '/Users/demo/skills', mode: 'edit', color: '#F472B6' },
+		{ id: 'r3', name: 'Markhub spec', path: '/Users/demo/projects/markhub', mode: 'readonly', color: '#60A5FA' },
+		{
+			id: 'r4',
+			name: 'Knowledge base',
+			path: '/Users/demo/long/nested/path/to/knowledge-base-vault',
+			mode: 'edit',
+			color: '#34D399'
+		}
+	];
+
 	const APP_SHELL_BODY = `# Architecture overview
 
 The status bar at the bottom shows the active vault, the current document path, the word count, the save status, and the editor mode toggle.
@@ -116,7 +133,11 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 			(f in FIXTURES ||
 				f === 'sidebar-overflow' ||
 				f === 'editor-overflow' ||
-				f === 'app-shell')
+				f === 'app-shell' ||
+				f === 'empty-state' ||
+				f === 'empty-state-no-recents' ||
+				f === 'window-chrome' ||
+				f === 'window-chrome-collapsed')
 		) {
 			fixture = f;
 		}
@@ -223,6 +244,48 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 			</div>
 		{:else if fixture === 'editor-overflow'}
 			<Editor content={FIXTURES['long-doc']} mode="preview" readonly={false} />
+		{:else if fixture === 'empty-state'}
+			<!-- Launch screen: Markhub wordmark, 4 action cards, recent vaults
+			     list. Action callbacks are no-ops since we only capture paint. -->
+			<EmptyState vaults={FAKE_RECENT_VAULTS} />
+		{:else if fixture === 'empty-state-no-recents'}
+			<EmptyState vaults={[]} />
+		{:else if fixture === 'window-chrome'}
+			<!-- Top window chrome strip with the 24×24 sidebar toggle. The
+			     traffic-light gutter (left 80px) is preserved so the toggle
+			     icon center aligns with where macOS draws the lights. -->
+			<div class="chrome-fixture">
+				<header class="window-chrome">
+					<button
+						type="button"
+						class="chrome-toggle is-active"
+						aria-label="Plier ou déplier la sidebar"
+						aria-pressed="true"
+					>
+						<PanelLeft size={16} strokeWidth={1.5} />
+					</button>
+				</header>
+				<div class="chrome-body">
+					<aside class="chrome-sidebar-stub"></aside>
+					<main class="chrome-content-stub"></main>
+				</div>
+			</div>
+		{:else if fixture === 'window-chrome-collapsed'}
+			<div class="chrome-fixture">
+				<header class="window-chrome">
+					<button
+						type="button"
+						class="chrome-toggle"
+						aria-label="Plier ou déplier la sidebar"
+						aria-pressed="false"
+					>
+						<PanelLeft size={16} strokeWidth={1.5} />
+					</button>
+				</header>
+				<div class="chrome-body">
+					<main class="chrome-content-stub"></main>
+				</div>
+			</div>
 		{:else}
 			<Editor {content} mode="preview" readonly={false} />
 		{/if}
@@ -331,5 +394,59 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 		flex-direction: column;
 		min-height: 0;
 		overflow: hidden;
+	}
+
+	/* === window-chrome fixture mirror === */
+	.chrome-fixture {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	.window-chrome {
+		height: 44px;
+		flex-shrink: 0;
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-1);
+		padding: 5px var(--space-3) 0 80px;
+		background: var(--color-bg);
+	}
+
+	.chrome-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+	}
+
+	.chrome-toggle.is-active {
+		color: var(--color-text-primary);
+	}
+
+	.chrome-body {
+		flex: 1;
+		display: flex;
+		min-height: 0;
+	}
+
+	.chrome-sidebar-stub {
+		width: 280px;
+		flex-shrink: 0;
+		background: var(--color-bg-sidebar);
+		border-right: 1px solid var(--color-border-subtle);
+	}
+
+	.chrome-content-stub {
+		flex: 1;
+		background: var(--color-bg);
 	}
 </style>
