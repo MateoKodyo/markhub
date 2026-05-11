@@ -47,6 +47,7 @@
 	--color-text-body: #afaeac; /* Ash Gray — workhorse reading color */
 	--color-text-secondary: #868584; /* Stone Gray */
 	--color-text-muted: #666469; /* Purple-tint gray — links, tertiary */
+	--color-text-disabled: #4a4c50; /* Between muted and surface — for disabled controls */
 
 	/* Interactive — restrained dark pill */
 	--color-button-bg: #353534; /* Earth Gray */
@@ -57,6 +58,8 @@
 	--color-accent: #3b82f6;
 	--color-accent-hover: #4f8ff7;
 	--color-accent-text: #ffffff;
+	/* Plan-aligned alias — same value as --color-accent-text (industry naming). */
+	--color-accent-fg: var(--color-accent-text);
 	/* Text selection — accent at ~30% opacity. Visible without screaming. */
 	--color-selection: rgba(59, 130, 246, 0.32);
 
@@ -64,6 +67,10 @@
 	--color-status-ok: #4ade80;
 	--color-status-warn: #fbbf24;
 	--color-status-error: #f87171;
+	/* Plan-aligned aliases (success/warning/danger naming convention). */
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
 
 	/* Modal / dialog backdrop. Used by InputDialog, ConfirmDialog. */
 	--color-backdrop: rgba(0, 0, 0, 0.5);
@@ -71,6 +78,14 @@
 	/* Popover shadow — slash menu, floating toolbar, link tooltip, dialogs.
 	 * Higher alpha on dark since the canvas swallows depth. */
 	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+	/* Shadow palette (plan §7) — layered, subtle, never single hard drops.
+	 * Dark theme uses higher alphas because the warm-black canvas swallows
+	 * depth; the light theme overrides these with smaller alphas. */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.22);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.40), 0 2px 4px rgba(0, 0, 0, 0.25);
 
 	/* Ambient gradient — Warp's signature warm-edge / cool-corner glow */
 	--gradient-ambient:
@@ -80,6 +95,11 @@
 	/* === Typography === */
 	--font-sans: 'Geist Variable', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
 	--font-mono: 'Geist Mono Variable', 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+	/* Plan-aligned aliases — `--font-ui` is locked (UI chrome), `--font-editor`
+	 * will become user-configurable in PLAN-SETTINGS. Both currently resolve
+	 * to the same Geist stack. */
+	--font-ui: var(--font-sans);
+	--font-editor: var(--font-sans);
 
 	/* Type scale — IDE-calibrated */
 	--text-display: 32px; /* Largest in-app heading */
@@ -90,6 +110,23 @@
 	--text-caption: 12px;
 	--text-label: 11px; /* Uppercase micro-labels */
 	--text-micro: 10px;
+	/* Plan-aligned aliases — t-shirt naming (xs/sm/base/md/lg/xl/2xl/3xl).
+	 * `--text-md` (16px, editor body default) is genuinely new; the rest
+	 * are aliases of the IDE-calibrated tokens above. */
+	--text-xs: var(--text-label); /* 11px */
+	--text-sm: var(--text-caption); /* 12px */
+	--text-base: var(--text-body); /* 14px */
+	--text-md: 16px; /* Editor body default — see PLAN-DESIGN-DEFAULTS §3 */
+	--text-lg: var(--text-subheading); /* 18px */
+	--text-xl: 20px;
+	--text-2xl: var(--text-heading); /* 24px */
+	--text-3xl: var(--text-display); /* 32px */
+
+	/* Line-height scale (plan §3). New; previously hard-coded in components. */
+	--leading-tight: 1.3;
+	--leading-normal: 1.5;
+	--leading-relaxed: 1.6; /* Editor body default */
+	--leading-loose: 1.8;
 
 	/* Letter spacing */
 	--tracking-display: -0.4px;
@@ -144,6 +181,14 @@
 	--pill-padding-y: 3px;
 	--pill-gap: 4px;
 	--pill-height: 24px;
+
+	/* === Motion (plan §8) ===
+	 * Custom durations + Material-standard easing. Never longer than 300ms
+	 * in Markhub chrome — animations that drag are perceived as lag. */
+	--duration-fast: 100ms;
+	--duration-base: 150ms;
+	--duration-slow: 200ms;
+	--easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================================
@@ -171,6 +216,7 @@
 	--color-text-body: #4a4948;
 	--color-text-secondary: #75736f;
 	--color-text-muted: #a09e9a;
+	--color-text-disabled: #b4b6ba; /* Between muted and border — disabled controls */
 
 	--color-button-bg: #e0ddd6;
 	--color-button-text: #1c1b1a;
@@ -189,6 +235,13 @@
 
 	/* Lighter shadow on light: dark shadows would punch holes. */
 	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+	/* Shadow palette overrides — smaller alphas on light (the canvas already
+	 * has enough contrast; heavy shadows read cartoonish on paper). */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
 
 	/* Neutralize the warm/cool ambient glow on light — would muddy the canvas. */
 	--gradient-ambient: none;

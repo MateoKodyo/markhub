@@ -229,7 +229,11 @@
 		border-radius: calc(var(--pill-radius) - 2px);
 		background: transparent;
 		color: var(--color-text-secondary);
-		font-family: var(--font-sans);
+		/* `--font-ui` is the locked plan-aligned alias for the UI font
+		 * (currently resolves to `--font-sans`; will diverge from
+		 * `--font-editor` once PLAN-SETTINGS lands). Pipeline proof for
+		 * PLAN-DESIGN-DEFAULTS step 1. */
+		font-family: var(--font-ui);
 		font-size: var(--text-label);
 		line-height: 1;
 		cursor: pointer;
