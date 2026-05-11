@@ -7,6 +7,7 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import InputDialog from '$lib/components/InputDialog.svelte';
+	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
@@ -159,7 +160,24 @@
 			console.warn('[window] startDragging failed', err);
 		}
 	}
+
+	/**
+	 * Global Cmd+, (macOS) / Ctrl+, (Win/Linux) opens the Settings modal.
+	 * Mirrors the OS convention. PLAN-COMMAND-SYSTEM will later route this
+	 * through the central registry (and add Cmd+K → "Open Settings"); for
+	 * now the binding lives here so the modal is reachable from anywhere.
+	 */
+	function onGlobalKeydown(e: KeyboardEvent) {
+		const isComma = e.key === ',';
+		const isMeta = e.metaKey || e.ctrlKey;
+		if (isComma && isMeta) {
+			e.preventDefault();
+			settingsStore.open();
+		}
+	}
 </script>
+
+<svelte:window onkeydown={onGlobalKeydown} />
 
 <div class="app">
 	<!-- The window-chrome strip is a drag region, not an interactive
@@ -279,6 +297,8 @@
 		</main>
 	</div>
 </div>
+
+<SettingsModal />
 
 <style>
 	.app {

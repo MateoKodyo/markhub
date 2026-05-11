@@ -25,6 +25,27 @@ import { themeStore } from './theme.svelte';
 export const PERSIST_DEBOUNCE_MS = 250;
 
 /**
+ * Section IDs used by the modal's left-rail navigation and by deep-link
+ * commands ("Settings → Appearance", "Settings → Editor", etc.).
+ */
+export type SettingsSection =
+	| 'appearance'
+	| 'editor'
+	| 'source'
+	| 'files'
+	| 'behavior'
+	| 'advanced';
+
+export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
+	'appearance',
+	'editor',
+	'source',
+	'files',
+	'behavior',
+	'advanced'
+] as const;
+
+/**
  * Merge a freshly-loaded settings payload with defaults, section by section.
  * Rust always returns a complete struct, but a (future) corrupt-but-parseable
  * payload missing a section would otherwise leave the store with `undefined`
@@ -50,12 +71,30 @@ export function mergeWithDefaults(partial: Partial<UserSettings>): UserSettings 
 class SettingsStore {
 	current = $state<UserSettings>(structuredClone(DEFAULT_USER_SETTINGS));
 
+	/** UI state for the modal — `true` when the panel is visible. */
+	isOpen = $state(false);
+	/** Currently active section in the modal's left-rail navigation. */
+	activeSection = $state<SettingsSection>('appearance');
+
 	#initialized = false;
 	#persistTimer: ReturnType<typeof setTimeout> | null = null;
 	#pending: UserSettings | null = null;
 
 	get isInitialized(): boolean {
 		return this.#initialized;
+	}
+
+	/**
+	 * Open the modal, optionally deep-linking to a specific section.
+	 * Defaults to Appearance — STEP 3 will be the first real surface.
+	 */
+	open(section: SettingsSection = 'appearance'): void {
+		this.activeSection = section;
+		this.isOpen = true;
+	}
+
+	close(): void {
+		this.isOpen = false;
 	}
 
 	/**
@@ -139,6 +178,8 @@ class SettingsStore {
 		this.#pending = null;
 		this.#initialized = false;
 		this.current = structuredClone(DEFAULT_USER_SETTINGS);
+		this.isOpen = false;
+		this.activeSection = 'appearance';
 	}
 }
 

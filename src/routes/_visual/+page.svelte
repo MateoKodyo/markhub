@@ -4,6 +4,8 @@
 	import Editor from '$lib/components/Editor.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
+	import SettingsModal from '$lib/components/SettingsModal.svelte';
+	import { settingsStore, type SettingsSection } from '$lib/stores/settings.svelte';
 	import type { Vault } from '$lib/tauri/types';
 
 	const FIXTURES: Record<string, string> = {
@@ -137,9 +139,26 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 				f === 'empty-state' ||
 				f === 'empty-state-no-recents' ||
 				f === 'window-chrome' ||
-				f === 'window-chrome-collapsed')
+				f === 'window-chrome-collapsed' ||
+				f === 'settings-modal')
 		) {
 			fixture = f;
+		}
+		// Optional: deep-link the settings modal to a section via ?section=editor
+		const sec = params.get('section');
+		const valid: SettingsSection[] = [
+			'appearance',
+			'editor',
+			'source',
+			'files',
+			'behavior',
+			'advanced'
+		];
+		if (fixture === 'settings-modal') {
+			const startSection = sec && valid.includes(sec as SettingsSection)
+				? (sec as SettingsSection)
+				: 'appearance';
+			settingsStore.open(startSection);
 		}
 		// Light-mode visual tests pass `?theme=light`. We set the attribute
 		// directly here (no themeStore.init required) since these fixtures don't
@@ -286,6 +305,12 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 					<main class="chrome-content-stub"></main>
 				</div>
 			</div>
+		{:else if fixture === 'settings-modal'}
+			<!-- Settings modal baseline: the shell + left-rail navigation (STEP 2).
+			     Controls inside each section land in STEP 3+. The modal opens
+			     itself via settingsStore.open() in onMount above. -->
+			<div class="settings-host"></div>
+			<SettingsModal />
 		{:else}
 			<Editor {content} mode="preview" readonly={false} />
 		{/if}
@@ -293,6 +318,13 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 </div>
 
 <style>
+	.settings-host {
+		/* Fills the viewport so the modal's backdrop has a stable parent. */
+		width: 100%;
+		height: 100%;
+		background: var(--color-bg);
+	}
+
 	.visual-host {
 		display: flex;
 		flex-direction: column;
