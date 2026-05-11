@@ -979,3 +979,74 @@ Strict respect du scope. C2 (toast), C3 (sidebar drag-drop), folder-delete EPERM
 ## Prochaine session
 
 L'user merge `feat/blocknote-migration` sur `main` manuellement. Puis arbitrage entre C2 / C3 / folder-delete fix. La mémoire `pending_folder_delete.md` rappellera le diagnostic du folder-delete au moment voulu.
+
+---
+
+# Session 2026-05-11 (après-midi/nuit) — PLAN-DESIGN-DEFAULTS clôturé (10 steps)
+
+## Contexte
+
+Migration BlockNote mergée le matin (commit `0e72755` sur `main`). Au cours d'une session continue overnight, l'user (Matheo) demande l'exécution séquentielle de 4 plans dans `plan-110526/` : PLAN-BLOCKNOTE (leftovers), **PLAN-DESIGN-DEFAULTS (10 steps)**, PLAN-COMMAND-SYSTEM, PLAN-SETTINGS. La session s'est arrêtée à la clôture de DESIGN-DEFAULTS — les deux derniers plans attendent une nouvelle session.
+
+Règles de session répétées : un step à la fois, wrap-up obligatoire avec procédure smoke test, branche dédiée par plan, pas de merge auto, honnêteté brutale, pas de "vibe coding".
+
+## Branche
+
+`feat/design-defaults` (10 commits ahead de `main`). Prête merge manuel par Matheo.
+
+## Commits livrés (10)
+
+```
+e6c459e feat(design): augment CSS token namespace                            (STEP 1)
+9378691 feat(design): theme-aware danger surface + WCAG fix                  (STEP 2)
+0e37004 feat(design): migrate components to --font-ui / --font-editor split  (STEP 3)
+6136502 feat(design): spacing rhythm sweep + .button floor compliance        (STEP 4)
+aa90373 feat(design): micro-interactions baseline — transitions + focus     (STEP 5)
+e7a987d feat(ux):     EmptyState launcher + launch on welcome                (STEP 6)
+a9f89aa feat(ui):     Warp-style sidebar toggle in window chrome             (STEP 7)
+92b358c design(empty-state): bump card icons to 20px                         (STEP 8)
+8ca96a3 test(visual): full design baseline coverage                          (STEP 9)
+```
+(plus `bc0d93b` en tête de branche — reliquat BlockNote step 4 "UI finish" fait en intro avant STEP 1.)
+
+## Ce qui a livré côté UX visible
+
+1. **EmptyState** (launch screen) : wordmark Markhub + 4 cartes uniformes (Ouvrir / Créer / Cloner / Vault d'exemple) + liste de vaults récents (dot couleur + nom + path mono). C'est le 1er écran visible au lancement.
+2. **Window chrome strip** (44px) avec **bouton toggle sidebar Warp-style** (24×24 PanelLeft) aligné aux feux macOS (gutter gauche 80px). La sidebar se replie / déplie via animation width 280→0.
+3. **Tokens CSS complets** (tier `--color-*`, `--font-*`, `--text-*`, `--leading-*`, `--space-*` 4px-grid, `--radius-*`, `--shadow-*`, `--duration-*`, `--easing-*`). Tous les composants migrés du système legacy vers tokens.
+4. **`--font-ui` / `--font-editor` split** (les deux mappent Geist Sans aujourd'hui — préparation PLAN-SETTINGS qui permettra le choix d'une police d'éditeur indépendante du chrome).
+5. **Light theme WCAG fix** : `--color-text-muted` `#a09e9a` → `#8a8884` (4.5:1 sur fond cream).
+6. **Transitions / focus rings universels** via tokens (150ms + cubic-bezier standard).
+7. **3 nouvelles commandes Tauri** : `vault_create`, `vault_create_sample` (seed 3 fichiers Bienvenue + Syntaxe + Astuces), `vault_clone_git` (shell `git clone`). Toutes typées + 8 tests Rust.
+8. **`url_open` Tauri command** (http/https only) : `window.prompt` est bloqué dans WKWebView → le bouton "lien externe" du floating toolbar BlockNote + le LinkToolbar utilisent maintenant cette command pour ouvrir l'URL dans le navigateur système.
+
+## Itérations visuelles avec l'user (notable)
+
+- **EmptyState** : 1ère version "vibe coding too literal" (cards avec descriptions sous label, primary card inversée, recents avec bordures). User a comparé à Cursor avec capture d'écran et rejeté. Refactor : juste wordmark, 4 cartes uniformes 16px gap, max-width 640px centré vertical, recents sans bordures.
+- **Window chrome toggle** : 5+ rounds d'alignement. L'user voulait que l'icône toggle s'aligne pile au centre vertical des feux macOS rouge/orange/vert. Settled sur `padding: 5px var(--space-3) 0 80px` après 4 micro-ajustements (~descend 4px / remonte 2 / descend 1).
+
+## Décisions design importantes (capturées dans PLAN + DESIGN-PRINCIPLES)
+
+1. **IDE-density chrome est un default Markhub** (pills/badges/toolbar 11–14px icons, 4px-grid micro-padding). La "comfortable density" Cursor s'applique **au canvas** (éditeur, EmptyState, modals), pas au chrome. **Nuance ajoutée à `DESIGN-PRINCIPLES.md §2 Density`.**
+2. EmptyState refusé en "Cursor exact" → "Cursor-but-quieter" (pas de primary CTA inversé, pas de descriptions, pas de bordures).
+3. STEP 8 iconography sweep : pas de bump 14→16 sur les inline icons. Seul outlier déplacé = EmptyState cards 18→20px (match plan "feature card" tier). Cohérent avec décision 1.
+4. Visual baselines tolerance 1% : suffit à absorber la migration STEP 1-8 sans aucune régression sur les 34 baselines BlockNote préservées. Prouve que les changements étaient infrastructuraux, pas visuellement disruptifs.
+
+## Tests finaux (branche `feat/design-defaults`)
+
+- cargo : **60/60 ✅** (Rust quasi pas touché — sauf `url_open` + 3 vault commands testées)
+- vitest : **193/193 ✅** (+4 vs BlockNote close : 3 tests URL inline toolbar, 6 tests EmptyState, 1 test Sidebar `collapsed`)
+- visual Playwright : **39/39 ✅** (34 préservés + 5 nouveaux : `empty-state.spec.ts` × 3 + `window-chrome.spec.ts` × 2)
+
+## Bugs et impasses notés
+
+- **Drag fichier→dossier sidebar** : régression "Failed to rename ... os error 2" toast confirmée par l'user pendant la session. Diagnostic : pre-existing bug C3 (HTML5 event bubbling entre drop zones imbriquées — l'inner rename réussit puis l'outer drop zone reçoit l'event sur le path stale et ENOENT). **Out of scope DESIGN-DEFAULTS.** Reste C3 du workplan.
+- **Folder-delete EPERM macOS** : toujours pas fixé. Branche `fix/folder-delete-permission` attend du temps post-merge.
+
+## Aucun chantier hors DESIGN-DEFAULTS attaqué pendant cette session
+
+Strict respect du scope. PLAN-COMMAND-SYSTEM (8 steps : Cmd+K command palette, Cmd+P file picker, Shift+F filter), PLAN-SETTINGS (8 steps : panel de préférences), C2 toast, C3 sidebar drag-drop, folder-delete fix → tous en attente.
+
+## Prochaine session
+
+Matheo merge `feat/design-defaults` sur `main` manuellement. Puis arbitrage : démarrer PLAN-COMMAND-SYSTEM ou attaquer un bug bloquant (C3 ou folder-delete) en priorité.

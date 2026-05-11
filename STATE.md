@@ -5,36 +5,41 @@
 
 ## Date de mise à jour
 
-2026-05-11 — clôture migration BlockNote (chantier C1). Branche `feat/blocknote-migration` prête à merger sur `main`. **Le merge est manuel — il sera fait par Matheo, pas par Claude.**
+2026-05-11 — clôture **PLAN-DESIGN-DEFAULTS** (chantier design defaults, 10 steps). Branche `feat/design-defaults` prête à merger sur `main`. **Le merge est manuel — il sera fait par Matheo, pas par Claude.**
+
+> Note : la migration BlockNote (chantier C1) a déjà été mergée sur `main` (commit `0e72755`). `main` est désormais l'app BlockNote, plus l'app Crepe historique.
 
 ## Branche courante
 
-`feat/blocknote-migration` — **non mergée**, 12 commits ahead de `main` :
+`feat/design-defaults` — **non mergée**, 10 commits ahead de `main` :
 
 ```
-e52536a chore(editor): remove Crepe dependency and cleanup overrides (étape 5)
-7ae23e7 feat(blocknote): apply Markhub design system to editor (étape 3 polish)
-be13afa feat(blocknote-ui): step 2.5.e — Svelte link toolbar (edit URL inline + delete)
-21ac2ee fix(tauri): disable OS drag-drop interception to unblock HTML5 in-page drag
-a250096 feat(blocknote-ui): step 2.5.d — Svelte table handles + fix drag preview leak
-31193c6 feat(blocknote-ui): step 2.5.c — Svelte side menu with native drag and transform menu
-902bf82 feat(editor): replace Crepe with BlockNote in main app
-c8587d7 feat(blocknote-ui): step 2.5.b — Svelte formatting toolbar over FormattingToolbar plugin
-8788c4d chore: session closure — factual state update before next session
-9256f57 feat(blocknote-ui): step 2.5.a — Svelte slash menu over SuggestionMenu plugin
-64f6482 chore(c1-step2): blocknote round-trip probe + 3 fixtures + report
-abccc90 chore(c1-step1): install @blocknote/core + investigation notes
+8ca96a3 test(visual): full design baseline coverage — STEP 9
+92b358c design(empty-state): bump card icons to 20px per design defaults — STEP 8
+a9f89aa feat(ui): Warp-style sidebar toggle in window chrome — STEP 7
+e7a987d feat(ux): EmptyState launcher + launch on welcome — STEP 6
+aa90373 feat(design): micro-interactions baseline — transitions + focus rings — STEP 5
+6136502 feat(design): spacing rhythm sweep + .button floor compliance — STEP 4
+0e37004 feat(design): migrate components to --font-ui / --font-editor split — STEP 3
+9378691 feat(design): theme-aware danger surface + WCAG fix — STEP 2
+e6c459e feat(design): augment CSS token namespace — STEP 1
+bc0d93b feat(editor): finalize PLAN-BLOCKNOTE step 4 (UI finish)  ← reliquat BlockNote tail
 ```
 
-`main` reste l'app de référence Crepe jusqu'au merge manuel.
+(`bc0d93b` est le commit "UI finish" qui clôturait les leftovers BlockNote — fait au tout début de la session DESIGN-DEFAULTS avant d'attaquer STEP 1.)
 
-## Tests (état final sur la branche)
+## Sessions précédentes archivées dans `JOURNAL.md`
 
-- cargo test : **60/60 ✅**
-- npm run test (vitest) : **189/189 ✅**
-- npm run check (svelte-check) : **0 erreur, 0 warning ✅**
-- npm run build : **OK ✅**
-- npm run test:visual (Playwright) : **34/34 ✅** (les 2 specs Crepe `block-handle` et `editor-slash-menu` ont été supprimées à l'étape 5, plus de skipped Crepe résiduel)
+- 2026-05-11 (matin) : clôture BlockNote (chantier C1) → merge effectué.
+- 2026-05-11 (après-midi/nuit) : PLAN-DESIGN-DEFAULTS 10 steps complets → cette branche.
+
+## Tests (état final sur la branche `feat/design-defaults`)
+
+- cargo test : **60/60 ✅** (Rust pas touché par DESIGN-DEFAULTS — sauf l'ajout de `url_open` qui a passé son test unitaire)
+- npm run test (vitest) : **193/193 ✅** (+4 vs BlockNote : 3 tests URL inline toolbar, 6 tests EmptyState, 1 test Sidebar `collapsed` — couvre les nouveaux composants STEP 6/7)
+- npm run check (svelte-check) : à re-confirmer en début de session suivante
+- npm run build : à re-confirmer en début de session suivante
+- npm run test:visual (Playwright) : **39/39 ✅** (34 préservés + 5 nouveaux : `empty-state.spec.ts` × 3 + `window-chrome.spec.ts` × 2)
 - npm run test:e2e : 1 placeholder skipped (real-binary jamais monté — hors scope MVP)
 
 Aucun test ne touche le filesystem utilisateur réel.
@@ -87,13 +92,16 @@ Tests automatiques verts + smoke partiel confirmé pour :
 
 | Chantier | Statut |
 |---|---|
-| **C1 — Migration Crepe → BlockNote** | **✅ TERMINÉ 2026-05-11 — branche prête merge** |
-| C2 — Système de toast / notifications | DÉBLOQUÉ (peut démarrer post-merge C1) |
+| **C1 — Migration Crepe → BlockNote** | **✅ MERGÉ sur `main` (commit `0e72755`)** |
+| **PLAN-DESIGN-DEFAULTS (10 steps)** | **✅ TERMINÉ 2026-05-11 — branche `feat/design-defaults` prête merge** |
+| PLAN-COMMAND-SYSTEM (Cmd+K / Cmd+P / Shift+F) | PAS DÉMARRÉ — plan rédigé, à attaquer post-merge DESIGN-DEFAULTS |
+| PLAN-SETTINGS (panel settings) | PAS DÉMARRÉ — plan rédigé, à attaquer après COMMAND-SYSTEM |
+| C2 — Système de toast / notifications | DÉBLOQUÉ |
 | C3 — Drag-drop sidebar (HTML5 → pointer events) | DÉBLOQUÉ — bug CASSÉ confirmé en réel, reste à investiguer |
 | Folder-delete EPERM (hors plan) | DIAGNOSTIQUÉ — fix prêt à coder sur `fix/folder-delete-permission` depuis `main` |
 | Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — explicitement skippé |
 | Outline panel (sommaire) | PAS DÉMARRÉ — brief posé, aucun code |
-| Empty state | PAS DÉMARRÉ — brief posé, aucun code |
+| Empty state | ✅ LIVRÉ dans DESIGN-DEFAULTS STEP 6 |
 
 ## Fichiers temporaires conservés (déviations du plan, justifiées)
 
@@ -108,10 +116,12 @@ Tests automatiques verts + smoke partiel confirmé pour :
 
 1. `STATE.md` (ce fichier — porte d'entrée)
 2. `CLAUDE.md` (méthodologie permanente)
-3. `WORKPLAN.md` (plan global, C1 terminé, C2/C3 débloqués)
-4. `JOURNAL.md` (dernières entrées — clôture migration au 2026-05-11)
-5. `BACKLOG.md` (hors-scope MVP, items C1 marqués résolus)
-6. `PLAN-BLOCKNOTE.md` (historique migration, tableau de progression complet)
-7. `SPEC.md` / `design.md` / `PLAN.md` (référence)
+3. `WORKPLAN.md` (plan global, C1 mergé, DESIGN-DEFAULTS prête merge, COMMAND-SYSTEM/SETTINGS au planning)
+4. `JOURNAL.md` (dernières entrées — clôture DESIGN-DEFAULTS au 2026-05-11)
+5. `plan-110526/PLAN-DESIGN-DEFAULTS.md` (tableau de progression complet + commit ladder + décisions clés)
+6. `plan-110526/DESIGN-PRINCIPLES.md` (source de vérité visuelle — nuance density chrome/canvas ajoutée 2026-05-11)
+7. `plan-110526/PLAN-COMMAND-SYSTEM.md` (prochain chantier à attaquer post-merge)
+8. `BACKLOG.md` (hors-scope MVP)
+9. `SPEC.md` / `design.md` / `PLAN.md` (référence)
 
 Mémoire persistante : `pending_folder_delete.md` rappelle le diagnostic du bug folder-delete pour la prochaine session quand l'user voudra l'attaquer.
