@@ -33,6 +33,44 @@ test('typing "/" in the smoke editor opens our slash menu with default items', a
 	await expect(menu).not.toContainText(/bullet list/i);
 });
 
+test('slash menu flips above the caret when there is no room below', async ({ page }) => {
+	// Reproduces the bug Matheo flagged 2026-05-12: typing "/" near the
+	// bottom of a long document let the menu render below the caret and
+	// get clipped by the status bar / viewport bottom. The component must
+	// now flip above when bottom space is insufficient.
+	await page.goto('/_visual?fixture=editor-overflow');
+	await page.evaluate(() => document.documentElement.removeAttribute('data-theme'));
+	await page.waitForSelector('.bn-editor.ProseMirror');
+	await page.evaluate(() => document.fonts.ready);
+
+	// Scroll the editor body all the way down, then click the last block so
+	// the caret lands near the viewport bottom.
+	const lastBlock = page.locator('.bn-block').last();
+	await lastBlock.scrollIntoViewIfNeeded();
+	await lastBlock.click();
+	await page.keyboard.press('End');
+	await page.keyboard.press('Enter');
+	await page.keyboard.type('/', { delay: 30 });
+
+	const menu = page.locator('[data-testid="bn-slash-menu"]');
+	await expect(menu).toBeVisible({ timeout: 5_000 });
+
+	// The whole menu rect must be inside the viewport (no bottom clipping).
+	const box = await menu.boundingBox();
+	const viewport = page.viewportSize();
+	expect(box).not.toBeNull();
+	expect(viewport).not.toBeNull();
+	expect(box!.y).toBeGreaterThanOrEqual(0);
+	expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
+
+	// And — given the caret is near the bottom — the menu must be ABOVE
+	// the caret, not below it. We approximate the caret y from the focused
+	// block's bottom edge.
+	const caretBox = await page.locator('.bn-block').last().boundingBox();
+	expect(caretBox).not.toBeNull();
+	expect(box!.y + box!.height).toBeLessThanOrEqual(caretBox!.y + caretBox!.height);
+});
+
 test('selecting "Heading 1" transforms the current block into an H1', async ({ page }) => {
 	await page.goto('/_blocknote-test');
 	await expect(page.locator('.bn-interactive[data-ready="true"]')).toBeVisible();

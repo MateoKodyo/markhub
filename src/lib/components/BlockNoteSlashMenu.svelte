@@ -93,8 +93,50 @@
 		}
 	}
 
-	const top = $derived(menuState?.referencePos ? menuState.referencePos.bottom + 4 : 0);
-	const left = $derived(menuState?.referencePos ? menuState.referencePos.left : 0);
+	// Measure the rendered menu so we can flip it above the caret when
+	// it would overflow the bottom of the viewport (e.g. typing "/" near
+	// the status bar). Same idea horizontally for caret near right edge.
+	let menuHeight = $state(0);
+	let menuWidth = $state(0);
+
+	$effect(() => {
+		// Re-measure whenever visibility flips or the items list changes
+		// (a filtered list is shorter and would otherwise keep the stale
+		// height from the unfiltered render).
+		void items.length;
+		void menuState?.show;
+		if (menuEl && menuState?.show) {
+			const rect = menuEl.getBoundingClientRect();
+			menuHeight = rect.height;
+			menuWidth = rect.width;
+		}
+	});
+
+	const VIEWPORT_MARGIN = 8;
+	const top = $derived.by(() => {
+		if (!menuState?.referencePos) return 0;
+		const ref = menuState.referencePos;
+		const desiredBelow = ref.bottom + 4;
+		// First frame before measurement: render below — the $effect above
+		// will measure on the same tick and the derived will recompute.
+		if (menuHeight === 0) return desiredBelow;
+		if (desiredBelow + menuHeight + VIEWPORT_MARGIN <= window.innerHeight) {
+			return desiredBelow;
+		}
+		// Flip above the caret.
+		const desiredAbove = ref.top - menuHeight - 4;
+		if (desiredAbove >= VIEWPORT_MARGIN) return desiredAbove;
+		// Doesn't fit either way → clamp to viewport bottom.
+		return Math.max(VIEWPORT_MARGIN, window.innerHeight - menuHeight - VIEWPORT_MARGIN);
+	});
+	const left = $derived.by(() => {
+		if (!menuState?.referencePos) return 0;
+		const ref = menuState.referencePos;
+		const desired = ref.left;
+		if (menuWidth === 0) return desired;
+		if (desired + menuWidth + VIEWPORT_MARGIN <= window.innerWidth) return desired;
+		return Math.max(VIEWPORT_MARGIN, window.innerWidth - menuWidth - VIEWPORT_MARGIN);
+	});
 	const groups = $derived.by(() => {
 		// Preserve order while bucketing by group label (DefaultSuggestionItem.group).
 		const map = new Map<string, DefaultSuggestionItem[]>();
