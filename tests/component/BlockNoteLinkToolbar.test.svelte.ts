@@ -1,6 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
+
+// Mock the Tauri API binding so the Ouvrir button can be exercised without
+// hitting a real Rust command. We re-import the mocked module inside the
+// relevant test to read back what was called.
+vi.mock('$lib/tauri/api', () => ({
+	urlOpen: vi.fn(async () => undefined)
+}));
+
 import BlockNoteLinkToolbar from '../../src/lib/components/BlockNoteLinkToolbar.svelte';
+import { urlOpen } from '$lib/tauri/api';
 
 // C1 / Étape 2.5.e — Svelte UI for BlockNote's LinkToolbar plugin.
 // Unlike slash menu / formatting toolbar / side menu / table handles, the
@@ -75,11 +84,15 @@ describe('BlockNoteLinkToolbar', () => {
 		expect(onSave).toHaveBeenCalledWith('https://new.example.com');
 	});
 
-	it('calls onSave(url) when the Ouvrir button is clicked', async () => {
+	it('opens the URL in the system browser when the Ouvrir button is clicked', async () => {
+		vi.mocked(urlOpen).mockClear();
 		const onSave = vi.fn();
 		render(BlockNoteLinkToolbar, { menuState: fullState(), onSave });
 		await fireEvent.mouseDown(screen.getByRole('button', { name: /ouvrir|open/i }));
-		expect(onSave).toHaveBeenCalledWith('https://example.com');
+		expect(urlOpen).toHaveBeenCalledWith('https://example.com');
+		// The Ouvrir button is for opening externally only — it must not
+		// trigger a save (Enter handles save).
+		expect(onSave).not.toHaveBeenCalled();
 	});
 
 	it('calls onDelete when the Supprimer button is clicked', async () => {

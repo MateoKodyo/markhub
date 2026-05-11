@@ -31,6 +31,7 @@ pub fn run() {
             commands::files::vault_scan,
             commands::files::file_duplicate,
             commands::files::file_reveal_in_finder,
+            commands::files::url_open,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

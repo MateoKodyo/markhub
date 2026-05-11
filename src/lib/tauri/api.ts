@@ -73,3 +73,6 @@ export const fileRevealInFinder = (
 	vaultId: string,
 	relativePath: string
 ): Promise<void> => invoke('file_reveal_in_finder', { vaultId, relativePath });
+
+/** Open an http/https URL in the system default browser. */
+export const urlOpen = (url: string): Promise<void> => invoke('url_open', { url });

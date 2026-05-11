@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
-import EditorToolbar from '../../src/lib/components/EditorToolbar.svelte';
 import VaultList from '../../src/lib/components/VaultList.svelte';
 import type { Vault } from '$lib/tauri/types';
 
@@ -39,11 +38,6 @@ function assertNoEmoji(text: string, where: string) {
 }
 
 describe('UI must not use emoji as icons', () => {
-	it('EditorToolbar uses no emoji glyphs', () => {
-		const { container } = render(EditorToolbar);
-		assertNoEmoji(container.textContent ?? '', 'EditorToolbar');
-	});
-
 	it('VaultList uses no emoji glyphs (incl. readonly indicator)', () => {
 		const { container } = render(VaultList, { vaults: [editVault, readonlyVault] });
 		assertNoEmoji(container.textContent ?? '', 'VaultList');

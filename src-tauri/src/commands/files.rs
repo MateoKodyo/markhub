@@ -365,6 +365,22 @@ pub fn file_reveal_in_finder(
     reveal_in_finder(&v, &relative_path)
 }
 
+/// Open an http/https URL in the system default browser.
+/// Restricted to those two schemes so this command can never be coerced into
+/// running arbitrary `open`-able strings (local apps, files, etc.).
+#[tauri::command]
+pub fn url_open(url: String) -> Result<(), String> {
+    let lower = url.trim().to_lowercase();
+    if !(lower.starts_with("http://") || lower.starts_with("https://")) {
+        return Err(format!("Refused to open non-http(s) URL: {url}"));
+    }
+    std::process::Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| format!("Failed to open URL: {e}"))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

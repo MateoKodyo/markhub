@@ -21,6 +21,7 @@
 	 */
 	import { tick } from 'svelte';
 	import { ExternalLink, Trash2 } from 'lucide-svelte';
+	import { urlOpen } from '$lib/tauri/api';
 
 	export type LinkToolbarState = {
 		show: boolean;
@@ -81,9 +82,13 @@
 	}
 
 	function handleOpenMouseDown(e: MouseEvent) {
-		// Preserve editor focus / cursor position (same trick as 2.5.b).
+		// Preserve editor focus / cursor position.
 		e.preventDefault();
-		commitSave(draftHref);
+		const trimmed = draftHref.trim();
+		if (trimmed.length === 0) return;
+		void urlOpen(trimmed).catch((err) => {
+			console.warn('[LinkToolbar] urlOpen failed', err);
+		});
 	}
 
 	function handleDeleteMouseDown(e: MouseEvent) {
@@ -112,8 +117,8 @@
 		<button
 			type="button"
 			class="bn-link-btn"
-			aria-label="Ouvrir / appliquer le lien"
-			title="Ouvrir (Entrée)"
+			aria-label="Ouvrir le lien dans le navigateur"
+			title="Ouvrir dans le navigateur"
 			onmousedown={handleOpenMouseDown}
 		>
 			<ExternalLink size={14} />

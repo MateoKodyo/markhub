@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { AlertCircle, Check, Loader, Lock, Monitor, Moon, Pencil, Save, Sun } from 'lucide-svelte';
-	import type { EditorMode } from './Editor.svelte';
 	import type { Vault } from '$lib/tauri/types';
 	import type { SaveStatus } from '$lib/stores/activeFile.svelte';
 	import { computeDocumentStats } from '$lib/stores/documentStats.svelte';
@@ -12,8 +11,6 @@
 		readonly = false,
 		content = '',
 		status = 'idle' as SaveStatus,
-		mode = 'preview' as EditorMode,
-		onModeChange = (_: EditorMode) => {},
 		onCopyPath = () => {}
 	}: {
 		vault?: Vault | null;
@@ -21,8 +18,6 @@
 		readonly?: boolean;
 		content?: string;
 		status?: SaveStatus;
-		mode?: EditorMode;
-		onModeChange?: (m: EditorMode) => void;
 		onCopyPath?: () => void;
 	} = $props();
 
@@ -141,34 +136,6 @@
 					<span>{statusInfo.label}</span>
 				{/if}
 			</span>
-		{/if}
-
-		{#if relativePath}
-			<div
-				class="pill pill-segmented"
-				role="group"
-				aria-label="Mode éditeur"
-				data-testid="mode-toggle"
-			>
-				<button
-					type="button"
-					class="seg-btn"
-					class:is-active={mode === 'preview'}
-					onclick={() => onModeChange('preview')}
-					aria-pressed={mode === 'preview'}
-				>
-					Preview
-				</button>
-				<button
-					type="button"
-					class="seg-btn"
-					class:is-active={mode === 'source'}
-					onclick={() => onModeChange('source')}
-					aria-pressed={mode === 'source'}
-				>
-					Source
-				</button>
-			</div>
 		{/if}
 	</div>
 </footer>
@@ -297,34 +264,5 @@
 		to {
 			transform: rotate(360deg);
 		}
-	}
-
-	/* === Segmented control (Preview / Source) ===
-	 * Single pill envelope, two buttons inside. Active button gets the
-	 * stronger surface; inactive stays transparent on the pill background. */
-	.pill-segmented {
-		padding: 1px;
-		gap: 1px;
-	}
-
-	.seg-btn {
-		height: calc(var(--pill-height) - 4px);
-		padding: 0 8px;
-		border: 0;
-		border-radius: calc(var(--pill-radius) - 2px);
-		background: transparent;
-		color: var(--color-text-secondary);
-		font-family: var(--font-sans);
-		font-size: var(--text-label);
-		cursor: pointer;
-	}
-
-	.seg-btn:hover {
-		color: var(--color-text-primary);
-	}
-
-	.seg-btn.is-active {
-		background: var(--color-bg-raised);
-		color: var(--color-text-primary);
 	}
 </style>

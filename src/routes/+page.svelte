@@ -2,8 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Lock } from 'lucide-svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import Editor, { type EditorApi, type EditorMode } from '$lib/components/Editor.svelte';
-	import EditorToolbar from '$lib/components/EditorToolbar.svelte';
+	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
@@ -12,7 +11,6 @@
 
 	let loadError = $state<string | null>(null);
 	let editorMode = $state<EditorMode>('preview');
-	let editorApi = $state<EditorApi | null>(null);
 
 	onMount(async () => {
 		try {
@@ -41,10 +39,6 @@
 		activeFileStore.updateContent(newContent);
 	}
 
-	function onCommand(cmd: Parameters<NonNullable<EditorApi>['runCommand']>[0]) {
-		editorApi?.runCommand(cmd);
-	}
-
 	async function copyActiveFilePath() {
 		const v = vaultsStore.activeVault;
 		const f = activeFileStore.activeFile;
@@ -56,7 +50,7 @@
 		}
 	}
 
-	// Re-key on file switch so Milkdown is fully reset.
+	// Re-key on file switch so the BlockNote instance is fully reset.
 	const editorKey = $derived(
 		activeFileStore.activeFile
 			? `${activeFileStore.activeFile.vaultId}:${activeFileStore.activeFile.relativePath}`
@@ -86,9 +80,31 @@
 				</div>
 
 				<div class="header-controls">
-					{#if editorMode === 'preview'}
-						<EditorToolbar readonly={vaultsStore.isActiveVaultReadonly} {onCommand} />
-					{/if}
+					<div
+						class="mode-toggle"
+						role="group"
+						aria-label="Mode éditeur"
+						data-testid="mode-toggle"
+					>
+						<button
+							type="button"
+							class="seg-btn"
+							class:is-active={editorMode === 'preview'}
+							onclick={() => (editorMode = 'preview')}
+							aria-pressed={editorMode === 'preview'}
+						>
+							Preview
+						</button>
+						<button
+							type="button"
+							class="seg-btn"
+							class:is-active={editorMode === 'source'}
+							onclick={() => (editorMode = 'source')}
+							aria-pressed={editorMode === 'source'}
+						>
+							Source
+						</button>
+					</div>
 				</div>
 			</header>
 
@@ -99,7 +115,6 @@
 						readonly={vaultsStore.isActiveVaultReadonly}
 						mode={editorMode}
 						onChange={onContentChange}
-						onReady={(api) => (editorApi = api)}
 					/>
 				{/key}
 			</div>
@@ -124,8 +139,6 @@
 			readonly={vaultsStore.isActiveVaultReadonly}
 			content={activeFileStore.content}
 			status={activeFileStore.status}
-			mode={editorMode}
-			onModeChange={(m) => (editorMode = m)}
 			onCopyPath={copyActiveFilePath}
 		/>
 	</main>
@@ -192,6 +205,48 @@
 		align-items: center;
 		gap: var(--space-3);
 		flex-shrink: 0;
+	}
+
+	/* === Preview / Source mode toggle ===
+	 * Relocated from the status bar (PLAN-BLOCKNOTE step 4): sits at the
+	 * top-right of the editor area, inside the existing content header.
+	 * Reuses the pill tokens so the visual treatment stays consistent
+	 * with the rest of Markhub's chrome. */
+	.mode-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 1px;
+		height: var(--pill-height);
+		padding: 1px;
+		background: var(--pill-bg);
+		border-radius: var(--pill-radius);
+	}
+
+	.seg-btn {
+		height: calc(var(--pill-height) - 4px);
+		padding: 0 var(--space-2);
+		border: 0;
+		border-radius: calc(var(--pill-radius) - 2px);
+		background: transparent;
+		color: var(--color-text-secondary);
+		font-family: var(--font-sans);
+		font-size: var(--text-label);
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.seg-btn:hover {
+		color: var(--color-text-primary);
+	}
+
+	.seg-btn.is-active {
+		background: var(--color-bg-raised);
+		color: var(--color-text-primary);
+	}
+
+	.seg-btn:focus-visible {
+		outline: 1px solid var(--color-accent);
+		outline-offset: 1px;
 	}
 
 	.content-body {

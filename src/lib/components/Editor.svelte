@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { joinFrontmatter, splitFrontmatter } from '$lib/utils/markdown';
+	import { urlOpen } from '$lib/tauri/api';
 	import BlockNoteSlashMenu, {
 		type SlashMenuState
 	} from './BlockNoteSlashMenu.svelte';
@@ -22,22 +23,16 @@
 
 	export type EditorMode = 'preview' | 'source';
 
-	export type EditorApi = {
-		runCommand: (cmd: import('./EditorToolbar.svelte').EditorCommand) => void;
-	};
-
 	let {
 		content = '',
 		readonly = false,
 		mode = 'preview',
-		onChange = (_: string) => {},
-		onReady = (_: EditorApi | null) => {}
+		onChange = (_: string) => {}
 	}: {
 		content?: string;
 		readonly?: boolean;
 		mode?: EditorMode;
 		onChange?: (content: string) => void;
-		onReady?: (api: EditorApi | null) => void;
 	} = $props();
 
 	let container: HTMLDivElement | null = $state(null);
@@ -65,6 +60,7 @@
 	let formatRefPos = $state<DOMRect | null>(null);
 	let formatActive = $state<ActiveStyles>({});
 	let formatHasLink = $state(false);
+	let formatCurrentHref = $state('');
 
 	// Side menu state — payload from the plugin's TanStack store, exposed
 	// when a block is hovered. `null` means the side menu must hide.
@@ -124,6 +120,7 @@
 			formatRefPos = null;
 			formatActive = {};
 			formatHasLink = false;
+			formatCurrentHref = '';
 			return;
 		}
 		formatRefPos = readSelectionRect();
@@ -138,18 +135,9 @@
 		} catch {
 			formatActive = {};
 		}
-		formatHasLink = Boolean(editor.getSelectedLinkUrl?.());
-	}
-
-	function buildApi(): EditorApi {
-		return {
-			runCommand(cmd) {
-				// EditorToolbar in the header is cosmetic; the real entry
-				// point for marks is the floating FormattingToolbar that
-				// appears over text selections.
-				console.debug(`[Editor] runCommand stub: ${cmd}`);
-			}
-		};
+		const href = editor.getSelectedLinkUrl?.() ?? '';
+		formatHasLink = Boolean(href);
+		formatCurrentHref = href || '';
 	}
 
 	$effect(() => {
@@ -301,8 +289,6 @@
 				);
 				if (typeof off === 'function') unsubscribers.push(off);
 			}
-
-			onReady(buildApi());
 		})();
 
 		return () => {
@@ -329,13 +315,13 @@
 			formatRefPos = null;
 			formatActive = {};
 			formatHasLink = false;
+			formatCurrentHref = '';
 			sideMenuState = null;
 			sideMenuExt = null;
 			tableHandlesState = null;
 			tableHandlesExt = null;
 			linkToolbarState = null;
 			linkToolbarExt = null;
-			onReady(null);
 		};
 	});
 
@@ -367,18 +353,20 @@
 		refreshFormatState(editorInstance);
 	}
 
-	function onFormatLink() {
+	function onFormatLink(url: string) {
 		if (!editorInstance) return;
-		const current = editorInstance.getSelectedLinkUrl?.() ?? '';
-		// Pragmatic step-4 UX: simple prompt(). The full inline link editor
-		// is the LinkToolbar of step 2.5.e.
-		// eslint-disable-next-line no-alert
-		const url = window.prompt('Lien (URL)', current);
-		if (url == null) return;
 		const trimmed = url.trim();
 		if (trimmed.length === 0) return;
 		editorInstance.createLink(trimmed);
 		refreshFormatState(editorInstance);
+	}
+
+	function onFormatOpenLink() {
+		const href = formatCurrentHref?.trim();
+		if (!href) return;
+		void urlOpen(href).catch((err) => {
+			console.warn('[Editor] urlOpen failed', err);
+		});
 	}
 
 	// ============================================================
@@ -553,8 +541,10 @@
 	referencePos={formatRefPos}
 	activeStyles={formatActive}
 	hasLink={formatHasLink}
+	currentHref={formatCurrentHref}
 	onToggle={onFormatToggle}
 	onLink={onFormatLink}
+	onOpenLink={onFormatOpenLink}
 />
 
 <BlockNoteSideMenu

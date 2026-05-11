@@ -188,7 +188,6 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 						readonly={false}
 						content={APP_SHELL_BODY}
 						status="saved"
-						mode="preview"
 					/>
 				</main>
 			</div>

@@ -105,7 +105,23 @@ describe('BlockNoteFormattingToolbar', () => {
 		expect(onToggle).toHaveBeenNthCalledWith(4, 'code');
 	});
 
-	it('calls onLink when the link button is clicked', async () => {
+	it('clicking the link button swaps the row for an inline URL input', async () => {
+		const onLink = vi.fn();
+		render(BlockNoteFormattingToolbar, {
+			visible: true,
+			referencePos: refPos(),
+			activeStyles: {},
+			hasLink: false,
+			onLink
+		});
+		// Click 🔗 → toolbar enters URL-edit mode; onLink not yet called.
+		await fireEvent.mouseDown(screen.getByRole('button', { name: /link|lien/i }));
+		expect(onLink).not.toHaveBeenCalled();
+		const input = screen.getByRole('textbox', { name: /url/i }) as HTMLInputElement;
+		expect(input).toBeInTheDocument();
+	});
+
+	it('committing the URL via Enter fires onLink with the trimmed value', async () => {
 		const onLink = vi.fn();
 		render(BlockNoteFormattingToolbar, {
 			visible: true,
@@ -115,7 +131,51 @@ describe('BlockNoteFormattingToolbar', () => {
 			onLink
 		});
 		await fireEvent.mouseDown(screen.getByRole('button', { name: /link|lien/i }));
-		expect(onLink).toHaveBeenCalledTimes(1);
+		const input = screen.getByRole('textbox', { name: /url/i }) as HTMLInputElement;
+		await fireEvent.input(input, { target: { value: '  https://example.com  ' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+		expect(onLink).toHaveBeenCalledWith('https://example.com');
+	});
+
+	it('pre-fills the URL input with currentHref when editing an existing link', async () => {
+		render(BlockNoteFormattingToolbar, {
+			visible: true,
+			referencePos: refPos(),
+			activeStyles: {},
+			hasLink: true,
+			currentHref: 'https://existing.test'
+		});
+		// `name: 'Link'` (exact) — when hasLink is true the toolbar also
+		// renders an ExternalLink button whose label contains "lien", so a
+		// regex would match both.
+		await fireEvent.mouseDown(screen.getByRole('button', { name: 'Link' }));
+		const input = screen.getByRole('textbox', { name: /url/i }) as HTMLInputElement;
+		expect(input.value).toBe('https://existing.test');
+	});
+
+	it('renders an ExternalLink button that fires onOpenLink when hasLink is true', async () => {
+		const onOpenLink = vi.fn();
+		render(BlockNoteFormattingToolbar, {
+			visible: true,
+			referencePos: refPos(),
+			activeStyles: {},
+			hasLink: true,
+			currentHref: 'https://existing.test',
+			onOpenLink
+		});
+		const openBtn = screen.getByRole('button', { name: /ouvrir le lien/i });
+		await fireEvent.mouseDown(openBtn);
+		expect(onOpenLink).toHaveBeenCalledTimes(1);
+	});
+
+	it('does NOT render the ExternalLink button when hasLink is false', () => {
+		render(BlockNoteFormattingToolbar, {
+			visible: true,
+			referencePos: refPos(),
+			activeStyles: {},
+			hasLink: false
+		});
+		expect(screen.queryByRole('button', { name: /ouvrir le lien/i })).toBeNull();
 	});
 
 	it('positions the toolbar above the referencePos', () => {

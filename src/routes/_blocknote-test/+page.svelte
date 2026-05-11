@@ -56,6 +56,7 @@
 	let formatRefPos = $state<DOMRect | null>(null);
 	let formatActive = $state<ActiveStyles>({});
 	let formatHasLink = $state(false);
+	let formatCurrentHref = $state('');
 
 	function readSelectionRect(): DOMRect | null {
 		const sel = typeof window !== 'undefined' ? window.getSelection() : null;
@@ -73,6 +74,7 @@
 			formatRefPos = null;
 			formatActive = {};
 			formatHasLink = false;
+			formatCurrentHref = '';
 			return;
 		}
 		formatRefPos = readSelectionRect();
@@ -87,7 +89,9 @@
 		} catch {
 			formatActive = {};
 		}
-		formatHasLink = Boolean(editor.getSelectedLinkUrl?.());
+		const href = editor.getSelectedLinkUrl?.() ?? '';
+		formatHasLink = Boolean(href);
+		formatCurrentHref = href || '';
 	}
 
 	function buildDiffSummary(a: string, b: string): string {
@@ -239,15 +243,9 @@
 		refreshFormatState(editor);
 	}
 
-	function onFormatLink() {
+	function onFormatLink(url: string) {
 		const editor = interactiveEditorInstance;
 		if (!editor) return;
-		const current = editor.getSelectedLinkUrl?.() ?? '';
-		// Pragmatic step-2.5.b UX: simple prompt(). The full inline link
-		// editor is the LinkToolbar of step 2.5.e.
-		// eslint-disable-next-line no-alert
-		const url = window.prompt('Lien (URL)', current);
-		if (url == null) return;
 		const trimmed = url.trim();
 		if (trimmed.length === 0) return;
 		editor.createLink(trimmed);
@@ -372,6 +370,7 @@
 	referencePos={formatRefPos}
 	activeStyles={formatActive}
 	hasLink={formatHasLink}
+	currentHref={formatCurrentHref}
 	onToggle={onFormatToggle}
 	onLink={onFormatLink}
 />

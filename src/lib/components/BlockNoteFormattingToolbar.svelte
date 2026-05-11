@@ -8,13 +8,25 @@
 	 * `window.getSelection().getRangeAt(0).getBoundingClientRect()` and
 	 * passes it down here.
 	 *
-	 * The component is pure presentation: it receives the visibility flag,
-	 * the anchor rect, the active-style flags, and reports clicks back via
-	 * `onToggle(mark)` / `onLink()`. The host owns the editor instance and
-	 * applies marks via `editor.toggleStyles({ bold: true })` etc.
+	 * The component reports clicks back via `onToggle(mark)` for marks and
+	 * `onLink(url)` for links. The host owns the editor instance and applies
+	 * marks via `editor.toggleStyles({ bold: true })` etc.
+	 *
+	 * Link UX: clicking 🔗 swaps the buttons row for an inline URL input
+	 * (Enter applies via `onLink(url)`, Escape cancels). `window.prompt`
+	 * is unusable here because WKWebView (Tauri / macOS) blocks it.
 	 */
 	import { tick } from 'svelte';
-	import { Bold, Code, Italic, Link, Strikethrough } from 'lucide-svelte';
+	import {
+		Bold,
+		Check,
+		Code,
+		ExternalLink,
+		Italic,
+		Link,
+		Strikethrough,
+		X
+	} from 'lucide-svelte';
 
 	export type FormattingMark = 'bold' | 'italic' | 'strike' | 'code';
 
@@ -30,19 +42,28 @@
 		referencePos = null,
 		activeStyles = {},
 		hasLink = false,
+		currentHref = '',
 		onToggle = (_: FormattingMark) => {},
-		onLink = () => {}
+		onLink = (_url: string) => {},
+		onOpenLink = () => {}
 	}: {
 		visible?: boolean;
 		referencePos?: DOMRect | null;
 		activeStyles?: ActiveStyles;
 		hasLink?: boolean;
+		currentHref?: string;
 		onToggle?: (mark: FormattingMark) => void;
-		onLink?: () => void;
+		onLink?: (url: string) => void;
+		onOpenLink?: () => void;
 	} = $props();
 
 	let toolbarEl: HTMLDivElement | null = $state(null);
 	let measuredHeight = $state(0);
+
+	// Inline URL-edit mode triggered by the 🔗 button.
+	let editingLink = $state(false);
+	let draftHref = $state('');
+	let urlInput: HTMLInputElement | null = $state(null);
 
 	// Re-measure once the toolbar is mounted so we can place it above the
 	// selection without overlapping it. In jsdom getBoundingClientRect()
@@ -54,6 +75,14 @@
 			const r = toolbarEl.getBoundingClientRect();
 			measuredHeight = r.height || 0;
 		});
+	});
+
+	// Reset edit-mode when the toolbar hides.
+	$effect(() => {
+		if (!visible) {
+			editingLink = false;
+			draftHref = '';
+		}
 	});
 
 	const FALLBACK_HEIGHT = 32;
@@ -95,7 +124,48 @@
 
 	function handleLinkMouseDown(e: MouseEvent) {
 		e.preventDefault();
-		onLink();
+		draftHref = currentHref ?? '';
+		editingLink = true;
+		void tick().then(() => urlInput?.focus());
+	}
+
+	function commitLink() {
+		const trimmed = draftHref.trim();
+		if (trimmed.length === 0) {
+			editingLink = false;
+			return;
+		}
+		onLink(trimmed);
+		editingLink = false;
+	}
+
+	function cancelLinkEdit() {
+		editingLink = false;
+	}
+
+	function handleUrlKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitLink();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelLinkEdit();
+		}
+	}
+
+	function handleApplyMouseDown(e: MouseEvent) {
+		e.preventDefault();
+		commitLink();
+	}
+
+	function handleCancelMouseDown(e: MouseEvent) {
+		e.preventDefault();
+		cancelLinkEdit();
+	}
+
+	function handleOpenLinkMouseDown(e: MouseEvent) {
+		e.preventDefault();
+		onOpenLink();
 	}
 </script>
 
@@ -108,31 +178,72 @@
 		data-testid="bn-formatting-toolbar"
 		style="position: fixed; left: {left}px; top: {top}px;"
 	>
-		{#each buttons as b (b.mark)}
-			{@const Icon = b.icon}
+		{#if editingLink}
+			<input
+				bind:this={urlInput}
+				class="bn-ft-input"
+				type="url"
+				aria-label="URL"
+				placeholder="https://…"
+				bind:value={draftHref}
+				onkeydown={handleUrlKeydown}
+			/>
 			<button
 				type="button"
 				class="bn-ft-btn"
-				class:is-active={isActive(b.mark)}
-				aria-label={b.label}
-				aria-pressed={isActive(b.mark)}
-				title={b.label}
-				onmousedown={(e) => handleMarkMouseDown(e, b.mark)}
+				aria-label="Appliquer le lien"
+				title="Appliquer (Entrée)"
+				onmousedown={handleApplyMouseDown}
 			>
-				<Icon size={14} />
+				<Check size={14} />
 			</button>
-		{/each}
-		<button
-			type="button"
-			class="bn-ft-btn"
-			class:is-active={hasLink}
-			aria-label="Link"
-			aria-pressed={hasLink}
-			title="Link"
-			onmousedown={handleLinkMouseDown}
-		>
-			<Link size={14} />
-		</button>
+			<button
+				type="button"
+				class="bn-ft-btn"
+				aria-label="Annuler"
+				title="Annuler (Échap)"
+				onmousedown={handleCancelMouseDown}
+			>
+				<X size={14} />
+			</button>
+		{:else}
+			{#each buttons as b (b.mark)}
+				{@const Icon = b.icon}
+				<button
+					type="button"
+					class="bn-ft-btn"
+					class:is-active={isActive(b.mark)}
+					aria-label={b.label}
+					aria-pressed={isActive(b.mark)}
+					title={b.label}
+					onmousedown={(e) => handleMarkMouseDown(e, b.mark)}
+				>
+					<Icon size={14} />
+				</button>
+			{/each}
+			<button
+				type="button"
+				class="bn-ft-btn"
+				class:is-active={hasLink}
+				aria-label="Link"
+				aria-pressed={hasLink}
+				title="Link"
+				onmousedown={handleLinkMouseDown}
+			>
+				<Link size={14} />
+			</button>
+			{#if hasLink && currentHref}
+				<button
+					type="button"
+					class="bn-ft-btn"
+					aria-label="Ouvrir le lien dans le navigateur"
+					title="Ouvrir dans le navigateur"
+					onmousedown={handleOpenLinkMouseDown}
+				>
+					<ExternalLink size={14} />
+				</button>
+			{/if}
+		{/if}
 	</div>
 {/if}
 
@@ -174,5 +285,22 @@
 	.bn-ft-btn.is-active {
 		background: var(--color-surface-active);
 		color: var(--color-text-primary);
+	}
+
+	.bn-ft-input {
+		min-width: 220px;
+		height: 22px;
+		padding: 0 var(--space-2);
+		border: 1px solid var(--color-border-subtle);
+		border-radius: var(--radius-xs);
+		background: var(--color-bg);
+		color: var(--color-text-primary);
+		font-family: var(--font-mono);
+		font-size: var(--text-caption);
+		outline: none;
+	}
+
+	.bn-ft-input:focus {
+		border-color: var(--color-accent);
 	}
 </style>

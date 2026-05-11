@@ -85,19 +85,6 @@ describe('StatusBar', () => {
 		expect(container.textContent).toContain('Sauvegardé');
 	});
 
-	it('toggles preview / source mode via callback', async () => {
-		const onModeChange = vi.fn();
-		render(StatusBar, {
-			vault: editVault,
-			relativePath: 'doc.md',
-			content: 'x',
-			mode: 'preview',
-			onModeChange
-		});
-		await fireEvent.click(screen.getByRole('button', { name: /source/i }));
-		expect(onModeChange).toHaveBeenCalledWith('source');
-	});
-
 	it('calls onCopyPath when the path button is clicked', async () => {
 		const onCopyPath = vi.fn();
 		render(StatusBar, {
