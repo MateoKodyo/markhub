@@ -31,6 +31,7 @@ pub fn run() {
             commands::files::file_delete,
             commands::files::file_rename,
             commands::files::folder_create,
+            commands::files::folder_delete,
             commands::files::vault_scan,
             commands::files::file_duplicate,
             commands::files::file_reveal_in_finder,

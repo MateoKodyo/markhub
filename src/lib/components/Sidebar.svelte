@@ -15,7 +15,8 @@
 		fileRename,
 		fileDuplicate,
 		fileRevealInFinder,
-		folderCreate
+		folderCreate,
+		folderDelete
 	} from '$lib/tauri/api';
 	import { joinPath, getFileName, getParentPath, isMarkdownFile } from '$lib/utils/path';
 	import {
@@ -492,7 +493,7 @@
 		confirmHandler = async () => {
 			const id = vaultsStore.activeVaultId;
 			if (!id) throw new Error('Aucun vault actif');
-			await fileDelete(id, entry.relativePath);
+			await folderDelete(id, entry.relativePath);
 			confirmOpen = false;
 			await refreshScan();
 			// Close any open file that lived under this folder.

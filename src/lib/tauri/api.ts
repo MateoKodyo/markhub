@@ -86,6 +86,10 @@ export const fileRename = (
 export const folderCreate = (vaultId: string, relativePath: string): Promise<void> =>
 	invoke('folder_create', { vaultId, relativePath });
 
+/** Recursively delete a folder inside the vault. Refused on the vault root and on readonly vaults. */
+export const folderDelete = (vaultId: string, relativePath: string): Promise<void> =>
+	invoke('folder_delete', { vaultId, relativePath });
+
 /** Duplicate a file with " copie" / " copie 2" / … suffix. Returns the new relative path. */
 export const fileDuplicate = (
 	vaultId: string,

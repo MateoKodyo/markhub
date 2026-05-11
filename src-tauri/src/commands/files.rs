@@ -112,6 +112,25 @@ pub fn create_folder(vault: &Vault, relative: &str) -> Result<(), String> {
     fs::create_dir_all(&path).map_err(|e| format!("Failed to create folder {relative}: {e}"))
 }
 
+/// Recursively delete the directory at `relative` inside `vault`.
+/// Refuses on readonly vaults. Refuses to delete the vault root itself
+/// (i.e. when `relative` resolves to an empty path) — that guard is what
+/// keeps a slip-of-the-keyboard from nuking the whole vault.
+///
+/// Uses `remove_dir_all` (not `remove_file`): on macOS `unlink(2)` on a
+/// directory returns EPERM (errno 1, "Operation not permitted"), which is
+/// what was surfacing to users as "Failed to delete X: Operation not
+/// permitted (os error 1)".
+pub fn delete_folder(vault: &Vault, relative: &str) -> Result<(), String> {
+    ensure_writable(vault)?;
+    let cleaned = clean_relative(relative)?;
+    if cleaned.as_os_str().is_empty() {
+        return Err("Cannot delete vault root".to_string());
+    }
+    let path = Path::new(&vault.path).join(cleaned);
+    fs::remove_dir_all(&path).map_err(|e| format!("Failed to delete {relative}: {e}"))
+}
+
 /// Rename `old_relative` to `new_relative` inside `vault`.
 /// Both paths must stay inside the vault. Refuses on readonly vaults.
 pub fn rename_file(vault: &Vault, old_relative: &str, new_relative: &str) -> Result<(), String> {
@@ -337,6 +356,16 @@ pub fn folder_create(
 ) -> Result<(), String> {
     let v = vault_for(&app, &vault_id)?;
     create_folder(&v, &relative_path)
+}
+
+#[tauri::command]
+pub fn folder_delete(
+    app: AppHandle,
+    vault_id: String,
+    relative_path: String,
+) -> Result<(), String> {
+    let v = vault_for(&app, &vault_id)?;
+    delete_folder(&v, &relative_path)
 }
 
 #[tauri::command]
@@ -752,6 +781,61 @@ mod tests {
         write_fixture(g.path(), "blocker", "x"); // a file, not a dir
         let result = create_folder(&v, "blocker");
         assert!(result.is_err());
+    }
+
+    // ============================================================
+    // folder_delete (fix: EPERM on macOS when removing dirs with remove_file)
+    // ============================================================
+
+    #[test]
+    fn folder_delete_removes_empty_folder() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        create_folder(&v, "to-remove").expect("create empty folder");
+        assert!(g.path().join("to-remove").is_dir());
+        delete_folder(&v, "to-remove").expect("delete empty folder");
+        assert!(!g.path().join("to-remove").exists());
+    }
+
+    #[test]
+    fn folder_delete_removes_non_empty_folder_recursively() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "parent/note.md", "x");
+        write_fixture(g.path(), "parent/sub/nested.md", "y");
+        assert!(g.path().join("parent/sub/nested.md").exists());
+        delete_folder(&v, "parent").expect("delete recursive");
+        assert!(!g.path().join("parent").exists());
+    }
+
+    #[test]
+    fn folder_delete_rejects_root_when_relative_is_empty() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        let err = delete_folder(&v, "").expect_err("empty relative must error");
+        assert!(
+            err.contains("Cannot delete vault root"),
+            "error must mention 'Cannot delete vault root' (got: {err})"
+        );
+        // Vault root must still exist after refusal.
+        assert!(g.path().is_dir());
+    }
+
+    #[test]
+    fn folder_delete_rejects_path_traversal() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err = delete_folder(&v, "../").expect_err("traversal must error");
+        assert!(
+            err.contains("Path outside vault") || err.contains("Cannot delete vault root"),
+            "error must reject traversal or empty-after-clean (got: {err})"
+        );
+    }
+
+    #[test]
+    fn folder_delete_is_rejected_on_readonly_vault() {
+        let (g, v_ro) = make_vault(VaultMode::Readonly);
+        // Pre-create the folder via direct fs (bypass readonly).
+        std::fs::create_dir_all(g.path().join("locked")).unwrap();
+        let err = delete_folder(&v_ro, "locked").expect_err("readonly must reject");
+        assert!(err.contains("Vault is readonly"));
+        assert!(g.path().join("locked").is_dir(), "folder still there");
     }
 
     // ============================================================
