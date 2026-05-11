@@ -1050,3 +1050,73 @@ Strict respect du scope. PLAN-COMMAND-SYSTEM (8 steps : Cmd+K command palette, C
 ## Prochaine session
 
 Matheo merge `feat/design-defaults` sur `main` manuellement. Puis arbitrage : démarrer PLAN-COMMAND-SYSTEM ou attaquer un bug bloquant (C3 ou folder-delete) en priorité.
+
+---
+
+# Session 2026-05-12 (nuit, suite) — fixes post-clôture DESIGN-DEFAULTS
+
+Cette mini-session est la suite directe de la clôture DESIGN-DEFAULTS du 11 (même branche `feat/design-defaults`). Deux commits ajoutés après la GATE STEP 10.
+
+## Commit `e791d91` — slash-menu flip
+
+User a remonté en réel : "quand je fais / en bas d'écran, souci affichage sélecteur". Le menu BlockNote était positionné en dur à `referencePos.bottom + 4` sans check viewport → clip sous la status bar quand le caret était bas.
+
+Fix dans `src/lib/components/BlockNoteSlashMenu.svelte` :
+- Mesure `menuEl.getBoundingClientRect()` après chaque mount / changement d'items via `$effect` qui tracke `items.length` et `menuState.show`.
+- $derived `top` : si pas de place dessous (`desiredBelow + menuHeight + 8 > innerHeight`), flip au-dessus (`ref.top - menuHeight - 4`). Si ni au-dessus ni en-dessous ne fit, clamp au bas avec marge 8px.
+- $derived `left` : même logique défensive sur l'axe horizontal pour les carets près du bord droit.
+- 1ère frame avant mesure : `menuHeight === 0` → renvoie `desiredBelow` (auto-corrigé au tick suivant).
+
+Test ajouté : `tests/visual/blocknote-slash-menu.spec.ts` test "slash menu flips above the caret when there is no room below" — utilise la fixture `editor-overflow`, scroll en bas, tape "/", vérifie que la bounding box du menu reste dans la viewport ET au-dessus du caret. 40/40 visual verts.
+
+User a validé live : "fixé."
+
+## Commit `b969fb6` — audit pré-merge (a11y + security + drag)
+
+À ma demande pré-merge, l'user a lancé 2 agents code review en parallèle avec focus complémentaire :
+- **Agent A (rigueur code / TS / Svelte 5 / Rust)** — verdict "fix P0 before merge", 1 P0 (`url_open` validate ≠ spawn bytes) + 8 P1/P2.
+- **Agent B (design system / a11y / WCAG)** — verdict "fix P0s before merge", 4 P0 (sidebar focus trap, slash menu activedescendant, icones Lucide aria-hidden, light text-secondary WCAG fail) + 8 P1/P2.
+
+User a OK une stratégie unique : "5 P0 + P1 rapides en un commit".
+
+Pendant l'audit, user a remonté live : "je ne sais plus draguer l'app sur le bureau" / "position fixe !". Diagnostic : avec `titleBarStyle: "Overlay"` introduit en STEP 7, Tauri 2 ne câble pas toujours `data-tauri-drag-region` correctement, et `getCurrentWindow().startDragging()` était bloqué par capabilities manquantes.
+
+Bundle livré (8 fichiers touchés) :
+
+### Window drag fix
+- `src-tauri/capabilities/default.json` : ajout `core:window:allow-start-dragging`.
+- `src/routes/+page.svelte` : handler `onmousedown` manuel sur la chrome strip → `startDragging()` direct, skip si target.closest('button, a, input, ...'). Suppression du `data-tauri-drag-region="false"` sur le bouton (inutile vu le manual handler).
+
+User a validé : "fixé".
+
+### Sécurité Rust
+- `src-tauri/src/commands/files.rs` : extraction de `validate_open_url(url: &str) -> Result<&str, String>` qui retourne les **bytes trimmés réellement passés à `open`** (validation et syscall sur la même string). Rejet des control chars (NUL, newline, tab) qui pouvaient découpler la validation de l'exécution. **+5 tests** : http/https accept, mixed-case, whitespace trim, non-http schemes (file/javascript/ftp/data/vscode), control chars, empty input.
+- `src-tauri/src/commands/vaults.rs` : `derive_vault_name_from_git_url` rejette `.`, `..`, tails contenant `/`/`\`. **+1 test**.
+
+### A11y
+- `src/lib/components/Sidebar.svelte` : `aria-hidden={collapsed}` → `inert={collapsed}` (fix focus trap inverse : avant, descendants restaient tabbables tout en étant cachés à l'AT).
+- `src/lib/components/BlockNoteSlashMenu.svelte` : ajout id stable par item (`bn-slash-item-idx-${idx}`), `tabindex="-1"` + `aria-activedescendant` sur le menu, wrap des groupes en `role="group" aria-labelledby`. Retrait du `aria-selected` (invalide sur `role="menuitem"`). Modernisation `<svelte:window on:keydown>` → `onkeydown`.
+- 6 icônes Lucide → `aria-hidden="true" focusable="false"` : EmptyState ×4 cards + chrome PanelLeft + badge Lock.
+- `src/app.css` light theme : `--color-text-secondary` `#75736f` → `#6c6a66` (4.12 → 4.6 sur fond sidebar = clear WCAG AA 4.5:1).
+- `chrome-toggle` aria-label varie par état ("Replier" / "Déplier") au lieu d'un label statique générique.
+
+### Décisions / non-pris
+- Pas de bump 14→16 sur les inline icons (cohérent avec décision IDE-density chrome).
+- Pas de standardisation des focus-ring offsets (1px / 2px / -2px) — c'est un call stylistique qui mérite eye-balling, reporté à un follow-up.
+- Pas de tracker MRU pour les vaults récents EmptyState — ajout d'un `lastOpenedAt` à modéliser dans PLAN-SETTINGS.
+- Pas de timeout/progress sur `git clone` — backlog.
+
+## Tests finaux après audit
+
+- cargo : 74/74 (+14 vs BlockNote close)
+- vitest : 193/193
+- visual : 40/40
+- svelte-check : 0/0
+
+## État pour la session suivante
+
+Branche `feat/design-defaults` à 13 commits ahead de `main`, prête merge manuel (auto-classifier bloque le merge depuis Claude — conforme aux règles).
+
+Prochain chantier : **PLAN-COMMAND-SYSTEM** (Cmd+K command palette, Cmd+P file picker, Shift+F filter) — 8 steps. Branche dédiée `feat/command-system` depuis `main` post-merge.
+
+Memory persistante toujours à jour : `pending_folder_delete.md` rappelle le diag du folder-delete EPERM, à attaquer un jour.

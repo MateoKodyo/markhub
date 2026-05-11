@@ -5,15 +5,18 @@
 
 ## Date de mise à jour
 
-2026-05-11 — clôture **PLAN-DESIGN-DEFAULTS** (chantier design defaults, 10 steps). Branche `feat/design-defaults` prête à merger sur `main`. **Le merge est manuel — il sera fait par Matheo, pas par Claude.**
+2026-05-12 (nuit) — clôture **PLAN-DESIGN-DEFAULTS** (chantier design defaults, 10 steps) + 2 fixes post-clôture (slash-menu flip + audit pré-merge). Branche `feat/design-defaults` **prête à merger** sur `main`. **Le merge est manuel — il doit être fait par Matheo, pas par Claude** (règle explicite du plan + bloqué côté auto-classifier).
 
 > Note : la migration BlockNote (chantier C1) a déjà été mergée sur `main` (commit `0e72755`). `main` est désormais l'app BlockNote, plus l'app Crepe historique.
 
 ## Branche courante
 
-`feat/design-defaults` — **non mergée**, 10 commits ahead de `main` :
+`feat/design-defaults` — **non mergée**, 13 commits ahead de `main` :
 
 ```
+b969fb6 fix(audit): address pre-merge review findings (a11y + security + drag)
+e791d91 fix(slash-menu): flip menu above caret when bottom space is insufficient
+3dac8c3 chore(design-defaults): STEP 10 closure — progress table, decisions, principles
 8ca96a3 test(visual): full design baseline coverage — STEP 9
 92b358c design(empty-state): bump card icons to 20px per design defaults — STEP 8
 a9f89aa feat(ui): Warp-style sidebar toggle in window chrome — STEP 7
@@ -26,21 +29,21 @@ e6c459e feat(design): augment CSS token namespace — STEP 1
 bc0d93b feat(editor): finalize PLAN-BLOCKNOTE step 4 (UI finish)  ← reliquat BlockNote tail
 ```
 
-(`bc0d93b` est le commit "UI finish" qui clôturait les leftovers BlockNote — fait au tout début de la session DESIGN-DEFAULTS avant d'attaquer STEP 1.)
+(`bc0d93b` est le reliquat BlockNote "UI finish" fait au démarrage de la session. `e791d91` corrige un bug du slash menu existant remonté pendant la clôture. `b969fb6` adresse 5 P0 + plusieurs P1 issus d'un code review par 2 agents lancé pré-merge.)
 
 ## Sessions précédentes archivées dans `JOURNAL.md`
 
 - 2026-05-11 (matin) : clôture BlockNote (chantier C1) → merge effectué.
-- 2026-05-11 (après-midi/nuit) : PLAN-DESIGN-DEFAULTS 10 steps complets → cette branche.
+- 2026-05-11/12 (après-midi/nuit) : PLAN-DESIGN-DEFAULTS 10 steps complets + slash-menu flip fix + audit pré-merge (a11y + security) → cette branche.
 
 ## Tests (état final sur la branche `feat/design-defaults`)
 
-- cargo test : **60/60 ✅** (Rust pas touché par DESIGN-DEFAULTS — sauf l'ajout de `url_open` qui a passé son test unitaire)
-- npm run test (vitest) : **193/193 ✅** (+4 vs BlockNote : 3 tests URL inline toolbar, 6 tests EmptyState, 1 test Sidebar `collapsed` — couvre les nouveaux composants STEP 6/7)
-- npm run check (svelte-check) : à re-confirmer en début de session suivante
-- npm run build : à re-confirmer en début de session suivante
-- npm run test:visual (Playwright) : **39/39 ✅** (34 préservés + 5 nouveaux : `empty-state.spec.ts` × 3 + `window-chrome.spec.ts` × 2)
+- cargo test : **74/74 ✅** (60 historique + 8 nouveaux pour les 3 vault commands STEP 6 + 5 nouveaux pour `validate_open_url` post-audit + 1 nouveau pour `derive_vault_name_from_git_url` post-audit)
+- npm run test (vitest) : **193/193 ✅**
+- npm run check (svelte-check) : **0 erreur / 0 warning ✅**
+- npm run test:visual (Playwright) : **40/40 ✅** (34 préservés + 5 STEP 9 + 1 nouveau pour le slash-menu flip = `tests/visual/blocknote-slash-menu.spec.ts`)
 - npm run test:e2e : 1 placeholder skipped (real-binary jamais monté — hors scope MVP)
+- npm run build : à re-confirmer en début de session suivante (jamais fait pendant la session)
 
 Aucun test ne touche le filesystem utilisateur réel.
 
