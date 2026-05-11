@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Lock } from 'lucide-svelte';
+	import { Lock, PanelLeft } from 'lucide-svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -16,6 +16,7 @@
 
 	let loadError = $state<string | null>(null);
 	let editorMode = $state<EditorMode>('preview');
+	let sidebarCollapsed = $state(false);
 
 	// EmptyState → pick directory → in-app modal flow.
 	let pendingAction = $state<PendingAction | null>(null);
@@ -135,9 +136,25 @@
 </script>
 
 <div class="app">
-	<Sidebar />
+	<header class="window-chrome" data-tauri-drag-region>
+		<button
+			type="button"
+			class="chrome-toggle"
+			class:is-active={!sidebarCollapsed}
+			onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
+			aria-label="Plier ou déplier la sidebar"
+			aria-pressed={!sidebarCollapsed}
+			title="Plier ou déplier la sidebar"
+			data-tauri-drag-region="false"
+		>
+			<PanelLeft size={16} strokeWidth={1.5} />
+		</button>
+	</header>
 
-	<main class="content">
+	<div class="app-body">
+		<Sidebar collapsed={sidebarCollapsed} />
+
+		<main class="content">
 		{#if loadError}
 			<div class="placeholder">
 				<span class="label">Erreur</span>
@@ -225,11 +242,69 @@
 			status={activeFileStore.status}
 			onCopyPath={copyActiveFilePath}
 		/>
-	</main>
+		</main>
+	</div>
 </div>
 
 <style>
 	.app {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	/* Window chrome strip — sits at the top of the window above the
+	 * sidebar/content body. With macOS `titleBarStyle: "Overlay"`, the
+	 * traffic lights overlay the left at y~7px (center y~14px). The
+	 * 24×24 toggle sits at padding-top 2px so its icon glyph center
+	 * (y~14px) aligns visually with the lights' center. */
+	.window-chrome {
+		height: 44px;
+		flex-shrink: 0;
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-1);
+		padding: 5px var(--space-3) 0 80px;
+		background: var(--color-bg);
+	}
+
+	.chrome-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
+	}
+
+	.chrome-toggle:hover {
+		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	/* Active state when the sidebar is open — only an icon color bump,
+	 * no background fill. Keeps the button from reading as a discrete
+	 * "block" against the chrome strip; the icon-only signal mirrors
+	 * Mac toolbar conventions. */
+	.chrome-toggle.is-active {
+		color: var(--color-text-primary);
+	}
+
+	.chrome-toggle:focus-visible {
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
+		outline-offset: 1px;
+	}
+
+	.app-body {
 		flex: 1;
 		display: flex;
 		min-height: 0;

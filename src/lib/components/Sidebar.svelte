@@ -24,6 +24,8 @@
 	} from '$lib/utils/tree';
 	import type { FileEntry, Vault, VaultMode } from '$lib/tauri/types';
 
+	let { collapsed = false }: { collapsed?: boolean } = $props();
+
 	let fileFilter = $state('');
 	let scanRoot = $state<FileEntry | null>(null);
 	let scanError = $state<string | null>(null);
@@ -607,7 +609,7 @@
 	}
 </script>
 
-<aside class="sidebar">
+<aside class="sidebar" class:is-collapsed={collapsed} aria-hidden={collapsed}>
 	{#if topLevelError}
 		<p class="top-error" role="alert">{topLevelError}</p>
 	{/if}
@@ -739,6 +741,14 @@
 		background: var(--color-bg-sidebar);
 		border-right: 1px solid var(--color-border-subtle);
 		overflow: hidden;
+		transition:
+			width var(--duration-base) var(--easing-standard),
+			border-right-width var(--duration-base) var(--easing-standard);
+	}
+
+	.sidebar.is-collapsed {
+		width: 0;
+		border-right-width: 0;
 	}
 
 	.top-error {
