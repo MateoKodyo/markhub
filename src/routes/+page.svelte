@@ -10,6 +10,7 @@
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
+	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { joinPath } from '$lib/utils/path';
 	import * as api from '$lib/tauri/api';
 
@@ -57,6 +58,10 @@
 			// Theme has to init AFTER vaultsStore.load so it sees the persisted
 			// `settings.theme`. Sets data-theme on <html> + listens to OS changes.
 			themeStore.init();
+			// Hydrate the v1 user settings (PLAN-SETTINGS) from `settings.json`.
+			// Internally bridges its `appearance.theme` to themeStore, so the
+			// new preference (when present) wins over the legacy config.theme.
+			await settingsStore.load();
 			// Restore the last-opened vault (so the sidebar shows the right
 			// files), but DO NOT auto-open the last file — the launch screen
 			// is always the EmptyState. lastOpenedFile is preserved in the

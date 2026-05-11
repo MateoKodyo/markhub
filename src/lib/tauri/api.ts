@@ -3,7 +3,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import type { Config, FileEntry, Vault, VaultMode } from './types';
+import type { Config, FileEntry, UserSettings, Vault, VaultMode } from './types';
 
 export const configLoad = (): Promise<Config> => invoke('config_load');
 
@@ -104,3 +104,18 @@ export const fileRevealInFinder = (
 
 /** Open an http/https URL in the system default browser. */
 export const urlOpen = (url: string): Promise<void> => invoke('url_open', { url });
+
+/**
+ * Read user settings from `settings.json`. Returns defaults if the file is
+ * missing; the Rust side falls back to defaults on malformed JSON too (and
+ * backs the broken file up to `.bak` — see `commands::settings::load_settings_from_path`).
+ */
+export const settingsRead = (): Promise<UserSettings> => invoke('settings_read');
+
+/**
+ * Persist user settings atomically (write to .tmp, rename). Rust returns Err
+ * only on a real filesystem failure — schema validation happens at the type
+ * boundary on the JS side, so a well-typed `UserSettings` always serializes.
+ */
+export const settingsWrite = (settings: UserSettings): Promise<void> =>
+	invoke('settings_write', { settings });

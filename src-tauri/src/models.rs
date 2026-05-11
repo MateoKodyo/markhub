@@ -56,6 +56,124 @@ impl Default for Settings {
     }
 }
 
+// ============================================================
+// User Settings v1 — PLAN-SETTINGS STEP 1
+//
+// Lives in its own file (`settings.json`) so it can be exported / imported
+// independently of the app's machine state (vaults, last opened, expansion).
+//
+// Deviations from PLAN-SETTINGS.md, documented:
+// - `theme` is typed as a free-form `String` (default `"system"`) and accepts
+//   the legacy 3-value set ('dark' | 'light' | 'system'). The plan defines
+//   4 curated theme presets, but their CSS does not exist yet — that's STEP 3
+//   (Appearance section). Until then, the new store delegates to the existing
+//   `themeStore` so user-visible behavior stays identical.
+// - `line_height` is a real number, so we drop the `Eq` derive (PartialEq
+//   suffices for tests).
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppearanceSettings {
+    pub theme: String,
+    pub editor_font: String,
+    pub editor_font_size: u32,
+    pub editor_line_height: f64,
+    pub editor_content_width: u32,
+}
+
+impl Default for AppearanceSettings {
+    fn default() -> Self {
+        Self {
+            theme: "system".to_string(),
+            editor_font: "Geist Sans".to_string(),
+            editor_font_size: 16,
+            editor_line_height: 1.6,
+            editor_content_width: 720,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorSettings {
+    pub autosave_delay_ms: u32,
+    pub spell_check: bool,
+}
+
+impl Default for EditorSettings {
+    fn default() -> Self {
+        Self {
+            autosave_delay_ms: 1500,
+            spell_check: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSettings {
+    pub mono_font: String,
+}
+
+impl Default for SourceSettings {
+    fn default() -> Self {
+        Self {
+            mono_font: "geist-mono".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesSettings {
+    pub confirm_delete: bool,
+}
+
+impl Default for FilesSettings {
+    fn default() -> Self {
+        Self { confirm_delete: true }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BehaviorSettings {
+    pub ask_before_closing_unsaved: bool,
+}
+
+impl Default for BehaviorSettings {
+    fn default() -> Self {
+        Self {
+            ask_before_closing_unsaved: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserSettings {
+    pub version: u32,
+    pub appearance: AppearanceSettings,
+    pub editor: EditorSettings,
+    pub source: SourceSettings,
+    pub files: FilesSettings,
+    pub behavior: BehaviorSettings,
+}
+
+impl Default for UserSettings {
+    fn default() -> Self {
+        Self {
+            version: 1,
+            appearance: AppearanceSettings::default(),
+            editor: EditorSettings::default(),
+            source: SourceSettings::default(),
+            files: FilesSettings::default(),
+            behavior: BehaviorSettings::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileEntry {
