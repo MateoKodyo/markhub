@@ -609,7 +609,7 @@
 	}
 </script>
 
-<aside class="sidebar" class:is-collapsed={collapsed} aria-hidden={collapsed}>
+<aside class="sidebar" class:is-collapsed={collapsed} inert={collapsed}>
 	{#if topLevelError}
 		<p class="top-error" role="alert">{topLevelError}</p>
 	{/if}

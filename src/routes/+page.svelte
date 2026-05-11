@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Lock, PanelLeft } from 'lucide-svelte';
+	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -133,21 +134,49 @@
 			? `${activeFileStore.activeFile.vaultId}:${activeFileStore.activeFile.relativePath}`
 			: 'empty'
 	);
+
+	/**
+	 * Window-dragging from the chrome strip. We wire `mousedown` manually
+	 * (rather than relying solely on `data-tauri-drag-region`) because with
+	 * `titleBarStyle: "Overlay"` on macOS, the Tauri 2 runtime auto-binding
+	 * does not always intercept clicks on a 44px custom strip — the OS
+	 * traffic-light gutter overlaps the WebView and the drag region handler
+	 * silently no-ops. Calling `startDragging()` from a mousedown that
+	 * originates anywhere in the strip *except* on a control is bulletproof.
+	 */
+	async function onChromeMouseDown(e: MouseEvent) {
+		if (e.button !== 0) return;
+		const target = e.target as HTMLElement | null;
+		if (target?.closest('button, a, input, textarea, select')) return;
+		try {
+			await getCurrentWindow().startDragging();
+		} catch (err) {
+			console.warn('[window] startDragging failed', err);
+		}
+	}
 </script>
 
 <div class="app">
-	<header class="window-chrome" data-tauri-drag-region>
+	<!-- The window-chrome strip is a drag region, not an interactive
+	     control. There is no fitting ARIA role for "OS window drag" — the
+	     interactive element inside (the toggle button) carries its own
+	     semantics. Suppress the a11y lint here. -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<header
+		class="window-chrome"
+		data-tauri-drag-region
+		onmousedown={onChromeMouseDown}
+	>
 		<button
 			type="button"
 			class="chrome-toggle"
 			class:is-active={!sidebarCollapsed}
 			onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
-			aria-label="Plier ou déplier la sidebar"
+			aria-label={sidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
 			aria-pressed={!sidebarCollapsed}
-			title="Plier ou déplier la sidebar"
-			data-tauri-drag-region="false"
+			title={sidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
 		>
-			<PanelLeft size={16} strokeWidth={1.5} />
+			<PanelLeft size={16} strokeWidth={1.5} aria-hidden="true" focusable="false" />
 		</button>
 	</header>
 
@@ -166,7 +195,7 @@
 					<span class="caption">{activeFileStore.activeFile.relativePath}</span>
 					{#if vaultsStore.isActiveVaultReadonly}
 						<span class="badge-readonly" aria-label="Lecture seule">
-							<Lock size={11} />
+							<Lock size={11} aria-hidden="true" focusable="false" />
 							<span>Lecture seule</span>
 						</span>
 					{/if}

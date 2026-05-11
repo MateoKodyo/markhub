@@ -365,17 +365,37 @@ pub fn file_reveal_in_finder(
     reveal_in_finder(&v, &relative_path)
 }
 
-/// Open an http/https URL in the system default browser.
-/// Restricted to those two schemes so this command can never be coerced into
-/// running arbitrary `open`-able strings (local apps, files, etc.).
-#[tauri::command]
-pub fn url_open(url: String) -> Result<(), String> {
-    let lower = url.trim().to_lowercase();
+/// Validate that `url` is safe to hand to the system `open` helper.
+/// On success, returns the trimmed string that should actually be spawned
+/// (so the validation and the syscall always agree on the exact bytes).
+fn validate_open_url(url: &str) -> Result<&str, String> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return Err("Refused to open empty URL".to_string());
+    }
+    if trimmed.chars().any(|c| c.is_control()) {
+        return Err(format!("Refused to open URL with control characters: {url}"));
+    }
+    let lower = trimmed.to_ascii_lowercase();
     if !(lower.starts_with("http://") || lower.starts_with("https://")) {
         return Err(format!("Refused to open non-http(s) URL: {url}"));
     }
+    Ok(trimmed)
+}
+
+/// Open an http/https URL in the system default browser.
+/// Restricted to those two schemes so this command can never be coerced into
+/// running arbitrary `open`-able strings (local apps, files, etc.).
+///
+/// Defensive: we (a) reject any input that contains control characters
+/// — including NUL bytes that could truncate the string downstream — and
+/// (b) re-validate the prefix on the *same trimmed bytes we pass to
+/// `open`, so the check and the syscall agree.
+#[tauri::command]
+pub fn url_open(url: String) -> Result<(), String> {
+    let to_open = validate_open_url(&url)?;
     std::process::Command::new("open")
-        .arg(&url)
+        .arg(to_open)
         .spawn()
         .map_err(|e| format!("Failed to open URL: {e}"))?;
     Ok(())
@@ -815,5 +835,52 @@ mod tests {
         let (_g, v) = make_vault(VaultMode::Edit);
         let err = reveal_in_finder(&v, "missing.md").expect_err("missing must error");
         assert!(err.contains("Path not found"));
+    }
+
+    // ------ validate_open_url ------
+
+    #[test]
+    fn open_url_accepts_http_and_https() {
+        assert_eq!(validate_open_url("http://example.com").unwrap(), "http://example.com");
+        assert_eq!(validate_open_url("https://example.com").unwrap(), "https://example.com");
+        // Mixed-case scheme — the lowercased prefix check passes, but we
+        // return the original (case-preserved) trimmed bytes for `open`.
+        assert_eq!(validate_open_url("HTTPS://Example.com").unwrap(), "HTTPS://Example.com");
+    }
+
+    #[test]
+    fn open_url_trims_surrounding_whitespace_and_returns_trimmed_bytes() {
+        // The validation result is what gets handed to `open`; the *same*
+        // string is checked, so a leading-whitespace `http://...` is fine
+        // (whitespace stripped) — but a leading-whitespace `file://` is not,
+        // since after trim the scheme check rejects.
+        let trimmed = validate_open_url("  https://safe.example.com  ").unwrap();
+        assert_eq!(trimmed, "https://safe.example.com");
+        validate_open_url("  file:///etc/passwd").expect_err("file:// must be rejected post-trim");
+    }
+
+    #[test]
+    fn open_url_rejects_non_http_schemes() {
+        validate_open_url("file:///etc/passwd").expect_err("file:// blocked");
+        validate_open_url("javascript:alert(1)").expect_err("javascript: blocked");
+        validate_open_url("ftp://example.com").expect_err("ftp: blocked");
+        validate_open_url("data:text/plain;base64,SGVsbG8=").expect_err("data: blocked");
+        validate_open_url("vscode://settings").expect_err("custom scheme blocked");
+    }
+
+    #[test]
+    fn open_url_rejects_control_characters() {
+        // NUL byte (would silently truncate downstream syscalls on some
+        // platforms), as well as newlines / tabs that could let an attacker
+        // inject a second URL or argument after the scheme check.
+        validate_open_url("http://safe.com\u{0}file:///bad").expect_err("NUL blocked");
+        validate_open_url("http://safe.com\nfile:///bad").expect_err("newline blocked");
+        validate_open_url("http://safe.com\tfile:///bad").expect_err("tab blocked");
+    }
+
+    #[test]
+    fn open_url_rejects_empty_input() {
+        validate_open_url("").expect_err("empty blocked");
+        validate_open_url("   ").expect_err("whitespace-only blocked");
     }
 }

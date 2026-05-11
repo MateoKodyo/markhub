@@ -220,7 +220,11 @@
 
 	--color-text-primary: #1c1b1a;
 	--color-text-body: #4a4948;
-	--color-text-secondary: #75736f;
+	/* Bumped from #75736f → #6c6a66 (2026-05-12) to clear WCAG AA 4.5:1
+	 * on the SIDEBAR background (#f1efe9), where the previous value only
+	 * hit 4.12:1. Used by `.label` 11px uppercase chrome that doesn't
+	 * qualify as "large text" and must satisfy normal AA. */
+	--color-text-secondary: #6c6a66;
 	/* Bumped from #a09e9a → #8a8884 (2026-05-11) to clear WCAG AA-large
 	 * (3.36:1 on bg vs 2.54:1 before). Warm tint preserved. */
 	--color-text-muted: #8a8884;

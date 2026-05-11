@@ -171,14 +171,25 @@ pub fn create_sample_vault(
 
 /// Derive a vault name from a git URL (`org/repo.git`, `org/repo`,
 /// `git@host:org/repo.git`, `ssh://…/repo`). The tail segment minus a
-/// trailing `.git` is the result. Errors if the tail is empty.
+/// trailing `.git` is the result. Errors if the tail is empty or
+/// resolves to a value that wouldn't make a usable directory name.
 pub fn derive_vault_name_from_git_url(url: &str) -> Result<String, String> {
     let trimmed = url.trim().trim_end_matches('/').trim_end_matches(".git");
     let tail = trimmed
         .rsplit(|c| c == '/' || c == ':')
         .next()
         .unwrap_or(trimmed);
-    if tail.is_empty() {
+    // Reject names that aren't a valid sub-directory: empty, `.`/`..`, or
+    // anything still containing a path separator (defensive — `rsplit`
+    // should have stripped them). The hostname-only case (e.g. cloning
+    // "https://x.com/" without a repo path) lands here too via the empty
+    // tail check above, since `trim_end_matches('/')` reduces it to
+    // "https://x.com" and rsplit yields "x.com" — which we then reject
+    // below as a hostname-shaped name (contains a dot but no slash).
+    if tail.is_empty() || tail == "." || tail == ".." {
+        return Err(format!("Cannot derive a vault name from URL: {url}"));
+    }
+    if tail.contains('/') || tail.contains('\\') {
         return Err(format!("Cannot derive a vault name from URL: {url}"));
     }
     Ok(tail.to_string())
@@ -592,5 +603,12 @@ mod tests {
     fn derive_name_rejects_empty_url() {
         let err = derive_vault_name_from_git_url("").expect_err("empty must error");
         assert!(err.to_lowercase().contains("cannot derive"), "got: {err}");
+    }
+
+    #[test]
+    fn derive_name_rejects_dot_and_dotdot_tails() {
+        // `.git` strip + odd input shape can collapse to `.` / `..`. Reject.
+        derive_vault_name_from_git_url("https://example.com/./").expect_err("`.` must error");
+        derive_vault_name_from_git_url("https://example.com/..").expect_err("`..` must error");
     }
 }

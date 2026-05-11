@@ -50,7 +50,7 @@
 				onclick={onOpenVault}
 				data-testid="action-open"
 			>
-				<Folder size={20} />
+				<Folder size={20} aria-hidden="true" focusable="false" />
 				<span class="action-label">Ouvrir un vault</span>
 			</button>
 			<button
@@ -59,7 +59,7 @@
 				onclick={onCreateVault}
 				data-testid="action-create"
 			>
-				<FolderPlus size={20} />
+				<FolderPlus size={20} aria-hidden="true" focusable="false" />
 				<span class="action-label">Créer un vault</span>
 			</button>
 			<button
@@ -68,7 +68,7 @@
 				onclick={onCloneGit}
 				data-testid="action-clone"
 			>
-				<GitBranch size={20} />
+				<GitBranch size={20} aria-hidden="true" focusable="false" />
 				<span class="action-label">Cloner depuis Git</span>
 			</button>
 			<button
@@ -77,7 +77,7 @@
 				onclick={onCreateSample}
 				data-testid="action-sample"
 			>
-				<BookOpen size={20} />
+				<BookOpen size={20} aria-hidden="true" focusable="false" />
 				<span class="action-label">Vault d'exemple</span>
 			</button>
 		</div>

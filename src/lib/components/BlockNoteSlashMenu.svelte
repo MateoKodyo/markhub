@@ -150,7 +150,7 @@
 	});
 </script>
 
-<svelte:window on:keydown={onKey} />
+<svelte:window onkeydown={onKey} />
 
 {#if menuState?.show && items.length > 0}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -158,39 +158,45 @@
 		bind:this={menuEl}
 		class="bn-slash-menu"
 		role="menu"
+		tabindex="-1"
+		aria-activedescendant={`bn-slash-item-idx-${activeIndex}`}
 		style="left: {left}px; top: {top}px"
 		data-testid="bn-slash-menu"
 	>
-		{#each groups as [groupLabel, groupItems] (groupLabel)}
-			{#if groupLabel}
-				<div class="bn-slash-group" role="presentation">{groupLabel}</div>
-			{/if}
-			{#each groupItems as item (item.title)}
-				{@const idx = items.indexOf(item)}
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<button
-					type="button"
-					class="bn-slash-item"
-					class:is-active={idx === activeIndex}
-					data-idx={idx}
-					data-testid="bn-slash-item-{item.key}"
-					onmousedown={(e) => {
-						// Prevent the editor from blurring before our click runs.
-						e.preventDefault();
-						pick(idx);
-					}}
-					onmouseenter={() => (activeIndex = idx)}
-					role="menuitem"
-				>
-					<span class="bn-slash-title">{item.title}</span>
-					{#if item.subtext}
-						<span class="bn-slash-subtitle">{item.subtext}</span>
-					{/if}
-					{#if item.badge}
-						<span class="bn-slash-badge">{item.badge}</span>
-					{/if}
-				</button>
-			{/each}
+		{#each groups as [groupLabel, groupItems], groupIdx (groupLabel)}
+			{@const groupId = `bn-slash-group-${groupIdx}`}
+			<div role="group" aria-labelledby={groupLabel ? `${groupId}-label` : undefined}>
+				{#if groupLabel}
+					<div id={`${groupId}-label`} class="bn-slash-group">{groupLabel}</div>
+				{/if}
+				{#each groupItems as item (item.title)}
+					{@const idx = items.indexOf(item)}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<button
+						type="button"
+						id={`bn-slash-item-idx-${idx}`}
+						class="bn-slash-item"
+						class:is-active={idx === activeIndex}
+						data-idx={idx}
+						data-testid="bn-slash-item-{item.key}"
+						onmousedown={(e) => {
+							// Prevent the editor from blurring before our click runs.
+							e.preventDefault();
+							pick(idx);
+						}}
+						onmouseenter={() => (activeIndex = idx)}
+						role="menuitem"
+					>
+						<span class="bn-slash-title">{item.title}</span>
+						{#if item.subtext}
+							<span class="bn-slash-subtitle">{item.subtext}</span>
+						{/if}
+						{#if item.badge}
+							<span class="bn-slash-badge">{item.badge}</span>
+						{/if}
+					</button>
+				{/each}
+			</div>
 		{/each}
 	</div>
 {/if}
