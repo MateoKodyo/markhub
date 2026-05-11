@@ -6,6 +6,69 @@ use tauri_plugin_dialog::DialogExt;
 use crate::commands::config;
 use crate::models::{Config, Vault, VaultMode};
 
+/// Hard-coded welcome content shipped with `create_sample_vault`.
+/// Kept short and in French to match the app's primary locale.
+const SAMPLE_WELCOME_MD: &str = "# Bienvenue dans Markhub
+
+Markhub est un éditeur Markdown pour développeurs : portable, lisible par les IA, ami du `git`.
+
+## Quelques points clés
+
+- Tes fichiers `.md` restent sur **ton disque**. Pas de base de données, pas de cloud propriétaire.
+- L'éditeur respecte **strictement** la syntaxe markdown — ce que tu vois est ce qui est écrit sur disque.
+- Un **vault** = un dossier. Tu peux le versionner avec `git` comme n'importe quel autre projet.
+";
+
+const SAMPLE_SYNTAX_MD: &str = "# Syntaxe markdown
+
+## Titres
+
+`# H1`, `## H2`, `### H3`.
+
+## Inline
+
+**gras**, *italique*, `code`, [lien](https://example.com).
+
+## Listes
+
+- item
+- item
+  - sous-item
+
+1. ordonné
+2. ordonné
+
+## Code
+
+```ts
+const x = 42;
+```
+
+## Tableau
+
+| col1 | col2 |
+|------|------|
+| a    | b    |
+";
+
+const SAMPLE_TIPS_MD: &str = "---
+title: Astuces Markhub
+tags: [tips, markhub]
+---
+
+# Astuces Markhub
+
+## Raccourcis dans l'éditeur
+
+- Tape `/` pour ouvrir la palette de blocs (slash menu).
+- Sélectionne du texte → une **barre flottante** apparaît (gras, italique, lien…).
+- Le toggle **Preview / Source** est en haut à droite de l'éditeur.
+
+## Frontmatter
+
+Markhub respecte le YAML en haut des fichiers — ce fichier en a un (les trois tirets ci-dessus). Il est rendu dans un bloc rétractable au-dessus du contenu.
+";
+
 /// Add a vault entry to the config. Validates that the path exists and is a directory.
 /// Returns the newly created Vault. `color` is provided by the caller.
 pub fn add_vault(
@@ -36,6 +99,136 @@ pub fn remove_vault(config: &mut Config, id: &str) -> Result<(), String> {
         .ok_or_else(|| format!("Vault not found: {id}"))?;
     config.vaults.remove(pos);
     Ok(())
+}
+
+/// Create a fresh empty vault directory at `parent_dir/name` and register
+/// it. Errors if the target path already exists or the parent isn't a
+/// directory. Used by the empty-state "Créer un vault" action.
+pub fn create_vault(
+    config: &mut Config,
+    parent_dir: String,
+    name: String,
+    mode: VaultMode,
+    color: String,
+) -> Result<Vault, String> {
+    let parent = Path::new(&parent_dir);
+    if !parent.is_dir() {
+        return Err(format!("Parent path is not a directory: {parent_dir}"));
+    }
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Vault name cannot be empty".to_string());
+    }
+    if trimmed.contains('/') || trimmed.contains('\\') {
+        return Err("Vault name cannot contain path separators".to_string());
+    }
+    let target = parent.join(trimmed);
+    if target.exists() {
+        return Err(format!(
+            "A directory or file already exists at: {}",
+            target.display()
+        ));
+    }
+    std::fs::create_dir(&target)
+        .map_err(|e| format!("Failed to create vault directory: {e}"))?;
+    let target_str = target
+        .to_str()
+        .ok_or_else(|| "Vault path is not valid UTF-8".to_string())?
+        .to_string();
+    let vault = Vault::new(trimmed.to_string(), target_str, mode, color);
+    config.vaults.push(vault.clone());
+    Ok(vault)
+}
+
+/// Seed a freshly-created vault directory with welcome markdown files.
+/// Caller must own the path; no overwriting is attempted.
+fn write_sample_files(root: &Path) -> Result<(), String> {
+    let files = [
+        ("Bienvenue.md", SAMPLE_WELCOME_MD),
+        ("Syntaxe markdown.md", SAMPLE_SYNTAX_MD),
+        ("Astuces Markhub.md", SAMPLE_TIPS_MD),
+    ];
+    for (name, content) in files {
+        std::fs::write(root.join(name), content)
+            .map_err(|e| format!("Failed to write sample file {name}: {e}"))?;
+    }
+    Ok(())
+}
+
+/// Like `create_vault` but seeds the new directory with a few welcome
+/// markdown files. The empty-state "Vault d'exemple" action.
+pub fn create_sample_vault(
+    config: &mut Config,
+    parent_dir: String,
+    name: String,
+    mode: VaultMode,
+    color: String,
+) -> Result<Vault, String> {
+    let vault = create_vault(config, parent_dir, name, mode, color)?;
+    write_sample_files(Path::new(&vault.path))?;
+    Ok(vault)
+}
+
+/// Derive a vault name from a git URL (`org/repo.git`, `org/repo`,
+/// `git@host:org/repo.git`, `ssh://…/repo`). The tail segment minus a
+/// trailing `.git` is the result. Errors if the tail is empty.
+pub fn derive_vault_name_from_git_url(url: &str) -> Result<String, String> {
+    let trimmed = url.trim().trim_end_matches('/').trim_end_matches(".git");
+    let tail = trimmed
+        .rsplit(|c| c == '/' || c == ':')
+        .next()
+        .unwrap_or(trimmed);
+    if tail.is_empty() {
+        return Err(format!("Cannot derive a vault name from URL: {url}"));
+    }
+    Ok(tail.to_string())
+}
+
+/// Clone a remote git repository into `parent_dir/<derived-name>` and
+/// register the result as a vault. Shells out to the system `git`
+/// binary (assumed present on macOS via Xcode CLI tools).
+pub fn clone_git_vault(
+    config: &mut Config,
+    parent_dir: String,
+    repo_url: String,
+    mode: VaultMode,
+    color: String,
+) -> Result<Vault, String> {
+    let parent = Path::new(&parent_dir);
+    if !parent.is_dir() {
+        return Err(format!("Parent path is not a directory: {parent_dir}"));
+    }
+    let trimmed_url = repo_url.trim();
+    if trimmed_url.is_empty() {
+        return Err("Repository URL cannot be empty".to_string());
+    }
+    let name = derive_vault_name_from_git_url(trimmed_url)?;
+    let target = parent.join(&name);
+    if target.exists() {
+        return Err(format!(
+            "A directory or file already exists at: {}",
+            target.display()
+        ));
+    }
+    // `Command::arg` does not invoke a shell, so the URL is safe from
+    // shell-meta injection even when it contains arbitrary characters.
+    let output = std::process::Command::new("git")
+        .arg("clone")
+        .arg(trimmed_url)
+        .arg(&target)
+        .output()
+        .map_err(|e| format!("Failed to invoke git: {e}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git clone failed: {}", stderr.trim()));
+    }
+    let target_str = target
+        .to_str()
+        .ok_or_else(|| "Cloned path is not valid UTF-8".to_string())?
+        .to_string();
+    let vault = Vault::new(name, target_str, mode, color);
+    config.vaults.push(vault.clone());
+    Ok(vault)
 }
 
 /// Update name and/or mode of an existing vault. Untouched fields stay intact.
@@ -98,6 +291,51 @@ pub fn vault_update(
     let updated = update_vault(&mut cfg, &id, name, mode)?;
     config::save_config_to_path(&cfg_path, &cfg)?;
     Ok(updated)
+}
+
+#[tauri::command]
+pub fn vault_create(
+    app: AppHandle,
+    parent_dir: String,
+    name: String,
+    mode: VaultMode,
+    color: String,
+) -> Result<Vault, String> {
+    let cfg_path = config::resolve_config_path(&app)?;
+    let mut cfg = config::load_config_from_path(&cfg_path)?;
+    let vault = create_vault(&mut cfg, parent_dir, name, mode, color)?;
+    config::save_config_to_path(&cfg_path, &cfg)?;
+    Ok(vault)
+}
+
+#[tauri::command]
+pub fn vault_create_sample(
+    app: AppHandle,
+    parent_dir: String,
+    name: String,
+    mode: VaultMode,
+    color: String,
+) -> Result<Vault, String> {
+    let cfg_path = config::resolve_config_path(&app)?;
+    let mut cfg = config::load_config_from_path(&cfg_path)?;
+    let vault = create_sample_vault(&mut cfg, parent_dir, name, mode, color)?;
+    config::save_config_to_path(&cfg_path, &cfg)?;
+    Ok(vault)
+}
+
+#[tauri::command]
+pub fn vault_clone_git(
+    app: AppHandle,
+    parent_dir: String,
+    repo_url: String,
+    mode: VaultMode,
+    color: String,
+) -> Result<Vault, String> {
+    let cfg_path = config::resolve_config_path(&app)?;
+    let mut cfg = config::load_config_from_path(&cfg_path)?;
+    let vault = clone_git_vault(&mut cfg, parent_dir, repo_url, mode, color)?;
+    config::save_config_to_path(&cfg_path, &cfg)?;
+    Ok(vault)
 }
 
 #[tauri::command]
@@ -260,5 +498,99 @@ mod tests {
         assert_eq!(after_mode.name, "New", "name preserved from previous update");
         assert_eq!(after_mode.mode, VaultMode::Readonly);
         assert_eq!(config.vaults.len(), 1, "still one vault");
+    }
+
+    // ------ create_vault ------
+    #[test]
+    fn create_vault_makes_a_new_directory_and_registers_it() {
+        let parent = vault_dir();
+        let mut config = fixture_config();
+        let v = create_vault(
+            &mut config,
+            parent.path().to_string_lossy().into_owned(),
+            "Mon Vault".into(),
+            VaultMode::Edit,
+            TEST_COLOR.into(),
+        )
+        .expect("create_vault should succeed");
+        assert_eq!(v.name, "Mon Vault");
+        assert!(Path::new(&v.path).is_dir(), "vault dir must exist on disk");
+        assert_eq!(config.vaults.len(), 1);
+    }
+
+    #[test]
+    fn create_vault_rejects_existing_target() {
+        let parent = vault_dir();
+        std::fs::create_dir(parent.path().join("Existing")).unwrap();
+        let mut config = fixture_config();
+        let err = create_vault(
+            &mut config,
+            parent.path().to_string_lossy().into_owned(),
+            "Existing".into(),
+            VaultMode::Edit,
+            TEST_COLOR.into(),
+        )
+        .expect_err("must refuse to overwrite existing directory");
+        assert!(err.contains("already exists"), "got: {err}");
+        assert!(config.vaults.is_empty());
+    }
+
+    #[test]
+    fn create_vault_rejects_path_separators_in_name() {
+        let parent = vault_dir();
+        let mut config = fixture_config();
+        let err = create_vault(
+            &mut config,
+            parent.path().to_string_lossy().into_owned(),
+            "evil/../subdir".into(),
+            VaultMode::Edit,
+            TEST_COLOR.into(),
+        )
+        .expect_err("path separators must be rejected");
+        assert!(err.to_lowercase().contains("separator"), "got: {err}");
+    }
+
+    // ------ create_sample_vault ------
+    #[test]
+    fn create_sample_vault_seeds_welcome_files() {
+        let parent = vault_dir();
+        let mut config = fixture_config();
+        let v = create_sample_vault(
+            &mut config,
+            parent.path().to_string_lossy().into_owned(),
+            "Sample".into(),
+            VaultMode::Edit,
+            TEST_COLOR.into(),
+        )
+        .expect("sample vault");
+        let root = Path::new(&v.path);
+        assert!(root.join("Bienvenue.md").is_file());
+        assert!(root.join("Syntaxe markdown.md").is_file());
+        assert!(root.join("Astuces Markhub.md").is_file());
+    }
+
+    // ------ derive_vault_name_from_git_url ------
+    #[test]
+    fn derive_name_from_https_with_dot_git() {
+        let n = derive_vault_name_from_git_url("https://github.com/org/markhub-plugin.git").unwrap();
+        assert_eq!(n, "markhub-plugin");
+    }
+
+    #[test]
+    fn derive_name_from_ssh_form() {
+        let n = derive_vault_name_from_git_url("git@github.com:org/markhub-plugin.git").unwrap();
+        assert_eq!(n, "markhub-plugin");
+    }
+
+    #[test]
+    fn derive_name_strips_trailing_slash_and_no_dot_git() {
+        let n = derive_vault_name_from_git_url("https://example.com/foo/bar/").unwrap();
+        assert_eq!(n, "bar");
+    }
+
+    #[test]
+    fn derive_name_rejects_empty_url() {
+        let err = derive_vault_name_from_git_url("").expect_err("empty must error");
+        assert!(err.to_lowercase().contains("cannot derive"), "got: {err}");
     }
 }

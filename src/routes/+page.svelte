@@ -4,13 +4,50 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import InputDialog from '$lib/components/InputDialog.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
 	import { joinPath } from '$lib/utils/path';
+	import * as api from '$lib/tauri/api';
+
+	type PendingAction = 'create' | 'sample' | 'clone';
 
 	let loadError = $state<string | null>(null);
 	let editorMode = $state<EditorMode>('preview');
+
+	// EmptyState → pick directory → in-app modal flow.
+	let pendingAction = $state<PendingAction | null>(null);
+	let pendingParentDir = $state<string | null>(null);
+
+	const promptConfig = $derived.by(() => {
+		switch (pendingAction) {
+			case 'create':
+				return {
+					title: 'Nouveau vault',
+					placeholder: 'Nom du vault',
+					defaultValue: '',
+					submitLabel: 'Créer'
+				};
+			case 'sample':
+				return {
+					title: "Vault d'exemple",
+					placeholder: 'Nom du vault',
+					defaultValue: "Vault d'exemple",
+					submitLabel: 'Créer'
+				};
+			case 'clone':
+				return {
+					title: 'Cloner un repo Git',
+					placeholder: 'https://github.com/org/repo.git',
+					defaultValue: '',
+					submitLabel: 'Cloner'
+				};
+			default:
+				return null;
+		}
+	});
 
 	onMount(async () => {
 		try {
@@ -18,17 +55,13 @@
 			// Theme has to init AFTER vaultsStore.load so it sees the persisted
 			// `settings.theme`. Sets data-theme on <html> + listens to OS changes.
 			themeStore.init();
-			// Restore the last-opened file if any (and the vault still exists).
+			// Restore the last-opened vault (so the sidebar shows the right
+			// files), but DO NOT auto-open the last file — the launch screen
+			// is always the EmptyState. lastOpenedFile is preserved in the
+			// config so a future "resume last session" command could opt in.
 			const lof = vaultsStore.lastOpenedFile;
 			if (lof && vaultsStore.vaults.some((v) => v.id === lof.vaultId)) {
 				vaultsStore.selectVault(lof.vaultId);
-				try {
-					await activeFileStore.openFile(lof.vaultId, lof.relativePath);
-				} catch (e) {
-					// File may have been deleted/renamed since last session — clear it.
-					console.warn('[startup] Could not restore last opened file', e);
-					void vaultsStore.setLastOpenedFile(null);
-				}
 			}
 		} catch (e) {
 			loadError = String(e);
@@ -37,6 +70,49 @@
 
 	function onContentChange(newContent: string) {
 		activeFileStore.updateContent(newContent);
+	}
+
+	async function onEmptyStateOpenVault() {
+		try {
+			await vaultsStore.addVaultFromPicker();
+		} catch (e) {
+			console.warn('[empty-state] addVaultFromPicker failed', e);
+		}
+	}
+
+	async function startActionWithPicker(action: PendingAction) {
+		try {
+			const dir = await api.vaultPickDirectory();
+			if (!dir) return;
+			pendingParentDir = dir;
+			pendingAction = action;
+		} catch (e) {
+			console.warn('[empty-state] directory picker failed', e);
+		}
+	}
+
+	async function onPromptSubmit(value: string) {
+		if (!pendingAction || !pendingParentDir) return;
+		const action = pendingAction;
+		const parent = pendingParentDir;
+		if (action === 'create') {
+			await vaultsStore.createVault(parent, value);
+		} else if (action === 'sample') {
+			await vaultsStore.createSampleVault(parent, value);
+		} else if (action === 'clone') {
+			await vaultsStore.cloneGitVault(parent, value);
+		}
+		pendingAction = null;
+		pendingParentDir = null;
+	}
+
+	function cancelPrompt() {
+		pendingAction = null;
+		pendingParentDir = null;
+	}
+
+	function onEmptyStateOpenRecent(vaultId: string) {
+		vaultsStore.selectVault(vaultId);
 	}
 
 	async function copyActiveFilePath() {
@@ -119,17 +195,25 @@
 				{/key}
 			</div>
 		{:else}
-			<div class="placeholder">
-				<span class="label">Markhub</span>
-				{#if vaultsStore.vaults.length === 0}
-					<p>Ajoutez votre premier vault dans la sidebar.</p>
-				{:else if !vaultsStore.activeVaultId}
-					<p>Sélectionne un vault.</p>
-				{:else}
-					<p>Sélectionne un fichier.</p>
-				{/if}
-			</div>
+			<EmptyState
+				vaults={vaultsStore.vaults}
+				onOpenVault={onEmptyStateOpenVault}
+				onCreateVault={() => startActionWithPicker('create')}
+				onCloneGit={() => startActionWithPicker('clone')}
+				onCreateSample={() => startActionWithPicker('sample')}
+				onOpenRecentVault={onEmptyStateOpenRecent}
+			/>
 		{/if}
+
+		<InputDialog
+			open={pendingAction !== null && promptConfig !== null}
+			title={promptConfig?.title ?? ''}
+			placeholder={promptConfig?.placeholder ?? ''}
+			defaultValue={promptConfig?.defaultValue ?? ''}
+			submitLabel={promptConfig?.submitLabel ?? 'OK'}
+			onSubmit={onPromptSubmit}
+			onCancel={cancelPrompt}
+		/>
 
 		<!-- Status bar lives INSIDE <main.content> so it only spans the editor
 		     area — the sidebar runs full-height to its left. Warp pattern. -->

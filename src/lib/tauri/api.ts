@@ -35,6 +35,30 @@ export const vaultPickDirectory = async (): Promise<string | null> => {
 	return null;
 };
 
+/** Create a new empty directory at `parentDir/name` and register it as a vault. */
+export const vaultCreate = (
+	parentDir: string,
+	name: string,
+	mode: VaultMode,
+	color: string
+): Promise<Vault> => invoke('vault_create', { parentDir, name, mode, color });
+
+/** Create a vault and seed it with welcome markdown files for onboarding. */
+export const vaultCreateSample = (
+	parentDir: string,
+	name: string,
+	mode: VaultMode,
+	color: string
+): Promise<Vault> => invoke('vault_create_sample', { parentDir, name, mode, color });
+
+/** Clone a remote git repository into `parentDir/<derived-name>` and register it. */
+export const vaultCloneGit = (
+	parentDir: string,
+	repoUrl: string,
+	mode: VaultMode,
+	color: string
+): Promise<Vault> => invoke('vault_clone_git', { parentDir, repoUrl, mode, color });
+
 export const vaultScan = (vaultId: string): Promise<FileEntry> =>
 	invoke('vault_scan', { vaultId });
 

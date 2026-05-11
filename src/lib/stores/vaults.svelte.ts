@@ -9,6 +9,11 @@ import type {
 	VaultMode,
 	VaultState
 } from '$lib/tauri/types';
+// Cross-store reference for the vault-switch UX (close stale active file).
+// `activeFile.svelte` also imports from this module — the cycle is safe
+// because both sides only touch the cross-store binding inside method
+// bodies (not at top-level), so loading completes before any call fires.
+import { activeFileStore } from './activeFile.svelte';
 
 class VaultsStore {
 	vaults = $state<Vault[]>([]);
@@ -51,6 +56,33 @@ class VaultsStore {
 		const name = getFileName(path);
 		const color = pickNextColor(this.vaults.length);
 		const v = await this.addVault(name, path, 'edit', color);
+		this.selectVault(v.id);
+		return v;
+	}
+
+	/** Create a fresh empty vault directory and register it. */
+	async createVault(parentDir: string, name: string): Promise<Vault> {
+		const color = pickNextColor(this.vaults.length);
+		const v = await api.vaultCreate(parentDir, name, 'edit', color);
+		this.vaults.push(v);
+		this.selectVault(v.id);
+		return v;
+	}
+
+	/** Create a vault + seed it with welcome markdown files. */
+	async createSampleVault(parentDir: string, name: string): Promise<Vault> {
+		const color = pickNextColor(this.vaults.length);
+		const v = await api.vaultCreateSample(parentDir, name, 'edit', color);
+		this.vaults.push(v);
+		this.selectVault(v.id);
+		return v;
+	}
+
+	/** Clone a remote git repo as a new vault. Returns once `git clone` exits. */
+	async cloneGitVault(parentDir: string, repoUrl: string): Promise<Vault> {
+		const color = pickNextColor(this.vaults.length);
+		const v = await api.vaultCloneGit(parentDir, repoUrl, 'edit', color);
+		this.vaults.push(v);
 		this.selectVault(v.id);
 		return v;
 	}
@@ -132,7 +164,16 @@ class VaultsStore {
 	}
 
 	selectVault(id: string): void {
+		if (this.activeVaultId === id) return;
 		this.activeVaultId = id;
+		// Close the active file if it belongs to a different vault — keeps
+		// the right pane consistent with the sidebar's vault context (the
+		// user expects the empty state when switching to a vault they
+		// haven't been working in).
+		const active = activeFileStore.activeFile;
+		if (active && active.vaultId !== id) {
+			activeFileStore.close();
+		}
 	}
 
 	/**
