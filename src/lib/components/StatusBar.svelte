@@ -191,7 +191,7 @@
 		border: 0;
 		border-radius: var(--pill-radius);
 		color: var(--pill-fg);
-		font-family: var(--font-sans);
+		font-family: var(--font-ui);
 		font-size: inherit;
 		line-height: 1;
 		white-space: nowrap;

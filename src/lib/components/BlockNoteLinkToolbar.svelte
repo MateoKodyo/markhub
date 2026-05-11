@@ -146,7 +146,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		box-shadow: var(--shadow-popover);
-		font-family: var(--font-sans);
+		font-family: var(--font-ui);
 		color: var(--color-text-body);
 	}
 

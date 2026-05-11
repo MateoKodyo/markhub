@@ -35,7 +35,7 @@
  *  2. Editor container — typography baseline.
  * ──────────────────────────────────────────────────────────── */
 .preview .bn-editor {
-	font-family: var(--font-sans);
+	font-family: var(--font-editor);
 	font-size: 15px;
 	line-height: 1.6;
 	color: var(--color-text-primary);
@@ -49,7 +49,7 @@
 .preview .bn-editor h5,
 .preview .bn-editor h6 {
 	color: var(--color-text-primary);
-	font-family: var(--font-sans);
+	font-family: var(--font-editor);
 	font-style: normal;
 	font-weight: var(--weight-medium);
 	letter-spacing: var(--tracking-heading);
@@ -79,7 +79,7 @@
 
 .preview .bn-editor p,
 .preview .bn-editor li {
-	font-family: var(--font-sans);
+	font-family: var(--font-editor);
 	font-size: 15px;
 	line-height: 1.6;
 	color: var(--color-text-body);
