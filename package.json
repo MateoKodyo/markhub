@@ -41,6 +41,7 @@
 		"@fontsource-variable/geist-mono": "^5.2.7",
 		"@tauri-apps/api": "^2.11.0",
 		"@tauri-apps/plugin-dialog": "^2.7.1",
+		"fuzzysort": "^3.1.0",
 		"lucide-svelte": "^1.0.1",
 		"tinykeys": "^3.0.0",
 		"uuid": "^14.0.0"

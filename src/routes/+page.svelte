@@ -14,8 +14,10 @@
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
-	import { commandRegistry } from '$lib/commands/registry.svelte';
-	import { bindCommandKeymap } from '$lib/commands/keymap';
+	import CommandMode from '$lib/components/palette/CommandMode.svelte';
+	import { commandRegistry, type Command } from '$lib/commands/registry.svelte';
+	import { recentCommandsStore } from '$lib/commands/recent.svelte';
+	import { rankCommands } from '$lib/commands/fuzzy';
 	import { joinPath } from '$lib/utils/path';
 	import * as api from '$lib/tauri/api';
 
@@ -104,112 +106,70 @@
 		root.setProperty('--content-max-width', `${a.editorContentWidth}px`);
 	});
 
-	// --- STEP 2 smoke test wiring (TEMPORARY — replaced in STEP 3) ---------
-	// A throwaway debug palette so Matheo can validate the shell's visuals
-	// and keyboard behavior. STEP 3 swaps this for the real Command mode
-	// (Cmd+K → registry-driven palette).
+	// --- Command palette wiring (STEP 3 — Command mode) -------------------
+	// State owned here because the palette opens overlaid on +page; STEP 4
+	// and STEP 6 will widen `paletteMode` to also include 'file' / 'search'.
 	let paletteOpen = $state(false);
+	let paletteMode = $state<'command'>('command');
 	let paletteQuery = $state('');
 	let paletteSelectedIndex = $state(0);
+	let paletteItemCount = $state(0);
 
-	// Each debug item dispatches either through the command registry
-	// (commandId), or via a `palette:action` event that the Sidebar listens
-	// to for file-tree operations. Vault-required items render disabled
-	// when no vault is active; "comingSoon" rows are UI shells tracked in
-	// BACKLOG.md.
-	type DebugItem = {
-		label: string;
-		group: string;
-		commandId?: string;
-		paletteAction?: 'newFile' | 'newFolder' | 'importFile';
-		requiresVault?: boolean;
-		comingSoon?: boolean;
-	};
+	function openPalette(mode: 'command'): void {
+		paletteMode = mode;
+		paletteQuery = '';
+		paletteSelectedIndex = 0;
+		paletteOpen = true;
+	}
 
-	const PALETTE_DEBUG_ITEMS: DebugItem[] = [
-		{
-			label: 'New file',
-			group: 'File',
-			paletteAction: 'newFile',
-			requiresVault: true
-		},
-		{
-			label: 'New folder',
-			group: 'File',
-			paletteAction: 'newFolder',
-			requiresVault: true
-		},
-		{
-			label: 'Import file',
-			group: 'File',
-			paletteAction: 'importFile',
-			requiresVault: true
-		},
-		{ label: 'Toggle theme', group: 'View', commandId: 'view.toggleTheme' },
-		{ label: 'Toggle sidebar', group: 'View', commandId: 'view.toggleSidebar' },
-		{ label: 'Open settings', group: 'Settings', commandId: 'settings.open' },
-		{ label: 'Export as Markdown', group: 'Export', comingSoon: true },
-		{ label: 'Export as PDF', group: 'Export', comingSoon: true }
-	];
+	function activateCommand(cmd: Command): void {
+		paletteOpen = false;
+		recentCommandsStore.record(cmd.id);
+		void cmd.handler();
+	}
 
-	// Resolve disabled state + badge text once per render. Reactive on
-	// vaultsStore.activeVaultId so opening a vault re-enables the file ops
-	// while the palette is closed.
-	const paletteDebugResolved = $derived.by(() => {
-		const hasVault = vaultsStore.activeVaultId != null;
-		return PALETTE_DEBUG_ITEMS.map((item) => {
-			const needsVault = !!item.requiresVault && !hasVault;
-			const disabled = !!item.comingSoon || needsVault;
-			const badge = item.comingSoon ? 'Soon' : needsVault ? 'Vault' : null;
-			return { ...item, disabled, badge };
-		});
-	});
+	// Mirror CommandMode's ranking here so keyboard Enter (which fires
+	// CommandPalette.onActivate(index)) resolves to the same row the body
+	// displays. Both call sites use the same `rankCommands` inputs, so
+	// they stay in lockstep.
+	const paletteRanked = $derived(
+		paletteMode === 'command'
+			? rankCommands(
+					commandRegistry.getAll(),
+					paletteQuery,
+					recentCommandsStore.getRecent()
+				)
+			: []
+	);
 
-	const paletteDebugFiltered = $derived.by(() => {
-		const q = paletteQuery.toLowerCase().trim();
-		const items = paletteDebugResolved;
-		if (!q) return items;
-		return items.filter((it) => it.label.toLowerCase().includes(q));
-	});
+	function paletteActivateByIndex(index: number): void {
+		const cmd = paletteRanked[index]?.command;
+		if (cmd) activateCommand(cmd);
+	}
 
 	$effect(() => {
 		commandRegistry.register({
-			id: 'palette.debug',
-			label: 'Open Command Palette (debug)',
+			id: 'palette.open',
+			label: 'Open Command Palette',
 			group: 'View',
-			handler: () => {
-				paletteQuery = '';
-				paletteSelectedIndex = 0;
-				paletteOpen = true;
-			}
+			shortcut: '⌘K',
+			handler: () => openPalette('command')
 		});
-		// Smoke shim: a "Open Settings" command exists so Enter has a visible
-		// effect; the real settings command lands in STEP 3's seed catalog.
-		commandRegistry.register({
-			id: 'settings.open',
-			label: 'Open Settings',
-			group: 'Settings',
-			handler: () => settingsStore.open()
-		});
-		return bindCommandKeymap({ '$mod+k': 'palette.debug' });
+		return () => commandRegistry.unregister('palette.open');
 	});
 
-	// Shared activation path — Enter (from CommandPalette.onActivate) and
-	// mouse click on a row both flow through here, so a future tweak to
-	// what "activate" means stays in one place.
-	function activatePaletteDebugItem(index: number): void {
-		const item = paletteDebugFiltered[index];
-		if (!item || item.disabled) return;
-		paletteOpen = false;
-		if (item.paletteAction) {
-			window.dispatchEvent(
-				new CustomEvent('palette:action', { detail: { action: item.paletteAction } })
-			);
-		} else if (item.commandId) {
-			commandRegistry.getById(item.commandId)?.handler();
-		}
-	}
-	// --- end STEP 2 smoke ---------------------------------------------------
+	// view.toggleEditorMode dispatches `app:toggleEditorMode`; listen and
+	// flip editorMode here (preview ↔ source). Only flips when an active
+	// file is open — the command guards itself via `when`.
+	$effect(() => {
+		const onToggle = () => {
+			if (!activeFileStore.activeFile) return;
+			editorMode = editorMode === 'preview' ? 'source' : 'preview';
+		};
+		window.addEventListener('app:toggleEditorMode', onToggle);
+		return () => window.removeEventListener('app:toggleEditorMode', onToggle);
+	});
+	// --- end Command palette wiring ---------------------------------------
 
 	onMount(async () => {
 		try {
@@ -319,23 +279,7 @@
 		}
 	}
 
-	/**
-	 * Global Cmd+, (macOS) / Ctrl+, (Win/Linux) opens the Settings modal.
-	 * Mirrors the OS convention. PLAN-COMMAND-SYSTEM will later route this
-	 * through the central registry (and add Cmd+K → "Open Settings"); for
-	 * now the binding lives here so the modal is reachable from anywhere.
-	 */
-	function onGlobalKeydown(e: KeyboardEvent) {
-		const isComma = e.key === ',';
-		const isMeta = e.metaKey || e.ctrlKey;
-		if (isComma && isMeta) {
-			e.preventDefault();
-			settingsStore.open();
-		}
-	}
 </script>
-
-<svelte:window onkeydown={onGlobalKeydown} />
 
 <div class="app">
 	<!-- The window-chrome strip is a drag region, not an interactive
@@ -458,45 +402,25 @@
 
 <SettingsModal />
 
-<!-- STEP 2 smoke palette — temporary, removed in STEP 3 -->
+<!-- Command palette — STEP 3 (Command mode). STEP 4/6 will add 'file'
+	 and 'search' modes, swapping the body based on paletteMode. -->
 <CommandPalette
 	open={paletteOpen}
-	placeholder="Debug palette (STEP 2)"
-	itemCount={paletteDebugFiltered.length}
+	placeholder="Type a command…"
+	itemCount={paletteItemCount}
 	bind:query={paletteQuery}
 	bind:selectedIndex={paletteSelectedIndex}
 	onClose={() => (paletteOpen = false)}
-	onActivate={activatePaletteDebugItem}
+	onActivate={paletteActivateByIndex}
 >
-	<ul class="debug-palette-list" role="listbox">
-		{#each paletteDebugFiltered as item, i (item.label)}
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- Keyboard activation lives on the input (Enter dispatches via
-				 CommandPalette.onActivate). This row is mouse-only. -->
-			<li
-				role="option"
-				aria-selected={i === paletteSelectedIndex}
-				aria-disabled={item.disabled ? 'true' : undefined}
-				class="debug-palette-row"
-				class:is-selected={i === paletteSelectedIndex}
-				class:is-disabled={item.disabled}
-				onmouseenter={() => {
-					if (!item.disabled) paletteSelectedIndex = i;
-				}}
-				onclick={() => activatePaletteDebugItem(i)}
-			>
-				<span class="debug-palette-label">{item.label}</span>
-				{#if item.badge}
-					<span class="debug-palette-soon">{item.badge}</span>
-				{:else}
-					<span class="debug-palette-group">{item.group}</span>
-				{/if}
-			</li>
-		{/each}
-		{#if paletteDebugFiltered.length === 0}
-			<li class="debug-palette-empty">No matches</li>
-		{/if}
-	</ul>
+	{#if paletteMode === 'command'}
+		<CommandMode
+			query={paletteQuery}
+			selectedIndex={paletteSelectedIndex}
+			bind:itemCount={paletteItemCount}
+			onActivate={activateCommand}
+		/>
+	{/if}
 </CommandPalette>
 
 <style>
@@ -687,56 +611,4 @@
 		color: var(--color-text-secondary);
 	}
 
-	/* --- STEP 2 smoke palette rows (temporary, removed in STEP 3) --- */
-	.debug-palette-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
-	.debug-palette-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 14px;
-		font-size: var(--text-ui);
-		color: var(--color-text-body);
-		cursor: pointer;
-	}
-
-	.debug-palette-row.is-selected {
-		background: var(--color-surface-hover);
-		color: var(--color-text-primary);
-	}
-
-	.debug-palette-label {
-		letter-spacing: -0.01em;
-	}
-
-	.debug-palette-group {
-		font-size: var(--text-caption);
-		color: var(--color-text-muted);
-	}
-
-	.debug-palette-row.is-disabled .debug-palette-label {
-		color: var(--color-text-muted);
-	}
-
-	.debug-palette-soon {
-		padding: 2px 8px;
-		border: 1px solid var(--color-border);
-		border-radius: 9999px;
-		font-size: 10px;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: var(--color-text-muted);
-		background: var(--color-surface-veil);
-	}
-
-	.debug-palette-empty {
-		padding: 24px 14px;
-		text-align: center;
-		color: var(--color-text-muted);
-		font-size: var(--text-caption);
-	}
 </style>
