@@ -15,7 +15,10 @@
 		type SettingsSection
 	} from '$lib/stores/settings.svelte';
 	import SettingsAppearance from './SettingsAppearance.svelte';
+	import SettingsBehavior from './SettingsBehavior.svelte';
 	import SettingsEditor from './SettingsEditor.svelte';
+	import SettingsFiles from './SettingsFiles.svelte';
+	import SettingsSource from './SettingsSource.svelte';
 	import '$lib/styles/settings.css';
 
 	type IconComponent = ComponentType<SvelteComponent>;
@@ -126,6 +129,12 @@
 						<SettingsAppearance />
 					{:else if settingsStore.activeSection === 'editor'}
 						<SettingsEditor />
+					{:else if settingsStore.activeSection === 'source'}
+						<SettingsSource />
+					{:else if settingsStore.activeSection === 'files'}
+						<SettingsFiles />
+					{:else if settingsStore.activeSection === 'behavior'}
+						<SettingsBehavior />
 					{:else}
 						<p class="placeholder">
 							Les contrôles de cette section seront ajoutés à l'étape

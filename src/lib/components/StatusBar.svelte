@@ -1,8 +1,20 @@
 <script lang="ts">
-	import { AlertCircle, Check, Loader, Lock, Monitor, Moon, Pencil, Save, Sun } from 'lucide-svelte';
+	import {
+		AlertCircle,
+		Check,
+		Loader,
+		Lock,
+		Monitor,
+		Moon,
+		Pencil,
+		Save,
+		Settings as SettingsIcon,
+		Sun
+	} from 'lucide-svelte';
 	import type { Vault } from '$lib/tauri/types';
 	import type { SaveStatus } from '$lib/stores/activeFile.svelte';
 	import { computeDocumentStats } from '$lib/stores/documentStats.svelte';
+	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
 
 	let {
@@ -109,7 +121,7 @@
 		{/if}
 	</div>
 
-	<!-- RIGHT — theme, save status, mode toggle -->
+	<!-- RIGHT — theme, settings, save status, mode toggle -->
 	<div class="zone right">
 		<button
 			type="button"
@@ -120,12 +132,23 @@
 			data-testid="theme-toggle"
 		>
 			{#if themeStore.preference === 'light'}
-				<Sun size={12} />
+				<Sun size={12} aria-hidden="true" focusable="false" />
 			{:else if themeStore.preference === 'dark'}
-				<Moon size={12} />
+				<Moon size={12} aria-hidden="true" focusable="false" />
 			{:else}
-				<Monitor size={12} />
+				<Monitor size={12} aria-hidden="true" focusable="false" />
 			{/if}
+		</button>
+
+		<button
+			type="button"
+			class="pill pill-btn pill-icon"
+			title="Paramètres (⌘,)"
+			aria-label="Ouvrir les paramètres"
+			onclick={() => settingsStore.open()}
+			data-testid="settings-toggle"
+		>
+			<SettingsIcon size={12} aria-hidden="true" focusable="false" />
 		</button>
 
 		{#if statusInfo.icon}

@@ -72,6 +72,27 @@ test.describe('settings modal — shell baseline', () => {
 		});
 	});
 
+	test('source section — dark theme', async ({ page }) => {
+		await gotoSettings(page, 'dark', 'source');
+		await expect(page).toHaveScreenshot('settings-modal-source-dark.png', {
+			maxDiffPixelRatio: 0.01
+		});
+	});
+
+	test('files section — dark theme', async ({ page }) => {
+		await gotoSettings(page, 'dark', 'files');
+		await expect(page).toHaveScreenshot('settings-modal-files-dark.png', {
+			maxDiffPixelRatio: 0.01
+		});
+	});
+
+	test('behavior section — dark theme', async ({ page }) => {
+		await gotoSettings(page, 'dark', 'behavior');
+		await expect(page).toHaveScreenshot('settings-modal-behavior-dark.png', {
+			maxDiffPixelRatio: 0.01
+		});
+	});
+
 	test('clicking the backdrop closes the modal', async ({ page }) => {
 		await gotoSettings(page);
 		const backdrop = page.getByTestId('settings-backdrop');

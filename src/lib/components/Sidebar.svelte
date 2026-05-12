@@ -8,6 +8,7 @@
 	import FolderPickerDialog from './FolderPickerDialog.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
+	import { settingsStore } from '$lib/stores/settings.svelte';
 	import {
 		vaultScan,
 		fileCreate,
@@ -118,9 +119,24 @@
 		selectedEntry = null;
 	}
 
-	function handleOpenFile(relativePath: string) {
+	async function handleOpenFile(relativePath: string) {
 		const id = vaultsStore.activeVaultId;
 		if (!id) return;
+		// Respect the "ask before closing unsaved" setting: when the current
+		// file is in the 'modified' state (autosave debounce hasn't fired yet),
+		// flush it to disk before navigating away so the user never silently
+		// loses an in-flight edit.
+		if (
+			settingsStore.current.behavior.askBeforeClosingUnsaved &&
+			activeFileStore.status === 'modified'
+		) {
+			try {
+				await activeFileStore.forceSave();
+			} catch (e) {
+				topLevelError = `Échec de la sauvegarde avant changement de fichier : ${String(e)}`;
+				return;
+			}
+		}
 		void activeFileStore.openFile(id, relativePath);
 	}
 
@@ -508,6 +524,12 @@
 				void vaultsStore.setLastOpenedFile(null);
 			}
 		};
+		// "Confirm before permanent deletion" setting: when off, skip the
+		// dialog and run the handler immediately.
+		if (!settingsStore.current.files.confirmDelete) {
+			void confirmHandler();
+			return;
+		}
 		confirmOpen = true;
 	}
 
@@ -602,6 +624,12 @@
 				void vaultsStore.setLastOpenedFile(null);
 			}
 		};
+		// "Confirm before permanent deletion" setting: when off, skip the
+		// dialog and run the handler immediately.
+		if (!settingsStore.current.files.confirmDelete) {
+			void confirmHandler();
+			return;
+		}
 		confirmOpen = true;
 	}
 

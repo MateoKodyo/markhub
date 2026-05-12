@@ -53,6 +53,25 @@
 		}
 	});
 
+	/**
+	 * Mono-font CSS bridge — when the user picks a different monospace font
+	 * in Settings → Mode source, we override the global `--font-mono` token
+	 * so every code surface (source mode, code blocks, inline code) picks
+	 * the new family without each consumer needing to know.
+	 */
+	const MONO_FAMILY_BY_ID: Record<string, string> = {
+		'geist-mono':
+			"'Geist Mono Variable', 'SF Mono', 'Monaco', 'Cascadia Code', monospace",
+		'jetbrains-mono': "'JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', monospace",
+		'fira-code': "'Fira Code', 'SF Mono', 'Monaco', 'Cascadia Code', monospace"
+	};
+
+	$effect(() => {
+		const id = settingsStore.current.source.monoFont;
+		const family = MONO_FAMILY_BY_ID[id] ?? MONO_FAMILY_BY_ID['geist-mono'];
+		document.documentElement.style.setProperty('--font-mono', family);
+	});
+
 	onMount(async () => {
 		try {
 			await vaultsStore.load();
