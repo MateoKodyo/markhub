@@ -2,6 +2,7 @@
 	import {
 		AlertCircle,
 		Check,
+		Copy,
 		Loader,
 		Lock,
 		Monitor,
@@ -78,14 +79,18 @@
 				<span>{vault.name}</span>
 			</span>
 			{#if relativePath}
+				<span class="pill pill-mono pill-path" data-testid="path-pill">
+					{relativePath}
+				</span>
 				<button
 					type="button"
-					class="pill pill-btn pill-mono"
+					class="pill pill-btn pill-icon pill-copy"
 					title="Copier le chemin absolu"
+					aria-label="Copier le chemin absolu"
 					onclick={onCopyPath}
 					data-testid="path-copy-btn"
 				>
-					{relativePath}
+					<Copy size={11} aria-hidden="true" focusable="false" />
 				</button>
 				{#if readonly}
 					<span class="pill pill-badge" title="Vault en lecture seule" data-testid="ro-pill">
@@ -121,8 +126,20 @@
 		{/if}
 	</div>
 
-	<!-- RIGHT — theme, settings, save status, mode toggle -->
+	<!-- RIGHT — save status (variable), then theme + settings always pinned
+	     to the extreme right. The save pill grows/shrinks with status, but
+	     never pushes the action icons inward. -->
 	<div class="zone right">
+		{#if statusInfo.icon}
+			{@const StatusIcon = statusInfo.icon}
+			<span class="pill pill-status" data-status={status} data-testid="save-pill">
+				<StatusIcon size={11} />
+				{#if statusInfo.label}
+					<span>{statusInfo.label}</span>
+				{/if}
+			</span>
+		{/if}
+
 		<button
 			type="button"
 			class="pill pill-btn pill-icon"
@@ -150,16 +167,6 @@
 		>
 			<SettingsIcon size={12} aria-hidden="true" focusable="false" />
 		</button>
-
-		{#if statusInfo.icon}
-			{@const StatusIcon = statusInfo.icon}
-			<span class="pill pill-status" data-status={status} data-testid="save-pill">
-				<StatusIcon size={11} />
-				{#if statusInfo.label}
-					<span>{statusInfo.label}</span>
-				{/if}
-			</span>
-		{/if}
 	</div>
 </footer>
 
@@ -218,6 +225,17 @@
 		font-size: inherit;
 		line-height: 1;
 		white-space: nowrap;
+	}
+
+	/* Path pill: static display now — the copy action lives in the dedicated
+	   icon button next to it. Cursor stays default so it doesn't suggest an
+	   action. */
+	.pill-path {
+		cursor: default;
+	}
+
+	.pill-copy {
+		color: var(--color-text-muted);
 	}
 
 	.pill-mono {

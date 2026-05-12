@@ -9,6 +9,8 @@
 		X
 	} from 'lucide-svelte';
 	import type { ComponentType, SvelteComponent } from 'svelte';
+	import { fade, scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import {
 		SETTINGS_SECTIONS,
 		settingsStore,
@@ -72,11 +74,15 @@
 <svelte:window onkeydown={onKeydown} />
 
 {#if settingsStore.isOpen}
+	<!-- Soft entrance: backdrop fades, panel fades + drifts up + scales a
+	     touch. 180ms in, 140ms out — quick enough for a dev tool, soft
+	     enough to feel intentional. cubicOut decays naturally on the way in. -->
 	<div
 		class="backdrop"
 		role="presentation"
 		onclick={onBackdrop}
 		data-testid="settings-backdrop"
+		transition:fade={{ duration: 180, easing: cubicOut }}
 	>
 		<div
 			bind:this={modalEl}
@@ -86,6 +92,8 @@
 			aria-labelledby="settings-title"
 			tabindex={-1}
 			data-testid="settings-modal"
+			in:scale={{ duration: 180, start: 0.96, opacity: 0, easing: cubicOut }}
+			out:scale={{ duration: 140, start: 0.98, opacity: 0, easing: cubicOut }}
 		>
 			<header class="modal-header">
 				<h2 id="settings-title">Paramètres</h2>
