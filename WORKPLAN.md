@@ -14,7 +14,7 @@ La **migration de l'éditeur Crepe → BlockNote** est complète et clôturée. 
 
 Chantiers débloqués pour les prochaines sessions :
 - **C2** — Système de toast / notifications (P1)
-- **C3** — Drag-drop sidebar HTML5 → pointer events (P1, bug cassé en réel — non investigué pendant C1)
+- **C3** — Drag-drop sidebar HTML5 → pointer events (P1, ~~bug cassé en réel~~ → **user-validated OK 2026-05-12 matin**, chantier déprioritisé sauf nouveau symptôme)
 - **Hors plan urgent** : fix folder-delete EPERM macOS (diagnostiqué 2026-05-10 par 2 agents, à coder sur branche dédiée `fix/folder-delete-permission` depuis `main`)
 
 ---
@@ -25,7 +25,7 @@ Chantiers débloqués pour les prochaines sessions :
 |-------|----------|----------|------|---------------|
 | 1 | Migration éditeur Crepe → BlockNote | P0 | **✅ TERMINÉ 2026-05-11 — branche prête merge manuel Matheo** | `PLAN-BLOCKNOTE.md` (historique) |
 | 2 | Système de Toast / Notifications | P1 | DÉBLOQUÉ (peut démarrer post-merge C1) | §"Chantier 2" ci-dessous |
-| 3 | Drag-drop sidebar (HTML5 → pointer events) | P1 | DÉBLOQUÉ — bug CASSÉ confirmé en réel | §"Chantier 3" ci-dessous |
+| 3 | Drag-drop sidebar (HTML5 → pointer events) | P2 | 🟡 USER-VALIDATED OK 2026-05-12 matin — déprio sauf nouveau symptôme | §"Chantier 3" ci-dessous |
 | 4 | Outline panel (sommaire) | P2 | SUSPENDU — brief posé | `features/sommaire.md` |
 | 5 | Empty state | P2 | SUSPENDU — brief posé | `features/empty-state.md` |
 | 6 | Onglets de fichiers (Phase 5c) | P2 | SUSPENDU — backlog | `BACKLOG.md` |

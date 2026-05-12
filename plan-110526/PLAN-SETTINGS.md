@@ -148,8 +148,8 @@ The modal is opened via:
 
 | Step | Status | Commit | Matheo validation |
 |------|--------|--------|-------------------|
-| 1. Settings store + persistence | ✅ | `c4db29f` | ⏸ pending smoke (autonomous night run) |
-| 2. Modal shell + navigation | ✅ | `59893c7` | ⏸ pending smoke (autonomous night run) |
+| 1. Settings store + persistence | ✅ | `c4db29f` | ✅ smoke OK 2026-05-12 matin |
+| 2. Modal shell + navigation | ✅ | `59893c7` | ✅ smoke OK 2026-05-12 matin |
 | 3. Appearance section | ⏳ | — | — |
 | 4. Editor section | ⏳ | — | — |
 | 5. Source mode + Files + Behavior sections | ⏳ | — | — |

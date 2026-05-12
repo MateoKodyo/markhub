@@ -116,7 +116,7 @@ UI shell du modal :
 
 ## Bugs CONNUS hors scope
 
-- **Drag-drop fichier → dossier dans la sidebar** : "doesn't work at all" en réel + régression "Failed to rename ... os error 2" confirmée pendant DESIGN-DEFAULTS. Tentative d'agent dédié en worktree pendant cette nuit → tué en cours de RED phase (un seul fichier test commencé `tests/component/FileTreeDragDrop.test.svelte.ts`, jamais commité, perdu avec le worktree). **À reprendre en session directe** (probablement pas en agent autonome — voir [[feedback-parallel-agent-worktrees]]). Plan inchangé dans WORKPLAN.md §C3.
+- **Drag-drop fichier → dossier dans la sidebar** : ~~"doesn't work at all"~~ → **re-validé par Matheo le 2026-05-12 matin** : marche en réel après cette nuit. Rien dans `main` n'a touché `FileTree.svelte` (l'agent drag-drop a été tué en RED phase, son fichier test perdu avec son worktree), donc soit le bug du 11/05 était transient, soit il subsiste discret (un toast d'erreur très bref non-vu). À surveiller pendant l'usage normal. Le chantier C3 (réécriture HTML5 → pointer events) peut être déprioritisé tant qu'aucun nouveau symptôme n'apparaît.
 
 ## Worktrees / agents : leçon de la nuit
 
@@ -135,7 +135,7 @@ UI shell du modal :
 | PLAN-COMMAND-SYSTEM (Cmd+K / Cmd+P / Shift+F) | PAS DÉMARRÉ — plan rédigé. Prerequisite (DESIGN-DEFAULTS ✅) levé. Mais Matheo a explicitement dit "settings d'abord". |
 | Folder-delete EPERM | ✅ FIXÉ sur `main` (2026-05-12 nuit) |
 | C2 — Toast / notifications | DÉBLOQUÉ |
-| C3 — Drag-drop sidebar (HTML5 → pointer events) | DÉBLOQUÉ — tentative agent nuit avortée |
+| C3 — Drag-drop sidebar (HTML5 → pointer events) | 🟡 USER-VALIDATED OK 2026-05-12 matin — chantier déprioritisé sauf nouveau symptôme |
 | Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — explicitement skippé |
 | Outline panel (sommaire) | PAS DÉMARRÉ — brief posé, aucun code |
 | Empty state | ✅ LIVRÉ dans DESIGN-DEFAULTS STEP 6 |
@@ -152,21 +152,12 @@ UI shell du modal :
 8. `BACKLOG.md` (hors-scope MVP)
 9. `SPEC.md` / `design.md` / `PLAN.md` (référence)
 
-## Smoke tests à faire par Matheo en début de session
+## Smoke tests — TOUS VALIDÉS par Matheo le 2026-05-12 matin ✅
 
-1. **Folder-delete (le bug qui te bloquait depuis 2026-05-10)** :
-   - `npm run tauri dev`
-   - Créer un dossier dans la sidebar, mettre 1-2 fichiers dedans, click droit → Supprimer → confirmer.
-   - **Attendu** : dossier supprimé sans erreur. Avant le fix : toast `Failed to delete X: Operation not permitted (os error 1)`.
-
-2. **Settings modal STEP 2** :
-   - `npm run tauri dev`
-   - Appuyer **Cmd+,** (macOS) ou **Ctrl+,**.
-   - **Attendu** : modal centré, backdrop sombre, 6 sections en rail gauche (Apparence par défaut), placeholder à droite. Click sur chaque section change la sélection active.
-   - Test fermeture : Escape ferme, click sur backdrop ferme, click sur bouton X ferme.
-
-3. **Pas de régression visuelle** :
-   - L'éditeur, la sidebar, l'EmptyState au boot doivent être identiques à avant (les 40 baselines existantes sont toujours vertes).
+1. **Folder-delete (bug du 10/05)** : ✅ "marche très bien"
+2. **Drag-drop sidebar fichier → dossier** : ✅ "marche très bien" (surprise — voir §"Bugs CONNUS")
+3. **Settings modal STEP 2** : ✅ "Modal apparaît bien", navigation rail OK, placeholders normaux à droite
+4. **Pas de régression** : ✅ "tout a l'air de fonctionner très bien"
 
 ## Prochaine étape
 
