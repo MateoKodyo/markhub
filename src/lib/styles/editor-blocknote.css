@@ -36,8 +36,11 @@
  * ──────────────────────────────────────────────────────────── */
 .preview .bn-editor {
 	font-family: var(--font-editor);
-	font-size: 15px;
-	line-height: 1.6;
+	/* Body typography is user-configurable via Settings → Apparence. The
+	   fallback values preserve the legacy look for surfaces that never
+	   hydrate the user-settings store (e.g. /_visual fixtures). */
+	font-size: var(--editor-body-font-size, 15px);
+	line-height: var(--editor-body-line-height, 1.6);
 	color: var(--color-text-primary);
 	background: transparent;
 }
@@ -80,8 +83,8 @@
 .preview .bn-editor p,
 .preview .bn-editor li {
 	font-family: var(--font-editor);
-	font-size: 15px;
-	line-height: 1.6;
+	font-size: var(--editor-body-font-size, 15px);
+	line-height: var(--editor-body-line-height, 1.6);
 	color: var(--color-text-body);
 }
 
