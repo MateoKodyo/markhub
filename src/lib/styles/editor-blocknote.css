@@ -36,14 +36,20 @@
  * ──────────────────────────────────────────────────────────── */
 .preview .bn-editor {
 	font-family: var(--font-editor);
-	/* Body typography is user-configurable via Settings → Apparence. The
-	   fallback values preserve the legacy look for surfaces that never
-	   hydrate the user-settings store (e.g. /_visual fixtures). */
-	font-size: var(--editor-body-font-size, 15px);
-	line-height: var(--editor-body-line-height, 1.6);
+	font-size: 15px;
+	line-height: 1.6;
 	color: var(--color-text-primary);
 	background: transparent;
 }
+
+/* Editor body typography overrides (font family / size / line-height) are
+   currently deferred — BlockNote's internal cascade applies styles at
+   multiple levels (`.bn-default-styles`, `.bn-block-outer`, per-content-type
+   block-content rules) that our overrides could not reach without invasive
+   `!important` + JS-driven DOM mutations, which deteriorated into the
+   editor freezing on every keystroke. The clean path forward is BlockNote's
+   own theming/styling API — tracked in BACKLOG.md. Until then, the editor
+   body keeps the baseline above (15px / 1.6 / Geist via --font-editor). */
 
 .preview .bn-editor h1,
 .preview .bn-editor h2,
@@ -83,8 +89,8 @@
 .preview .bn-editor p,
 .preview .bn-editor li {
 	font-family: var(--font-editor);
-	font-size: var(--editor-body-font-size, 15px);
-	line-height: var(--editor-body-line-height, 1.6);
+	font-size: 15px;
+	line-height: 1.6;
 	color: var(--color-text-body);
 }
 

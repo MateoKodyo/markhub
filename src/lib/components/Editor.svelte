@@ -3,6 +3,15 @@
 	import { joinFrontmatter, splitFrontmatter } from '$lib/utils/markdown';
 	import { urlOpen } from '$lib/tauri/api';
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	// CSS pulled in statically so Vite HMR reloads the stylesheets on every
+	// edit. Previously these lived inside an `await Promise.all([...])` block
+	// alongside the BlockNote JS import — Vite does not HMR the dynamic
+	// `import('*.css')` pattern reliably, which is what made the appearance
+	// settings appear "stuck" during STEP 3 → STEP 5 dev iterations.
+	// (BlockNote core JS stays dynamic — it's heavy and only needed once the
+	// editor mounts.)
+	import '@blocknote/core/style.css';
+	import '$lib/styles/editor-blocknote.css';
 	import BlockNoteSlashMenu, {
 		type SlashMenuState
 	} from './BlockNoteSlashMenu.svelte';
@@ -161,17 +170,8 @@
 		let suppressNextChange = true;
 
 		(async () => {
-			const [{ BlockNoteEditor, filterSuggestionItems, getDefaultSlashMenuItems }] =
-				await Promise.all([
-					import('@blocknote/core'),
-					// 1. Default BN layout, drag handle, drop indicators, etc.
-					import('@blocknote/core/style.css').catch(() => null),
-					// 2. Markhub design system polish on top (step 3) — maps
-					//    BN CSS variables to Markhub tokens, kills BN hardcoded
-					//    hex on code blocks / tables / drop cursors / file
-					//    blocks, applies the IDE-density heading scale, etc.
-					import('$lib/styles/editor-blocknote.css').catch(() => null)
-				]);
+			const { BlockNoteEditor, filterSuggestionItems, getDefaultSlashMenuItems } =
+				await import('@blocknote/core');
 			if (cancelled) return;
 
 			const editor = BlockNoteEditor.create();
@@ -191,7 +191,7 @@
 			localEditor = editor;
 			editorInstance = editor;
 
-			// Initial spellcheck application — the top-level $effect below will
+			// Initial spellcheck application — the top-level $effect will
 			// react to user toggles, but it can't pick up the .ProseMirror
 			// element until BlockNote has actually mounted, so we set it once
 			// here at mount-complete time.
@@ -362,6 +362,16 @@
 		settingsStore.current.editor.spellCheck;
 		applySpellcheck();
 	});
+
+	// Editor body typography (font family / size / line-height) is set
+	// globally via CSS variables on <html>, see the `$effect` in
+	// +page.svelte. Whether BlockNote's internal cascade picks them up
+	// reliably is tracked in BACKLOG.md — until that's resolved cleanly
+	// via BlockNote's theming API, the editor body keeps the legacy
+	// 15px / 1.6 / Geist defaults from `editor-blocknote.css`. The other
+	// appearance settings (theme, mono font, content width) DO apply
+	// live, plus all editor settings (autosave, spellcheck) and the
+	// remaining sections.
 
 	function onSourceInput(e: Event) {
 		const target = e.target as HTMLTextAreaElement;

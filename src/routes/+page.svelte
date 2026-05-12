@@ -73,17 +73,19 @@
 	});
 
 	/**
-	 * Editor typography CSS bridge — mirrors `appearance.editorFont /
-	 * editorFontSize / editorLineHeight / editorContentWidth` to global
-	 * CSS variables that the editor consumes. Same one-effect-no-prop
-	 * pattern as the mono font bridge: editor consumers just read the
-	 * variable, no plumbing through props.
+	 * Editor typography CSS bridge — mirrors the appearance settings to
+	 * global CSS variables that the editor consumes. Same one-effect-no-prop
+	 * pattern as the mono font bridge.
 	 *
-	 * `--font-editor` already exists in app.css (default: Geist stack)
-	 * and is consumed by `.preview .bn-editor` and headings. The other
-	 * three (`--editor-body-font-size`, `--editor-body-line-height`,
-	 * `--content-max-width`) are read with fallbacks so the visual
-	 * fixtures (which never hydrate settings) keep the legacy look.
+	 * `--font-editor`        → consumed by editor-blocknote.css for the
+	 *                          editor surface + heading scale (heading
+	 *                          family changes live).
+	 * `--content-max-width`  → consumed by Editor.svelte's `.canvas` for
+	 *                          the writing measure (live).
+	 *
+	 * Body font-size + line-height are intentionally NOT wired here. The
+	 * BlockNote cascade owns the body typography internally and overriding
+	 * it cleanly needs BlockNote's theming API — tracked in BACKLOG.md.
 	 */
 	const EDITOR_FAMILY_BY_ID: Record<string, string> = {
 		geist: "'Geist Variable', system-ui, -apple-system, 'Helvetica Neue', sans-serif",
@@ -96,8 +98,6 @@
 		const a = settingsStore.current.appearance;
 		const root = document.documentElement.style;
 		root.setProperty('--font-editor', EDITOR_FAMILY_BY_ID[a.editorFont] ?? EDITOR_FAMILY_BY_ID.geist);
-		root.setProperty('--editor-body-font-size', `${a.editorFontSize}px`);
-		root.setProperty('--editor-body-line-height', `${a.editorLineHeight}`);
 		root.setProperty('--content-max-width', `${a.editorContentWidth}px`);
 	});
 
