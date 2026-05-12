@@ -4,6 +4,11 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### Export du fichier courant (idée 2026-05-13, hors scope MVP)
+- **Export as Markdown** — commande palette qui propose un export "Save As…" du fichier courant (utilisable pour copier hors-vault). Comportement attendu : dialog natif Tauri `save` filtré `.md`, écrit le contenu actuel à l'emplacement choisi. Triviale techniquement.
+- **Export as PDF** — commande palette qui rend le markdown courant en PDF. Plus de travail : pipeline de rendu (puppeteer ? wkhtmltopdf ? `printable_web_view` Tauri ?). Décision techno à instruire en propre.
+- **UI shells déjà posés** dans la debug palette de STEP 2 (commandes désactivées avec badge "Soon"). Les retirer / les câbler en vrai dans un chantier dédié post-MVP.
+
 ### Settings v1 — wiring différé
 - **Appliquer `appearance.editorFontSize` + `editorLineHeight` au body de l'éditeur** — STEP 3 livre le store + le modal + le live preview dans le modal. Le wiring DANS BlockNote a été tenté en STEP 3+ et reverté le 2026-05-12 nuit (commit `b2c19d2`) : BlockNote applique son propre cascade sur `.bn-default-styles`, `.bn-block-outer` et `.bn-block-content[data-content-type=...]`, et nos overrides CSS + JS-DOM + MutationObserver ont fini par freezer l'éditeur. **Chemin propre = passer par l'API de theming / styling de BlockNote** (le fichier `editor-blocknote.css` utilise déjà ses variables `--bn-*` propres, c'est probablement la bonne porte). Ce qui MARCHE déjà live : theme, font family du chrome heading (via `--font-editor`), content width, autosave delay, spellcheck, mono font. Reste : body font-size + body line-height.
 

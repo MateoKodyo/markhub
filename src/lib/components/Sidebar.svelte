@@ -82,6 +82,22 @@
 		void refreshScan(id);
 	});
 
+	// Bridge from the (STEP 2 debug) command palette to the existing
+	// Sidebar-internal flows. STEP 3 will replace this with proper
+	// command-registry handlers — until then, the palette dispatches a
+	// `palette:action` event and we route it to the right local function.
+	$effect(() => {
+		const onPaletteAction = (e: Event) => {
+			const detail = (e as CustomEvent<{ action?: string }>).detail;
+			if (!vaultsStore.activeVaultId) return;
+			if (detail?.action === 'newFile') startCreate('file');
+			else if (detail?.action === 'newFolder') startCreate('folder');
+			else if (detail?.action === 'importFile') void handleImport();
+		};
+		window.addEventListener('palette:action', onPaletteAction);
+		return () => window.removeEventListener('palette:action', onPaletteAction);
+	});
+
 	async function refreshScan(vaultId?: string) {
 		const id = vaultId ?? vaultsStore.activeVaultId;
 		if (!id) return;
