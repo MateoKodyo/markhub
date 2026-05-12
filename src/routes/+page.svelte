@@ -19,6 +19,8 @@
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import CommandMode from '$lib/components/palette/CommandMode.svelte';
 	import FileMode from '$lib/components/palette/FileMode.svelte';
+	import SearchMode from '$lib/components/palette/SearchMode.svelte';
+	import type { SearchActivation } from '$lib/components/palette/types';
 	import { commandRegistry, type Command } from '$lib/commands/registry.svelte';
 	import { recentCommandsStore } from '$lib/commands/recent.svelte';
 	import { rankCommands } from '$lib/commands/fuzzy';
@@ -131,6 +133,29 @@
 		void activeFileStore.openFile(entry.vaultId, entry.relativePath);
 	}
 
+	/** Click on a search hit: close, open the file, then dispatch a
+	 *  jump-to-line event for the editor to consume. Source mode scrolls
+	 *  the textarea to the row; preview mode (BlockNote) is a no-op for
+	 *  now — line→block resolution is BACKLOG. */
+	function activateSearch(target: SearchActivation): void {
+		const vaultId = vaultsStore.activeVaultId;
+		if (!vaultId) return;
+		paletteStore.close();
+		recentFilesStore.record({
+			vaultId,
+			relativePath: target.relativePath
+		});
+		void activeFileStore
+			.openFile(vaultId, target.relativePath)
+			.then(() => {
+				window.dispatchEvent(
+					new CustomEvent('editor:jumpToLine', {
+						detail: { lineNumber: target.lineNumber }
+					})
+				);
+			});
+	}
+
 	// Mirror each mode's ranking so keyboard Enter (which fires
 	// CommandPalette.onActivate(index)) resolves to the same row the body
 	// displays. Both shell + body use the same ranking inputs.
@@ -162,6 +187,11 @@
 			: []
 	);
 
+	// Search mode exposes its flat list of (path, line) targets so the
+	// shell's Enter can resolve to the right one without re-running the
+	// search here. Empty until SearchMode mounts.
+	let paletteSearchTargets = $state<SearchActivation[]>([]);
+
 	function paletteActivateByIndex(index: number): void {
 		if (paletteStore.mode === 'command') {
 			const cmd = paletteRankedCommands[index]?.command;
@@ -169,6 +199,9 @@
 		} else if (paletteStore.mode === 'file') {
 			const entry = paletteRankedFiles[index]?.entry;
 			if (entry) activateFile(entry);
+		} else if (paletteStore.mode === 'search') {
+			const target = paletteSearchTargets[index];
+			if (target) activateSearch(target);
 		}
 	}
 
@@ -444,6 +477,14 @@
 			selectedIndex={paletteStore.selectedIndex}
 			bind:itemCount={paletteStore.itemCount}
 			onActivate={activateFile}
+		/>
+	{:else if paletteStore.mode === 'search'}
+		<SearchMode
+			query={paletteStore.query}
+			selectedIndex={paletteStore.selectedIndex}
+			bind:itemCount={paletteStore.itemCount}
+			bind:flatTargets={paletteSearchTargets}
+			onActivate={activateSearch}
 		/>
 	{/if}
 </CommandPalette>

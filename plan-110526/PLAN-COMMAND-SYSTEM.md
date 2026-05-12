@@ -110,7 +110,7 @@ For Cmd+Shift+F, content search runs in the Rust backend via the `grep` and `ign
 | 3. Command mode (Cmd+K) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
 | 4. File mode (Cmd+P) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
 | 5. Search mode backend (Tauri + ripgrep) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
-| 6. Search mode UI (Cmd+Shift+F) | ⏳ | — | — |
+| 6. Search mode UI (Cmd+Shift+F) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
 | 7. Polish + keyboard ergonomics | ⏳ | — | — |
 | 8. Closure | ⏳ | — | — |
 

@@ -46,6 +46,34 @@
 	} = $props();
 
 	let container: HTMLDivElement | null = $state(null);
+	let sourceTextarea: HTMLTextAreaElement | null = $state(null);
+
+	// Listen for jump-to-line events fired by Cmd+Shift+F search hits.
+	// Source mode focuses + selects + scrolls the corresponding line.
+	// Preview mode (BlockNote) is a no-op for now — mapping a source
+	// line to a BlockNote block is BACKLOG.
+	$effect(() => {
+		const onJump = (e: Event) => {
+			const detail = (e as CustomEvent<{ lineNumber: number }>).detail;
+			if (!detail || mode !== 'source' || !sourceTextarea) return;
+			const target = detail.lineNumber;
+			const lines = content.split('\n');
+			const clamped = Math.max(1, Math.min(target, lines.length));
+			const before = lines.slice(0, clamped - 1).join('\n');
+			const offset = before.length + (clamped > 1 ? 1 : 0);
+			const lineLen = lines[clamped - 1]?.length ?? 0;
+			sourceTextarea.focus();
+			sourceTextarea.setSelectionRange(offset, offset + lineLen);
+			const lh = parseFloat(getComputedStyle(sourceTextarea).lineHeight);
+			const lineHeight = Number.isFinite(lh) ? lh : 20;
+			sourceTextarea.scrollTop = Math.max(
+				0,
+				(clamped - 1) * lineHeight - sourceTextarea.clientHeight / 3
+			);
+		};
+		window.addEventListener('editor:jumpToLine', onJump);
+		return () => window.removeEventListener('editor:jumpToLine', onJump);
+	});
 	// We type the editor instance loosely: the dynamic import returns a
 	// fully-generic class whose schema params would force a noisy chain of
 	// type aliases here. The surface we actually call is small (mount,
@@ -548,6 +576,7 @@
 	<div class="canvas-scroll">
 		<div class="canvas">
 			<textarea
+				bind:this={sourceTextarea}
 				class="source"
 				value={content}
 				oninput={onSourceInput}

@@ -187,6 +187,15 @@ export function registerAppCommands(): void {
 			paletteStore.open('file');
 		}
 	});
+
+	commandRegistry.register({
+		id: 'palette.openSearch',
+		label: 'Search in Vault…',
+		group: 'View',
+		shortcut: '⌘⇧F',
+		when: () => vaultsStore.activeVaultId !== null,
+		handler: () => paletteStore.open('search')
+	});
 }
 
 /**
@@ -198,6 +207,7 @@ export const APP_KEYMAP = {
 	'$mod+s': 'file.save',
 	'$mod+k': 'palette.open',
 	'$mod+p': 'palette.openFile',
+	'$mod+Shift+f': 'palette.openSearch',
 	'$mod+,': 'settings.open'
 } as const;
 
@@ -217,7 +227,8 @@ export function unregisterAppCommands(): void {
 		'view.toggleEditorMode',
 		'settings.open',
 		'palette.open',
-		'palette.openFile'
+		'palette.openFile',
+		'palette.openSearch'
 	]) {
 		commandRegistry.unregister(id);
 	}
