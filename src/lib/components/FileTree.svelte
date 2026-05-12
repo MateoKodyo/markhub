@@ -38,7 +38,8 @@
 		onStartRename = () => {},
 		onRenameSubmit = () => {},
 		onRenameCancel = () => {},
-		onMoveFile = () => {}
+		onMoveFile = () => {},
+		onDragOut = () => {}
 	}: {
 		root?: FileEntry | null;
 		filter?: string;
@@ -67,6 +68,13 @@
 		 * Sidebar wires this to file_rename. Source is always a .md file path.
 		 */
 		onMoveFile?: (sourcePath: string, targetParentPath: string) => void | Promise<void>;
+		/**
+		 * Cmd/Ctrl-drag a file out of the app (toward the Desktop, Finder, Mail,
+		 * etc.). Sidebar resolves the absolute path and hands off to the OS via
+		 * `tauri-plugin-drag`. Called on `dragstart` when the metaKey/ctrlKey is
+		 * held — default drag remains the in-app reorg flow above.
+		 */
+		onDragOut?: (entry: FileEntry) => void | Promise<void>;
 	} = $props();
 
 	const DRAG_MIME = 'application/x-markhub-path';
@@ -74,7 +82,25 @@
 	let dragSourcePath = $state<string | null>(null);
 
 	function handleDragStart(e: DragEvent, entry: FileEntry) {
-		if (readonly || entry.isDirectory) {
+		if (entry.isDirectory) {
+			e.preventDefault();
+			return;
+		}
+
+		// Cmd-drag (macOS) / Ctrl-drag (Win/Linux) on a file → drag OUT of
+		// the app, toward the Desktop / Finder / another window. The HTML5
+		// drag is preventDefault'd because Tauri's `startDrag` (kicked off
+		// inside the onDragOut handler) takes over the gesture at the OS
+		// level. Files dragged this way remain in the vault — the
+		// destination receives a COPY.
+		if (e.metaKey || e.ctrlKey) {
+			e.preventDefault();
+			void onDragOut(entry);
+			return;
+		}
+
+		// Default drag: in-app reorg (write-protected vaults block it).
+		if (readonly) {
 			e.preventDefault();
 			return;
 		}

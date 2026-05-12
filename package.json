@@ -37,6 +37,7 @@
 	},
 	"dependencies": {
 		"@blocknote/core": "^0.50.0",
+		"@crabnebula/tauri-plugin-drag": "^2.1.0",
 		"@fontsource-variable/geist": "^5.2.8",
 		"@fontsource-variable/geist-mono": "^5.2.7",
 		"@tauri-apps/api": "^2.11.0",
