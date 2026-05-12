@@ -83,7 +83,9 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 	version: 1,
 	appearance: {
 		theme: 'system',
-		editorFont: 'Geist Sans',
+		// ID matching the picker in `SettingsAppearance.svelte`. The actual
+		// font-family stack is resolved there from this ID.
+		editorFont: 'geist',
 		editorFontSize: 16,
 		editorLineHeight: 1.6,
 		editorContentWidth: 720

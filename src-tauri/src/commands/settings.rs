@@ -212,7 +212,7 @@ mod tests {
         let s = UserSettings::default();
         assert_eq!(s.version, 1);
         assert_eq!(s.appearance.theme, "system");
-        assert_eq!(s.appearance.editor_font, "Geist Sans");
+        assert_eq!(s.appearance.editor_font, "geist");
         assert_eq!(s.appearance.editor_font_size, 16);
         assert!((s.appearance.editor_line_height - 1.6).abs() < f64::EPSILON);
         assert_eq!(s.appearance.editor_content_width, 720);

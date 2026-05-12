@@ -14,6 +14,7 @@
 		settingsStore,
 		type SettingsSection
 	} from '$lib/stores/settings.svelte';
+	import SettingsAppearance from './SettingsAppearance.svelte';
 
 	type IconComponent = ComponentType<SvelteComponent>;
 
@@ -119,9 +120,14 @@
 					<h3 id="settings-section-heading">
 						{SECTION_META[settingsStore.activeSection].label}
 					</h3>
-					<p class="placeholder">
-						Les contrôles de cette section seront ajoutés à l'étape suivante.
-					</p>
+					{#if settingsStore.activeSection === 'appearance'}
+						<SettingsAppearance />
+					{:else}
+						<p class="placeholder">
+							Les contrôles de cette section seront ajoutés à l'étape
+							suivante.
+						</p>
+					{/if}
 				</section>
 			</div>
 		</div>

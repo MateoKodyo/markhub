@@ -86,7 +86,9 @@ impl Default for AppearanceSettings {
     fn default() -> Self {
         Self {
             theme: "system".to_string(),
-            editor_font: "Geist Sans".to_string(),
+            // ID matching the picker in `SettingsAppearance.svelte`. Resolved
+            // to a font-family stack on the frontend (see FONTS array there).
+            editor_font: "geist".to_string(),
             editor_font_size: 16,
             editor_line_height: 1.6,
             editor_content_width: 720,
