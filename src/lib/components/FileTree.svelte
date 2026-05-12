@@ -212,6 +212,22 @@
 		onContextMenu({ kind: 'root' }, e.clientX, e.clientY);
 	}
 
+	/**
+	 * Finder-style: clicking in the empty area below the tree (or on the
+	 * tree's own background gaps) clears the current selection. With no
+	 * selection, the next "+ file" / "+ folder" / "Import" lands at the
+	 * vault root instead of inside whatever folder was last clicked.
+	 *
+	 * The `target === currentTarget` guard makes sure the deselect only
+	 * fires for clicks that landed DIRECTLY on the wrapper or the tree
+	 * background — never bubbled up from a row's own click handler.
+	 */
+	function onEmptyAreaClick(e: MouseEvent) {
+		if (e.target === e.currentTarget) {
+			onSelectionChange(null);
+		}
+	}
+
 	function selectEntry(entry: FileEntry) {
 		onSelectionChange(entry);
 	}
@@ -255,6 +271,7 @@
 <div
 	class="tree-wrap"
 	oncontextmenu={onRootContextMenu}
+	onclick={onEmptyAreaClick}
 	ondragover={handleRootDragOver}
 	ondrop={(e) => handleDropOnFolder(e, null)}
 	role="presentation"
