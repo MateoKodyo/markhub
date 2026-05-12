@@ -26,8 +26,8 @@
 
 	/**
 	 * Editor font choices. System-only stacks — no webfonts to bundle.
-	 * The selected `id` is what lands in `settings.json`; the `family` stack
-	 * is resolved on the frontend (here + the editor consumer in STEP 4).
+	 * The selected `id` is what lands in `settings.json`; the `family`
+	 * stack is resolved on the frontend (here + the editor consumer).
 	 */
 	const FONTS: readonly FontOption[] = [
 		{
@@ -95,18 +95,20 @@
 	}
 </script>
 
-<div class="appearance">
+<div class="settings-section">
 	<!-- Theme group -->
-	<section class="group" aria-labelledby="group-theme">
-		<h4 class="group-label" id="group-theme">Thème</h4>
+	<section class="settings-group" aria-labelledby="group-theme">
+		<h4 class="settings-group-label" id="group-theme">Thème</h4>
 
-		<div class="row">
-			<div class="row-info">
-				<span class="row-label">Apparence générale</span>
-				<span class="row-desc">Sombre, clair, ou suivre la préférence système.</span>
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<span class="settings-row-label">Apparence générale</span>
+				<span class="settings-row-desc"
+					>Sombre, clair, ou suivre la préférence système.</span
+				>
 			</div>
 			<div
-				class="segmented"
+				class="settings-segmented"
 				role="radiogroup"
 				aria-label="Sélectionner le thème"
 			>
@@ -115,7 +117,7 @@
 					{@const isActive = current.theme === theme.id}
 					<button
 						type="button"
-						class="segment"
+						class="settings-segment"
 						class:active={isActive}
 						role="radio"
 						aria-checked={isActive}
@@ -131,18 +133,18 @@
 	</section>
 
 	<!-- Typography group -->
-	<section class="group" aria-labelledby="group-typography">
-		<h4 class="group-label" id="group-typography">Typographie</h4>
+	<section class="settings-group" aria-labelledby="group-typography">
+		<h4 class="settings-group-label" id="group-typography">Typographie</h4>
 
-		<div class="row">
-			<div class="row-info">
-				<span class="row-label">Police de l'éditeur</span>
-				<span class="row-desc"
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<span class="settings-row-label">Police de l'éditeur</span>
+				<span class="settings-row-desc"
 					>Famille typographique appliquée au texte du document.</span
 				>
 			</div>
 			<div
-				class="segmented font-segmented"
+				class="settings-segmented font-segmented"
 				role="radiogroup"
 				aria-label="Sélectionner la police"
 			>
@@ -150,7 +152,7 @@
 					{@const isActive = current.editorFont === font.id}
 					<button
 						type="button"
-						class="segment"
+						class="settings-segment"
 						class:active={isActive}
 						role="radio"
 						aria-checked={isActive}
@@ -164,12 +166,14 @@
 			</div>
 		</div>
 
-		<div class="row">
-			<div class="row-info">
-				<label for="setting-fontsize" class="row-label">Taille de police</label>
-				<span class="row-desc">Entre 14 et 20 pixels.</span>
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<label for="setting-fontsize" class="settings-row-label"
+					>Taille de police</label
+				>
+				<span class="settings-row-desc">Entre 14 et 20 pixels.</span>
 			</div>
-			<div class="slider-control">
+			<div class="settings-slider">
 				<input
 					id="setting-fontsize"
 					type="range"
@@ -184,12 +188,14 @@
 			</div>
 		</div>
 
-		<div class="row">
-			<div class="row-info">
-				<label for="setting-lineheight" class="row-label">Hauteur de ligne</label>
-				<span class="row-desc">Espace vertical entre les lignes.</span>
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<label for="setting-lineheight" class="settings-row-label"
+					>Hauteur de ligne</label
+				>
+				<span class="settings-row-desc">Espace vertical entre les lignes.</span>
 			</div>
-			<div class="slider-control">
+			<div class="settings-slider">
 				<input
 					id="setting-lineheight"
 					type="range"
@@ -204,12 +210,14 @@
 			</div>
 		</div>
 
-		<div class="row">
-			<div class="row-info">
-				<label for="setting-contentwidth" class="row-label">Largeur de contenu</label>
-				<span class="row-desc">Largeur maximale du texte (mesure).</span>
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<label for="setting-contentwidth" class="settings-row-label"
+					>Largeur de contenu</label
+				>
+				<span class="settings-row-desc">Largeur maximale du texte (mesure).</span>
 			</div>
-			<div class="slider-control">
+			<div class="settings-slider">
 				<input
 					id="setting-contentwidth"
 					type="range"
@@ -226,8 +234,8 @@
 	</section>
 
 	<!-- Live preview group -->
-	<section class="group" aria-labelledby="group-preview">
-		<h4 class="group-label" id="group-preview">Aperçu</h4>
+	<section class="settings-group" aria-labelledby="group-preview">
+		<h4 class="settings-group-label" id="group-preview">Aperçu</h4>
 		<p
 			class="preview"
 			style:font-family={familyForId(current.editorFont)}
@@ -245,175 +253,16 @@
 </div>
 
 <style>
-	/* ──────────────────────────────────────────────────────────────────
-	 * Flat layout — no box-in-box. The modal's surface IS the canvas;
-	 * the appearance section just rhythms rows on top of it.
-	 * Warm-dark Warp aesthetic: thin hairline separators, generous
-	 * vertical breathing, group labels in muted caption uppercase.
-	 * ────────────────────────────────────────────────────────────────── */
+	/* Appearance-specific extras only — base layout is in
+	   `$lib/styles/settings.css` (imported by SettingsModal). */
 
-	.appearance {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
-	}
-
-	/* ─── Group ─── */
-	.group {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.group-label {
-		font-size: var(--text-caption);
-		font-weight: 500;
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		margin: 0 0 var(--space-3);
-	}
-
-	/* ─── Row (flat, separated by hairline) ─── */
-	.row {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		align-items: center;
-		gap: var(--space-4);
-		padding: var(--space-3) 0;
-		min-height: 44px;
-	}
-
-	.row + .row {
-		border-top: 1px solid var(--color-border-subtle);
-	}
-
-	.row-info {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-	}
-
-	.row-label {
-		font-size: var(--text-ui);
-		color: var(--color-text-primary);
-		font-weight: 500;
-		line-height: 1.3;
-	}
-
-	.row-desc {
-		font-size: var(--text-caption);
-		color: var(--color-text-muted);
-		line-height: 1.4;
-	}
-
-	/* ─── Segmented control (theme + font picker) ─── */
-	.segmented {
-		display: inline-flex;
-		gap: 1px;
-		padding: 2px;
-		background: var(--color-bg);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-	}
-
-	.segment {
-		display: inline-flex;
-		align-items: center;
-		gap: 5px;
-		padding: 3px 9px;
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: var(--radius-xs);
-		color: var(--color-text-body);
-		font-family: var(--font-ui);
-		font-size: var(--text-caption);
-		line-height: 1.2;
-		cursor: pointer;
-		transition:
-			background var(--duration-base) var(--easing-standard),
-			color var(--duration-base) var(--easing-standard);
-	}
-
-	.segment:hover {
-		color: var(--color-text-primary);
-		background: var(--color-surface-hover);
-	}
-
-	.segment.active {
-		background: var(--color-bg-raised);
-		color: var(--color-text-primary);
-	}
-
-	.segment:focus-visible {
-		outline: none;
-		border-color: var(--color-accent);
-		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
-	}
-
-	/* Font picker preserves its label-size but inherits its own
-	   font-family for visual preview (set inline on each segment). */
-	.font-segmented .segment {
+	/* Font picker bumps the segment label size to make typographic
+	   differences readable. The font family is set inline per segment. */
+	:global(.font-segmented .settings-segment) {
 		font-size: var(--text-ui);
 		padding: 3px 11px;
 	}
 
-	/* ─── Slider control ─── */
-	.slider-control {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-3);
-	}
-
-	.slider-control .value {
-		font-family: var(--font-mono);
-		font-size: var(--text-caption);
-		color: var(--color-text-muted);
-		min-width: 52px;
-		text-align: right;
-	}
-
-	.slider-control input[type='range'] {
-		width: 160px;
-		margin: 0;
-		-webkit-appearance: none;
-		appearance: none;
-		height: 3px;
-		background: var(--color-border-strong);
-		border-radius: var(--radius-pill);
-		outline: none;
-	}
-
-	.slider-control input[type='range']::-webkit-slider-thumb {
-		-webkit-appearance: none;
-		appearance: none;
-		width: 13px;
-		height: 13px;
-		border-radius: 50%;
-		background: var(--color-accent);
-		cursor: pointer;
-		border: 2px solid var(--color-bg-raised);
-		transition: transform var(--duration-base) var(--easing-standard);
-	}
-
-	.slider-control input[type='range']:hover::-webkit-slider-thumb {
-		transform: scale(1.1);
-	}
-
-	.slider-control input[type='range']::-moz-range-thumb {
-		width: 13px;
-		height: 13px;
-		border-radius: 50%;
-		background: var(--color-accent);
-		cursor: pointer;
-		border: 2px solid var(--color-bg-raised);
-	}
-
-	.slider-control input[type='range']:focus-visible {
-		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
-	}
-
-	/* ─── Preview (no row container — sits directly under group label) ─── */
 	.preview {
 		margin: 0;
 		color: var(--color-text-body);

@@ -1,0 +1,210 @@
+/* ─────────────────────────────────────────────────────────────────────
+ * Settings modal — shared layout primitives.
+ *
+ * Imported once from `SettingsModal.svelte`. Used by every section
+ * component (Appearance, Editor, Source, Files, Behavior, Advanced).
+ *
+ * Visual philosophy (DESIGN-PRINCIPLES §2/§3): flat list directly on the
+ * modal surface, NO box-in-box. Group labels are uppercase muted caption.
+ * Rows are separated by 1px hairlines via --color-border-subtle. Controls
+ * sit on the right, label + description on the left.
+ *
+ * All classes are `.settings-*` namespaced so they don't collide with
+ * anything outside the settings modal.
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* ─── Section wrapper ─── */
+.settings-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+}
+
+/* ─── Group (label + list of rows) ─── */
+.settings-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.settings-group-label {
+	font-size: var(--text-caption);
+	font-weight: 500;
+	color: var(--color-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	margin: 0 0 var(--space-3);
+}
+
+/* ─── Row (label/desc left, control right, hairline below) ─── */
+.settings-row {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: var(--space-4);
+	padding: var(--space-3) 0;
+	min-height: 44px;
+}
+
+.settings-row + .settings-row {
+	border-top: 1px solid var(--color-border-subtle);
+}
+
+.settings-row-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.settings-row-label {
+	font-size: var(--text-ui);
+	color: var(--color-text-primary);
+	font-weight: 500;
+	line-height: 1.3;
+}
+
+.settings-row-desc {
+	font-size: var(--text-caption);
+	color: var(--color-text-muted);
+	line-height: 1.4;
+}
+
+/* ─── Segmented control (radiogroup-flavoured pill) ─── */
+.settings-segmented {
+	display: inline-flex;
+	gap: 1px;
+	padding: 2px;
+	background: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+}
+
+.settings-segment {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 3px 9px;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: var(--radius-xs);
+	color: var(--color-text-body);
+	font-family: var(--font-ui);
+	font-size: var(--text-caption);
+	line-height: 1.2;
+	cursor: pointer;
+	transition:
+		background var(--duration-base) var(--easing-standard),
+		color var(--duration-base) var(--easing-standard);
+}
+
+.settings-segment:hover {
+	color: var(--color-text-primary);
+	background: var(--color-surface-hover);
+}
+
+.settings-segment.active {
+	background: var(--color-bg-raised);
+	color: var(--color-text-primary);
+}
+
+.settings-segment:focus-visible {
+	outline: none;
+	border-color: var(--color-accent);
+	box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
+}
+
+/* ─── Slider (range + value chip) ─── */
+.settings-slider {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.settings-slider .value {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	color: var(--color-text-muted);
+	min-width: 52px;
+	text-align: right;
+}
+
+.settings-slider input[type='range'] {
+	width: 160px;
+	margin: 0;
+	-webkit-appearance: none;
+	appearance: none;
+	height: 3px;
+	background: var(--color-border-strong);
+	border-radius: var(--radius-pill);
+	outline: none;
+}
+
+.settings-slider input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 13px;
+	height: 13px;
+	border-radius: 50%;
+	background: var(--color-accent);
+	cursor: pointer;
+	border: 2px solid var(--color-bg-raised);
+	transition: transform var(--duration-base) var(--easing-standard);
+}
+
+.settings-slider input[type='range']:hover::-webkit-slider-thumb {
+	transform: scale(1.1);
+}
+
+.settings-slider input[type='range']::-moz-range-thumb {
+	width: 13px;
+	height: 13px;
+	border-radius: 50%;
+	background: var(--color-accent);
+	cursor: pointer;
+	border: 2px solid var(--color-bg-raised);
+}
+
+.settings-slider input[type='range']:focus-visible {
+	box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
+}
+
+/* ─── Toggle (iOS-style switch with role="switch") ─── */
+.settings-switch {
+	position: relative;
+	width: 32px;
+	height: 18px;
+	padding: 0;
+	background: var(--color-border-strong);
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	cursor: pointer;
+	transition:
+		background var(--duration-base) var(--easing-standard),
+		border-color var(--duration-base) var(--easing-standard);
+}
+
+.settings-switch[aria-checked='true'] {
+	background: var(--color-accent);
+}
+
+.settings-switch:focus-visible {
+	outline: none;
+	border-color: var(--color-accent);
+	box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
+}
+
+.settings-switch-thumb {
+	position: absolute;
+	top: 50%;
+	left: 2px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--color-bg-raised);
+	transform: translateY(-50%);
+	transition: left var(--duration-base) var(--easing-standard);
+}
+
+.settings-switch[aria-checked='true'] .settings-switch-thumb {
+	left: 16px;
+}

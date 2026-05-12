@@ -151,7 +151,7 @@ The modal is opened via:
 | 1. Settings store + persistence | ✅ | `c4db29f` | ✅ smoke OK 2026-05-12 matin |
 | 2. Modal shell + navigation | ✅ | `59893c7` | ✅ smoke OK 2026-05-12 matin |
 | 3. Appearance section | ✅ | `39d2027` | ⏸ pending smoke |
-| 4. Editor section | ⏳ | — | — |
+| 4. Editor section | ✅ | `d5273e7` | ⏸ pending smoke |
 | 5. Source mode + Files + Behavior sections | ⏳ | — | — |
 | 6. Advanced section | ⏳ | — | — |
 | 7. Command palette integration | ⏳ | — | — |

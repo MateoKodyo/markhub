@@ -1,4 +1,5 @@
 import * as api from '$lib/tauri/api';
+import { settingsStore } from './settings.svelte';
 import { vaultsStore } from './vaults.svelte';
 
 export type SaveStatus = 'idle' | 'loading' | 'modified' | 'saving' | 'saved' | 'error';
@@ -8,7 +9,16 @@ export type ActiveFile = {
 	relativePath: string;
 };
 
-const DEBOUNCE_MS = 1500;
+/**
+ * Fallback debounce — used until the user settings have been loaded from
+ * disk. After hydration, the real value comes from
+ * `settingsStore.current.editor.autosaveDelayMs`.
+ */
+const DEFAULT_DEBOUNCE_MS = 1500;
+
+function autosaveDelayMs(): number {
+	return settingsStore.current?.editor?.autosaveDelayMs ?? DEFAULT_DEBOUNCE_MS;
+}
 
 class ActiveFileStore {
 	activeFile = $state<ActiveFile | null>(null);
@@ -58,7 +68,7 @@ class ActiveFileStore {
 		this.#cancelPendingSave();
 		this.#saveTimer = setTimeout(() => {
 			void this.#flushSave();
-		}, DEBOUNCE_MS);
+		}, autosaveDelayMs());
 	}
 
 	async forceSave(): Promise<void> {

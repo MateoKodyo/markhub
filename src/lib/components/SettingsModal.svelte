@@ -15,6 +15,8 @@
 		type SettingsSection
 	} from '$lib/stores/settings.svelte';
 	import SettingsAppearance from './SettingsAppearance.svelte';
+	import SettingsEditor from './SettingsEditor.svelte';
+	import '$lib/styles/settings.css';
 
 	type IconComponent = ComponentType<SvelteComponent>;
 
@@ -122,6 +124,8 @@
 					</h3>
 					{#if settingsStore.activeSection === 'appearance'}
 						<SettingsAppearance />
+					{:else if settingsStore.activeSection === 'editor'}
+						<SettingsEditor />
 					{:else}
 						<p class="placeholder">
 							Les contrôles de cette section seront ajoutés à l'étape

@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { joinFrontmatter, splitFrontmatter } from '$lib/utils/markdown';
 	import { urlOpen } from '$lib/tauri/api';
+	import { settingsStore } from '$lib/stores/settings.svelte';
 	import BlockNoteSlashMenu, {
 		type SlashMenuState
 	} from './BlockNoteSlashMenu.svelte';
@@ -190,6 +191,12 @@
 			localEditor = editor;
 			editorInstance = editor;
 
+			// Initial spellcheck application — the top-level $effect below will
+			// react to user toggles, but it can't pick up the .ProseMirror
+			// element until BlockNote has actually mounted, so we set it once
+			// here at mount-complete time.
+			applySpellcheck();
+
 			// Save flow.
 			const offChange = editor.onChange(async () => {
 				if (suppressNextChange) {
@@ -329,6 +336,31 @@
 		if (editorInstance) {
 			editorInstance.isEditable = !readonly;
 		}
+	});
+
+	/**
+	 * Apply the user's spellcheck preference to BlockNote's contenteditable.
+	 * BlockNote sets the `spellcheck` attribute internally; we override it
+	 * here based on settings. Called once at mount-complete and on every
+	 * settings change via the $effect below.
+	 */
+	function applySpellcheck() {
+		if (!container) return;
+		const editable = container.querySelector('.ProseMirror');
+		if (editable instanceof HTMLElement) {
+			editable.setAttribute(
+				'spellcheck',
+				String(settingsStore.current.editor.spellCheck)
+			);
+		}
+	}
+
+	// Reactive bridge: re-apply spellcheck whenever the user toggles the
+	// setting in the modal. Reading `settingsStore.current.editor.spellCheck`
+	// inside the effect body is what makes Svelte track it.
+	$effect(() => {
+		settingsStore.current.editor.spellCheck;
+		applySpellcheck();
 	});
 
 	function onSourceInput(e: Event) {
@@ -510,7 +542,7 @@
 				value={content}
 				oninput={onSourceInput}
 				readonly={readonly}
-				spellcheck="false"
+				spellcheck={settingsStore.current.editor.spellCheck}
 				aria-label="Markdown source"
 			></textarea>
 		</div>

@@ -58,6 +58,20 @@ test.describe('settings modal — shell baseline', () => {
 		await expect(page.getByTestId('settings-modal')).toHaveCount(0);
 	});
 
+	test('editor section — dark theme', async ({ page }) => {
+		await gotoSettings(page, 'dark', 'editor');
+		await expect(page).toHaveScreenshot('settings-modal-editor-dark.png', {
+			maxDiffPixelRatio: 0.01
+		});
+	});
+
+	test('editor section — light theme', async ({ page }) => {
+		await gotoSettings(page, 'light', 'editor');
+		await expect(page).toHaveScreenshot('settings-modal-editor-light.png', {
+			maxDiffPixelRatio: 0.01
+		});
+	});
+
 	test('clicking the backdrop closes the modal', async ({ page }) => {
 		await gotoSettings(page);
 		const backdrop = page.getByTestId('settings-backdrop');
