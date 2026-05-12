@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, Monitor, Moon, Sun } from 'lucide-svelte';
+	import { Monitor, Moon, Sun } from 'lucide-svelte';
 	import type { ComponentType, SvelteComponent } from 'svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import type { ThemePreference } from '$lib/tauri/types';
@@ -32,12 +32,12 @@
 	const FONTS: readonly FontOption[] = [
 		{
 			id: 'geist',
-			label: 'Geist Sans',
+			label: 'Geist',
 			family: "'Geist Variable', system-ui, -apple-system, 'Helvetica Neue', sans-serif"
 		},
 		{
 			id: 'system',
-			label: 'System UI',
+			label: 'System',
 			family: "-apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 		},
 		{
@@ -96,66 +96,138 @@
 </script>
 
 <div class="appearance">
-	<!-- Theme cards -->
-	<fieldset class="group">
-		<legend>Thème</legend>
-		<div class="cards">
-			{#each THEMES as theme (theme.id)}
-				{@const Icon = theme.icon}
-				{@const isActive = current.theme === theme.id}
-				<button
-					type="button"
-					class="theme-card"
-					class:active={isActive}
-					aria-pressed={isActive}
-					onclick={() => selectTheme(theme.id)}
-					data-testid={`appearance-theme-${theme.id}`}
-				>
-					<span class="theme-swatch" data-theme-preview={theme.id}>
-						<Icon size={16} aria-hidden="true" focusable="false" />
-					</span>
-					<span class="card-label">{theme.label}</span>
-					{#if isActive}
-						<span class="card-check" aria-hidden="true">
-							<Check size={12} focusable="false" />
-						</span>
-					{/if}
-				</button>
-			{/each}
-		</div>
-	</fieldset>
+	<!-- Theme group -->
+	<section class="group" aria-labelledby="group-theme">
+		<h4 class="group-label" id="group-theme">Thème</h4>
 
-	<!-- Font cards (each rendered in its own typeface for visual preview) -->
-	<fieldset class="group">
-		<legend>Police de l'éditeur</legend>
-		<div class="cards font-cards">
-			{#each FONTS as font (font.id)}
-				{@const isActive = current.editorFont === font.id}
-				<button
-					type="button"
-					class="font-card"
-					class:active={isActive}
-					aria-pressed={isActive}
-					onclick={() => selectFont(font.id)}
-					style:font-family={font.family}
-					data-testid={`appearance-font-${font.id}`}
-				>
-					<span class="card-label">{font.label}</span>
-					{#if isActive}
-						<span class="card-check" aria-hidden="true">
-							<Check size={12} focusable="false" />
-						</span>
-					{/if}
-				</button>
-			{/each}
+		<div class="row">
+			<div class="row-info">
+				<span class="row-label">Apparence générale</span>
+				<span class="row-desc">Sombre, clair, ou suivre la préférence système.</span>
+			</div>
+			<div
+				class="segmented"
+				role="radiogroup"
+				aria-label="Sélectionner le thème"
+			>
+				{#each THEMES as theme (theme.id)}
+					{@const Icon = theme.icon}
+					{@const isActive = current.theme === theme.id}
+					<button
+						type="button"
+						class="segment"
+						class:active={isActive}
+						role="radio"
+						aria-checked={isActive}
+						onclick={() => selectTheme(theme.id)}
+						data-testid={`appearance-theme-${theme.id}`}
+					>
+						<Icon size={13} aria-hidden="true" focusable="false" />
+						<span>{theme.label}</span>
+					</button>
+				{/each}
+			</div>
 		</div>
-	</fieldset>
+	</section>
 
-	<!-- Live preview: a single paragraph that reacts to font/size/lineHeight/
-	     contentWidth in real time so the three sliders below all hit the same
-	     visible sample. -->
-	<div class="preview-wrap">
-		<span class="preview-label">Aperçu en temps réel</span>
+	<!-- Typography group -->
+	<section class="group" aria-labelledby="group-typography">
+		<h4 class="group-label" id="group-typography">Typographie</h4>
+
+		<div class="row">
+			<div class="row-info">
+				<span class="row-label">Police de l'éditeur</span>
+				<span class="row-desc"
+					>Famille typographique appliquée au texte du document.</span
+				>
+			</div>
+			<div
+				class="segmented font-segmented"
+				role="radiogroup"
+				aria-label="Sélectionner la police"
+			>
+				{#each FONTS as font (font.id)}
+					{@const isActive = current.editorFont === font.id}
+					<button
+						type="button"
+						class="segment"
+						class:active={isActive}
+						role="radio"
+						aria-checked={isActive}
+						onclick={() => selectFont(font.id)}
+						style:font-family={font.family}
+						data-testid={`appearance-font-${font.id}`}
+					>
+						<span>{font.label}</span>
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="row-info">
+				<label for="setting-fontsize" class="row-label">Taille de police</label>
+				<span class="row-desc">Entre 14 et 20 pixels.</span>
+			</div>
+			<div class="slider-control">
+				<input
+					id="setting-fontsize"
+					type="range"
+					min="14"
+					max="20"
+					step="1"
+					value={current.editorFontSize}
+					oninput={(e) => setFontSize(+e.currentTarget.value)}
+					data-testid="appearance-slider-fontsize"
+				/>
+				<span class="value">{current.editorFontSize}</span>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="row-info">
+				<label for="setting-lineheight" class="row-label">Hauteur de ligne</label>
+				<span class="row-desc">Espace vertical entre les lignes.</span>
+			</div>
+			<div class="slider-control">
+				<input
+					id="setting-lineheight"
+					type="range"
+					min="1.4"
+					max="1.8"
+					step="0.05"
+					value={current.editorLineHeight}
+					oninput={(e) => setLineHeight(+e.currentTarget.value)}
+					data-testid="appearance-slider-lineheight"
+				/>
+				<span class="value">{current.editorLineHeight.toFixed(2)}</span>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="row-info">
+				<label for="setting-contentwidth" class="row-label">Largeur de contenu</label>
+				<span class="row-desc">Largeur maximale du texte (mesure).</span>
+			</div>
+			<div class="slider-control">
+				<input
+					id="setting-contentwidth"
+					type="range"
+					min="560"
+					max="1200"
+					step="20"
+					value={current.editorContentWidth}
+					oninput={(e) => setContentWidth(+e.currentTarget.value)}
+					data-testid="appearance-slider-contentwidth"
+				/>
+				<span class="value">{current.editorContentWidth} px</span>
+			</div>
+		</div>
+	</section>
+
+	<!-- Live preview group -->
+	<section class="group" aria-labelledby="group-preview">
+		<h4 class="group-label" id="group-preview">Aperçu</h4>
 		<p
 			class="preview"
 			style:font-family={familyForId(current.editorFont)}
@@ -166,258 +238,185 @@
 		>
 			L'éditeur Markdown moderne pour développeurs. Aperçu en temps réel des
 			réglages d'apparence — taille de police, hauteur de ligne, largeur de
-			mesure, et famille typographique. Glissez les curseurs pour voir
-			l'effet immédiat sur ce paragraphe.
+			mesure, et famille typographique. Glissez les curseurs pour voir l'effet
+			immédiat sur ce paragraphe.
 		</p>
-	</div>
-
-	<!-- Sliders -->
-	<div class="slider-row">
-		<label for="setting-fontsize">Taille de police</label>
-		<span class="value">{current.editorFontSize}</span>
-		<input
-			id="setting-fontsize"
-			type="range"
-			min="14"
-			max="20"
-			step="1"
-			value={current.editorFontSize}
-			oninput={(e) => setFontSize(+e.currentTarget.value)}
-			data-testid="appearance-slider-fontsize"
-		/>
-	</div>
-
-	<div class="slider-row">
-		<label for="setting-lineheight">Hauteur de ligne</label>
-		<span class="value">{current.editorLineHeight.toFixed(2)}</span>
-		<input
-			id="setting-lineheight"
-			type="range"
-			min="1.4"
-			max="1.8"
-			step="0.05"
-			value={current.editorLineHeight}
-			oninput={(e) => setLineHeight(+e.currentTarget.value)}
-			data-testid="appearance-slider-lineheight"
-		/>
-	</div>
-
-	<div class="slider-row">
-		<label for="setting-contentwidth">Largeur de contenu</label>
-		<span class="value">{current.editorContentWidth} px</span>
-		<input
-			id="setting-contentwidth"
-			type="range"
-			min="560"
-			max="1200"
-			step="20"
-			value={current.editorContentWidth}
-			oninput={(e) => setContentWidth(+e.currentTarget.value)}
-			data-testid="appearance-slider-contentwidth"
-		/>
-	</div>
+	</section>
 </div>
 
 <style>
+	/* ──────────────────────────────────────────────────────────────────
+	 * Flat layout — no box-in-box. The modal's surface IS the canvas;
+	 * the appearance section just rhythms rows on top of it.
+	 * Warm-dark Warp aesthetic: thin hairline separators, generous
+	 * vertical breathing, group labels in muted caption uppercase.
+	 * ────────────────────────────────────────────────────────────────── */
+
 	.appearance {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: var(--space-6);
 	}
 
+	/* ─── Group ─── */
 	.group {
-		border: none;
-		padding: 0;
-		margin: 0;
-	}
-
-	.group legend {
-		font-size: var(--text-ui);
-		font-weight: 500;
-		color: var(--color-text-primary);
-		padding: 0;
-		margin-bottom: var(--space-3);
-	}
-
-	.cards {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-		gap: var(--space-2);
-	}
-
-	.font-cards {
-		grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-	}
-
-	.theme-card,
-	.font-card {
-		position: relative;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.group-label {
+		font-size: var(--text-caption);
+		font-weight: 500;
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		margin: 0 0 var(--space-3);
+	}
+
+	/* ─── Row (flat, separated by hairline) ─── */
+	.row {
+		display: grid;
+		grid-template-columns: 1fr auto;
 		align-items: center;
-		justify-content: center;
-		gap: var(--space-2);
-		padding: var(--space-3);
-		background: var(--color-surface-veil);
+		gap: var(--space-4);
+		padding: var(--space-3) 0;
+		min-height: 44px;
+	}
+
+	.row + .row {
+		border-top: 1px solid var(--color-border-subtle);
+	}
+
+	.row-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.row-label {
+		font-size: var(--text-ui);
+		color: var(--color-text-primary);
+		font-weight: 500;
+		line-height: 1.3;
+	}
+
+	.row-desc {
+		font-size: var(--text-caption);
+		color: var(--color-text-muted);
+		line-height: 1.4;
+	}
+
+	/* ─── Segmented control (theme + font picker) ─── */
+	.segmented {
+		display: inline-flex;
+		gap: 1px;
+		padding: 2px;
+		background: var(--color-bg);
 		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
+		border-radius: var(--radius-sm);
+	}
+
+	.segment {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 9px;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: var(--radius-xs);
 		color: var(--color-text-body);
+		font-family: var(--font-ui);
+		font-size: var(--text-caption);
+		line-height: 1.2;
 		cursor: pointer;
 		transition:
 			background var(--duration-base) var(--easing-standard),
-			border-color var(--duration-base) var(--easing-standard),
 			color var(--duration-base) var(--easing-standard);
 	}
 
-	.card-label {
-		font-size: var(--text-caption);
-		font-family: var(--font-ui);
-	}
-
-	.font-card .card-label {
-		/* The font-card preview swaps in the font's own family so each label
-		   renders in its target typeface. The label text size is bumped to
-		   --text-ui to keep the typographic differences readable. */
-		font-family: inherit;
-		font-size: var(--text-ui);
-	}
-
-	.theme-card:hover,
-	.font-card:hover {
+	.segment:hover {
+		color: var(--color-text-primary);
 		background: var(--color-surface-hover);
+	}
+
+	.segment.active {
+		background: var(--color-bg-raised);
 		color: var(--color-text-primary);
 	}
 
-	.theme-card.active,
-	.font-card.active {
-		border-color: var(--color-accent);
-		background: var(--color-surface-hover);
-		color: var(--color-text-primary);
-	}
-
-	.theme-card:focus-visible,
-	.font-card:focus-visible {
+	.segment:focus-visible {
 		outline: none;
 		border-color: var(--color-accent);
 		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
 	}
 
-	.theme-swatch {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 56px;
-		height: 36px;
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--color-border);
-	}
-
-	/* Theme preview swatches hardcode the actual theme bg colors so the
-	   card is a faithful mini-preview regardless of the app's current theme. */
-	.theme-swatch[data-theme-preview='dark'] {
-		background: #0a0908;
-		color: #e8e6e0;
-	}
-
-	.theme-swatch[data-theme-preview='light'] {
-		background: #faf9f6;
-		color: #1a1a17;
-	}
-
-	.theme-swatch[data-theme-preview='system'] {
-		/* Diagonal split conveys "follow the OS preference". */
-		background: linear-gradient(135deg, #0a0908 50%, #faf9f6 50%);
-		color: var(--color-text-primary);
-	}
-
-	.card-check {
-		position: absolute;
-		top: 6px;
-		right: 6px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		background: var(--color-accent);
-		color: var(--color-accent-fg);
-	}
-
-	.preview-wrap {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		padding: var(--space-4);
-		background: var(--color-bg);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-	}
-
-	.preview-label {
-		font-size: var(--text-caption);
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.preview {
-		margin: 0;
-		color: var(--color-text-primary);
-		/* font-family / size / line-height / max-width set inline */
-	}
-
-	.slider-row {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		align-items: center;
-		gap: var(--space-2) var(--space-3);
-	}
-
-	.slider-row label {
+	/* Font picker preserves its label-size but inherits its own
+	   font-family for visual preview (set inline on each segment). */
+	.font-segmented .segment {
 		font-size: var(--text-ui);
-		color: var(--color-text-primary);
+		padding: 3px 11px;
 	}
 
-	.slider-row .value {
+	/* ─── Slider control ─── */
+	.slider-control {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.slider-control .value {
 		font-family: var(--font-mono);
 		font-size: var(--text-caption);
 		color: var(--color-text-muted);
+		min-width: 52px;
+		text-align: right;
 	}
 
-	.slider-row input[type='range'] {
-		grid-column: 1 / -1;
-		width: 100%;
+	.slider-control input[type='range'] {
+		width: 160px;
 		margin: 0;
 		-webkit-appearance: none;
 		appearance: none;
-		height: 4px;
-		background: var(--color-border-subtle);
+		height: 3px;
+		background: var(--color-border-strong);
 		border-radius: var(--radius-pill);
 		outline: none;
 	}
 
-	.slider-row input[type='range']::-webkit-slider-thumb {
+	.slider-control input[type='range']::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		width: 14px;
-		height: 14px;
+		width: 13px;
+		height: 13px;
+		border-radius: 50%;
+		background: var(--color-accent);
+		cursor: pointer;
+		border: 2px solid var(--color-bg-raised);
+		transition: transform var(--duration-base) var(--easing-standard);
+	}
+
+	.slider-control input[type='range']:hover::-webkit-slider-thumb {
+		transform: scale(1.1);
+	}
+
+	.slider-control input[type='range']::-moz-range-thumb {
+		width: 13px;
+		height: 13px;
 		border-radius: 50%;
 		background: var(--color-accent);
 		cursor: pointer;
 		border: 2px solid var(--color-bg-raised);
 	}
 
-	.slider-row input[type='range']::-moz-range-thumb {
-		width: 14px;
-		height: 14px;
-		border-radius: 50%;
-		background: var(--color-accent);
-		cursor: pointer;
-		border: 2px solid var(--color-bg-raised);
-	}
-
-	.slider-row input[type='range']:focus-visible {
+	.slider-control input[type='range']:focus-visible {
 		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 40%, transparent);
+	}
+
+	/* ─── Preview (no row container — sits directly under group label) ─── */
+	.preview {
+		margin: 0;
+		color: var(--color-text-body);
+		/* font-family / size / line-height / max-width set inline */
 	}
 </style>

@@ -68,13 +68,13 @@ describe('SettingsAppearance', () => {
 	// ------ S4.2 — default active marks (system theme + geist font) ------
 	it('marks the default theme (system) and font (geist) as active', () => {
 		render(SettingsAppearance);
-		expect(screen.getByTestId('appearance-theme-system').getAttribute('aria-pressed')).toBe(
+		expect(screen.getByTestId('appearance-theme-system').getAttribute('aria-checked')).toBe(
 			'true'
 		);
-		expect(screen.getByTestId('appearance-theme-dark').getAttribute('aria-pressed')).toBe(
+		expect(screen.getByTestId('appearance-theme-dark').getAttribute('aria-checked')).toBe(
 			'false'
 		);
-		expect(screen.getByTestId('appearance-font-geist').getAttribute('aria-pressed')).toBe(
+		expect(screen.getByTestId('appearance-font-geist').getAttribute('aria-checked')).toBe(
 			'true'
 		);
 	});
@@ -85,7 +85,7 @@ describe('SettingsAppearance', () => {
 		await fireEvent.click(screen.getByTestId('appearance-theme-dark'));
 		expect(settingsStore.current.appearance.theme).toBe('dark');
 		expect(themeSetPreference).toHaveBeenCalledWith('dark');
-		expect(screen.getByTestId('appearance-theme-dark').getAttribute('aria-pressed')).toBe(
+		expect(screen.getByTestId('appearance-theme-dark').getAttribute('aria-checked')).toBe(
 			'true'
 		);
 	});
@@ -95,7 +95,7 @@ describe('SettingsAppearance', () => {
 		render(SettingsAppearance);
 		await fireEvent.click(screen.getByTestId('appearance-font-serif'));
 		expect(settingsStore.current.appearance.editorFont).toBe('serif');
-		expect(screen.getByTestId('appearance-font-serif').getAttribute('aria-pressed')).toBe(
+		expect(screen.getByTestId('appearance-font-serif').getAttribute('aria-checked')).toBe(
 			'true'
 		);
 	});
