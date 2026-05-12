@@ -1216,3 +1216,112 @@ L'user dort. Au matin, smoke tests à faire (procédure détaillée dans `STATE.
 Si smoke tests passent : **STEP 3 — Appearance section** (theme cards, font selectors, sliders avec live preview). Nécessite l'oeil de Matheo (visuel) → ne sera PAS attaqué en autonomie. En session collaborative directe.
 
 Pas de scope creep cette nuit : pas de touche à drag-drop / toast / outline / onglets / etc. Strict respect du scope SETTINGS demandé par Matheo.
+
+---
+
+# Session 2026-05-12 → 2026-05-13 (continuation marathon collaborative) — Settings STEPS 3-5 + polish + import
+
+Session continue avec Matheo réveillé. Validation des smoke tests STEP 1+2 le matin du 2026-05-12, puis enchaînement STEP 3-5, polish UX, tentative drag-drop OS abandonnée, livraison de la feature Import comme alternative orchestrable.
+
+## STEP 3 — Apparence section (commits `39d2027` + `13489ac`)
+
+Première version livrée en card-grid (theme cards 96px + font cards 110px + sliders + live preview paragraphe). Matheo a screenshot Cursor + ma version et a dit "petites box, pas Markhub". Reverté en design **flat** : group labels uppercase muted (Thème / Typographie / Aperçu), rangées full-width sur la surface modal, hairlines `--color-border-subtle` entre rows, segmented controls compacts à droite, sliders 160px + value chip mono. Pas de box-in-box. Mémoire `feedback_communication_style` posée au passage (Matheo veut des réponses conceptuelles, pas des dumps techniques).
+
+## STEP 4 — Editor section (commit `d9dd033`)
+
+Autosave delay slider 500-5000ms (label switche "ms"/"s" au-dessus de 1000), spellcheck toggle ARIA switch. Wiring consommateur :
+- `activeFile.svelte.ts` lit `editor.autosaveDelayMs` du store au moment de scheduler le timer (fallback 1500 jusqu'à hydratation).
+- `Editor.svelte` source-mode textarea bind `spellcheck={settingsStore.current.editor.spellCheck}`.
+- BlockNote contenteditable : `applySpellcheck()` query `.ProseMirror` après mount + $effect réactif qui re-set sur toggle.
+
+Refactor au passage : extraction des classes settings dans `$lib/styles/settings.css` (.settings-row, .settings-group-label, .settings-segmented, .settings-slider, .settings-switch) — importé une fois depuis `SettingsModal.svelte`. Refactoré SettingsAppearance pour utiliser ces classes.
+
+## STEP 5 — Source + Files + Behavior (commit `40feb30`)
+
+3 sections d'un coup :
+- **Mode source** : picker monospace (Geist Mono / JetBrains Mono / Fira Code) en segmented control rendu dans chaque typo. Wiring via `--font-mono` override sur documentElement → source textarea + code blocks BlockNote prennent la nouvelle famille live.
+- **Fichiers** : toggle confirmDelete. Consommé dans Sidebar.confirmDeleteFile + confirmDeleteEntry : si off, run handler immédiatement, skip dialog.
+- **Comportement** : toggle askBeforeClosingUnsaved. Consommé dans Sidebar.handleOpenFile : si on + activeFileStore.status === 'modified', force-save avant l'openFile.
+
+Bonus : ajout d'une **icône Settings dans la StatusBar** (next to theme toggle) à la demande de Matheo. Cmd+, reste le raccourci global.
+
+## Polish (commit `e3b313e`)
+
+3 fixes UX flaggés pendant smoke :
+1. **StatusBar right zone reorder** — save-pill rendu à GAUCHE des icônes thème+settings. Icônes pinnées à l'extrême droite (plus de décalage horizontal quand le statut change).
+2. **Path copy icon** — split le path pill en static-display + bouton icône Copy. Click sur l'icône copie chemin absolu, click sur le path ne fait plus rien (pas d'action discoverable).
+3. **Modal Settings entrance** — backdrop fade-in 180ms + panel scale 0.96 → 1 + fade-in 180ms. Out 140ms. cubicOut. Souple, dev-tool.
+
+Infra : polyfill `Element.prototype.animate` dans `tests/setup.ts` parce que jsdom n'implémente pas Web Animations API que Svelte 5 transitions utilisent.
+
+## Tentative drag-drop OS body typography → REVERT (commits `afe0ae1` + `b2c19d2` + `506d1ec`)
+
+Matheo a flaggué que les sliders fontsize/lineHeight de STEP 3 ne s'appliquaient PAS dans l'éditeur en réel. J'avais explicitement déféré ce wiring à STEP 4, puis oublié de le faire. Tentatives en escalade :
+
+1. **CSS variables** avec fallback `--editor-body-font-size, 15px` → BlockNote cascade gagne.
+2. **CSS variables + sélecteurs plus spécifiques** (`.preview .bn-editor.bn-default-styles`) → idem.
+3. **CSS `!important` × 4 sélecteurs** + conversion import statique CSS (HMR was suspect on dynamic imports) → toujours pas appliqué.
+4. **JS-driven `setProperty(..., 'important')` direct sur les éléments DOM + MutationObserver** pour les nouveaux blocs → **freezeait l'éditeur** sur chaque frappe (observer bouclant infiniment : apply → DOM mutation → observer fire → apply...).
+
+Matheo a dit "On est pas en train de faire un truc très sale avec cette histoire de settings. Si tu veux on met ça de côté et on fait ça plus tard." → revert complet. Path propre identifié : passer par l'API de theming BlockNote (le fichier `editor-blocknote.css` utilise déjà ses tokens `--bn-*` propres). Tracé dans BACKLOG.md.
+
+## Tentative drag-drop OS vers Finder → REVERT (commits `80b082b` + `81451d8`)
+
+Matheo a demandé "drag md → Finder/bureau" comme feature dev-tool naturelle. Plan en 2 chantiers : C4 (sortie) + C5 (entrée, conflit BlockNote). J'attaque C4 avec `@crabnebula/tauri-plugin-drag` v2.1.1 :
+
+- Plugin installé Cargo + npm
+- Registered dans lib.rs + capability `drag:default` ajoutée
+- Wrapper `dragFileOut(absolutePath)` dans api.ts
+- FileTree.svelte : `handleDragStart` détecte `e.metaKey || e.ctrlKey` → preventDefault HTML5 + appel `onDragOut(entry)`. Sans modifier = drag in-app reorg existant.
+- Sidebar.svelte : `handleDragOut` résout absolutePath et appelle dragFileOut.
+
+Tests OK : cargo + vitest + svelte-check verts. Mais au lancement du dev server : **panic Rust** "called Result::unwrap() on an Err value: RecvError" dans `tauri-plugin-drag-2.1.1/src/commands.rs:162:15`. Plugin v2.1.1 buggé au démarrage (pas notre code). Pas de version plus récente sur crates.io. Plugin probablement abandonné (Crabnebula a pivoté).
+
+Matheo a dit "C'est pas le mécanisme principal de l'application, c'est à considérer comme une option" → revert complet, drag-drop OS déprio.
+
+## Feature Import — alternative orchestrable au drag-drop (commits `ae5fbd9` + `6124575`)
+
+Matheo a proposé : "une fonction import dans le vault serait plus facile à orchestrer". Excellente idée — zéro plugin tiers, zéro conflit avec BlockNote, juste : dialogue natif → choix de fichiers → copie dans le vault.
+
+**Rust** (`commands::files::import_files`) :
+- Signature : `(vault, source_paths[], target_parent) -> Result<Vec<String>>`
+- Pré-validation atomique : check chaque source (exists, is_file, ext `.md` ou `.markdown`) AVANT de copier quoi que ce soit. Pas de partial import laissant l'utilisateur deviner ce qui a atterri.
+- Naming collisions : suffixe ` copie` / ` copie 2` / ... même algo que `duplicate_file`. **Inclut les collisions intra-batch** (deux sources avec le même basename dans le même appel — le 2nd se renomme).
+- Refusé sur readonly vault, path traversal sur target_parent bloqué via `resolve_safe_path`.
+- 13 tests cargo nouveaux (cargo 100/100).
+
+**Frontend** :
+- Wrapper `fileImport(vaultId, sourcePaths[], targetParent)` dans api.ts.
+- `Sidebar.handleImport()` ouvre le dialogue Tauri (`@tauri-apps/plugin-dialog::open`) avec filter `.md`/`.markdown` + `multiple: true`. Résout `targetParent` via `findInsertionTarget(selectedEntry)` (même logique que startCreate). Après import : refresh scan + auto-expand target folder + sélectionne le 1er fichier importé.
+- Nouveau bouton Lucide `FileInput` dans le header de la section Fichiers, à côté des `+ file` / `+ folder`.
+
+## Fix Finder-style — clic sur espace vide deselect (commit `6124575`)
+
+Matheo a flaggué pendant smoke : "il y a toujours par défaut un folder qui est sélectionné. Ça veut dire que si j'importe un fichier, il va par défaut se mettre dans ce folder là. Il faudrait qu'on puisse cliquer en dehors de la liste pour désélectionner tous les folders."
+
+Fix dans `FileTree.svelte` : `onclick` sur `.tree-wrap` + guard `e.target === e.currentTarget` → appelle `onSelectionChange(null)`. Clicks sur les rows bubble up mais ne passent pas le guard. Click direct sur le wrapper (= empty area du min-height 60px) clear la sélection. Comportement Finder reproduit.
+
+## Tests finaux
+
+- cargo : **100/100 ✅** (87 + 13 import)
+- vitest : **242/242 ✅** (les 10 SettingsModal + 10 SettingsAppearance + 7 SettingsEditor + 4 SettingsSource + 4 SettingsFiles + 4 SettingsBehavior tests, plus le polyfill animate pour les transitions Svelte 5)
+- svelte-check : **0 erreur / 0 warning ✅**
+- visual Playwright : **50/50 ✅** (avec settings-modal en dark+light, 5 sections section-specific en dark)
+
+## Décisions importantes prises
+
+1. **Communication style** — Matheo a explicitement demandé des réponses conceptuelles, pas des dumps techniques. Mémoire `feedback_communication_style.md` posée. À respecter dans toutes les futures sessions.
+2. **Body editor typography wiring** — déféré à BACKLOG. Path propre = API theming BlockNote.
+3. **Drag-drop OS** — déprio. Pas le mécanisme principal. Le bouton Import couvre 90% du besoin.
+4. **STEP 6 Settings (Avancé)** — pas encore démarré, ~1h. Open config folder + Export/Import JSON + version display.
+5. **STEP 7+8** — dépendent de PLAN-COMMAND-SYSTEM (pas démarré).
+
+## Prochaine session
+
+Au choix :
+- STEP 6 Settings Avancé (~1h, clôture partielle de Settings v1)
+- PLAN-COMMAND-SYSTEM (gros chantier, débloque STEP 7+8)
+- Body typography fix via API BlockNote (research + dev, ~2-3h)
+- C2 Toast / C5 drag-drop entrée / autre
+
+State + push : **STATE.md + JOURNAL.md** updated puis `git push origin main` à la fin de cette session.

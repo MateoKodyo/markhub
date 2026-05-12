@@ -150,9 +150,9 @@ The modal is opened via:
 |------|--------|--------|-------------------|
 | 1. Settings store + persistence | ✅ | `c4db29f` | ✅ smoke OK 2026-05-12 matin |
 | 2. Modal shell + navigation | ✅ | `59893c7` | ✅ smoke OK 2026-05-12 matin |
-| 3. Appearance section | ✅ | `39d2027` | ⏸ pending smoke |
-| 4. Editor section | ✅ | `d9dd033` | ⏸ pending smoke |
-| 5. Source mode + Files + Behavior sections | ✅ | `40feb30` | ⏸ pending smoke |
+| 3. Appearance section | 🟡 | `39d2027` + `13489ac` | ⚠️ partial OK — body font/size/lh not wired (BACKLOG, BlockNote cascade) |
+| 4. Editor section | ✅ | `d9dd033` | ✅ smoke OK 2026-05-13 matin |
+| 5. Source mode + Files + Behavior sections | ✅ | `40feb30` | ✅ smoke OK 2026-05-13 matin |
 | 6. Advanced section | ⏳ | — | — |
 | 7. Command palette integration | ⏳ | — | — |
 | 8. Final audit + closure | ⏳ | — | — |
