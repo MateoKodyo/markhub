@@ -5,126 +5,178 @@
 
 ## Date de mise à jour
 
-2026-05-12 (nuit) — clôture **PLAN-DESIGN-DEFAULTS** (chantier design defaults, 10 steps) + 2 fixes post-clôture (slash-menu flip + audit pré-merge). Branche `feat/design-defaults` **prête à merger** sur `main`. **Le merge est manuel — il doit être fait par Matheo, pas par Claude** (règle explicite du plan + bloqué côté auto-classifier).
-
-> Note : la migration BlockNote (chantier C1) a déjà été mergée sur `main` (commit `0e72755`). `main` est désormais l'app BlockNote, plus l'app Crepe historique.
+2026-05-12 (nuit) — session autonome overnight :
+- **Merge de `feat/design-defaults` sur `main`** (fast-forward).
+- **Cleanup des 3 branches obsolètes** (design-defaults + 2 blocknote).
+- **Folder-delete EPERM macOS** fixé (commit `2fadb5b`).
+- **PLAN-SETTINGS STEP 1 + STEP 2** livrés (commits `c4db29f`, `59893c7`).
+- Tentative d'agent drag-drop en worktree → tué en cours de RED phase (cf. § Bugs CONNUS).
+- **Politique branches changée** : Matheo travaille seul, commits directement sur `main`. Plus de `feat/*` par chantier. Documenté dans la mémoire `[[feedback-branch-strategy]]` + `[[feedback-merge-authorization]]`.
 
 ## Branche courante
 
-`feat/design-defaults` — **non mergée**, 13 commits ahead de `main` :
+`main` — **17 commits ahead de `origin/main`** (jamais pushé par Claude — règle conservée). Les 17 commits :
 
 ```
+59893c7 feat(settings): modal shell with section navigation                    ← STEP 2 settings v1
+c4db29f feat(settings): persistent settings store with Tauri backend           ← STEP 1 settings v1
+2fadb5b fix(files): folder deletion uses remove_dir_all (fixes EPERM on macOS) ← folder-delete fix
+659eba2 chore(state): refresh handoff docs post-audit (STATE + JOURNAL)
 b969fb6 fix(audit): address pre-merge review findings (a11y + security + drag)
 e791d91 fix(slash-menu): flip menu above caret when bottom space is insufficient
 3dac8c3 chore(design-defaults): STEP 10 closure — progress table, decisions, principles
 8ca96a3 test(visual): full design baseline coverage — STEP 9
-92b358c design(empty-state): bump card icons to 20px per design defaults — STEP 8
+92b358c design(empty-state): bump card icons to 20px per design defaults
 a9f89aa feat(ui): Warp-style sidebar toggle in window chrome — STEP 7
 e7a987d feat(ux): EmptyState launcher + launch on welcome — STEP 6
-aa90373 feat(design): micro-interactions baseline — transitions + focus rings — STEP 5
+aa90373 feat(design): micro-interactions baseline — STEP 5
 6136502 feat(design): spacing rhythm sweep + .button floor compliance — STEP 4
 0e37004 feat(design): migrate components to --font-ui / --font-editor split — STEP 3
 9378691 feat(design): theme-aware danger surface + WCAG fix — STEP 2
 e6c459e feat(design): augment CSS token namespace — STEP 1
-bc0d93b feat(editor): finalize PLAN-BLOCKNOTE step 4 (UI finish)  ← reliquat BlockNote tail
+bc0d93b feat(editor): finalize PLAN-BLOCKNOTE step 4 (UI finish)
 ```
 
-(`bc0d93b` est le reliquat BlockNote "UI finish" fait au démarrage de la session. `e791d91` corrige un bug du slash menu existant remonté pendant la clôture. `b969fb6` adresse 5 P0 + plusieurs P1 issus d'un code review par 2 agents lancé pré-merge.)
+(Les 13 premiers commits étaient la branche `feat/design-defaults` mergée en FF, puis 4 nouveaux ce soir.)
 
 ## Sessions précédentes archivées dans `JOURNAL.md`
 
-- 2026-05-11 (matin) : clôture BlockNote (chantier C1) → merge effectué.
-- 2026-05-11/12 (après-midi/nuit) : PLAN-DESIGN-DEFAULTS 10 steps complets + slash-menu flip fix + audit pré-merge (a11y + security) → cette branche.
+- 2026-05-11 (matin) : clôture BlockNote (C1) → merge effectué.
+- 2026-05-11/12 (après-midi/nuit) : PLAN-DESIGN-DEFAULTS 10 steps complets + slash-menu flip fix + audit pré-merge.
+- **2026-05-12 (nuit, autonome) : merge design-defaults + folder-delete fix + PLAN-SETTINGS STEP 1 + STEP 2.** (cette session)
 
-## Tests (état final sur la branche `feat/design-defaults`)
+## Tests (état final sur `main` après cette session)
 
-- cargo test : **74/74 ✅** (60 historique + 8 nouveaux pour les 3 vault commands STEP 6 + 5 nouveaux pour `validate_open_url` post-audit + 1 nouveau pour `derive_vault_name_from_git_url` post-audit)
-- npm run test (vitest) : **193/193 ✅**
-- npm run check (svelte-check) : **0 erreur / 0 warning ✅**
-- npm run test:visual (Playwright) : **40/40 ✅** (34 préservés + 5 STEP 9 + 1 nouveau pour le slash-menu flip = `tests/visual/blocknote-slash-menu.spec.ts`)
-- npm run test:e2e : 1 placeholder skipped (real-binary jamais monté — hors scope MVP)
-- npm run build : à re-confirmer en début de session suivante (jamais fait pendant la session)
+- **cargo test : 87/87 ✅** (74 historique + 5 folder-delete + 8 settings backend)
+- **vitest : 213/213 ✅** (193 + 10 settings store + 10 SettingsModal component)
+- **svelte-check : 0 erreur / 0 warning ✅**
+- **Playwright visual : 45/45 ✅** (40 + 5 settings-modal : dark + light shell baseline + deep-link + escape close + backdrop close)
+- E2E real-binary : 1 placeholder skipped (jamais monté, hors scope MVP)
+- `npm run build` : à re-confirmer en début de prochaine session (non lancé pendant la nuit)
 
 Aucun test ne touche le filesystem utilisateur réel.
 
-## Moteur d'éditeur dans l'app principale
+## Ce qui a été livré pendant cette session
 
-**BlockNote** (`@blocknote/core@^0.50.0`). Monté dans `src/lib/components/Editor.svelte`.
+### Fix folder-delete EPERM macOS (commit `2fadb5b`)
 
-Crepe (`@milkdown/crepe`, `@milkdown/core`, `@milkdown/preset-commonmark`) **complètement désinstallé** à l'étape 5 (commit `e52536a` — purge de 38+ deps transitives Tiptap/ProseMirror).
+Diagnostic posé le 2026-05-10 (mémoire `pending_folder_delete.md`, désormais à supprimer). Bug : `delete_file` (qui appelle `fs::remove_file`) était utilisé pour les fichiers ET les dossiers ; `unlink(2)` sur un dossier macOS retourne EPERM.
 
-Composants UI Svelte BlockNote livrés (5/5) :
-1. `src/lib/components/BlockNoteSlashMenu.svelte` (`9256f57`)
-2. `src/lib/components/BlockNoteFormattingToolbar.svelte` (`c8587d7`)
-3. `src/lib/components/BlockNoteSideMenu.svelte` (`31193c6`)
-4. `src/lib/components/BlockNoteTableHandles.svelte` (`a250096`)
-5. `src/lib/components/BlockNoteLinkToolbar.svelte` (`be13afa`)
+Fix livré :
+- Nouvelle commande Rust `commands::files::folder_delete` (resolve_safe_path → ensure_writable → refus si racine vault → `fs::remove_dir_all`).
+- Enregistrée dans `lib.rs` invoke_handler.
+- Front : nouveau wrapper `folderDelete` dans `tauri/api.ts`. `Sidebar.svelte:confirmDeleteEntry` dispatch `entry.isDirectory ? folderDelete : fileDelete`.
+- 5 tests Rust : empty/non-empty/refuse root/refuse traversal/refuse readonly.
 
-CSS polish Markhub design system : `src/lib/styles/editor-blocknote.css` (`7ae23e7`) — mappe les 6 variables `--bn-*` exposées par BlockNote vers les tokens `--color-*` Markhub, neutralise les hex hardcodés (code blocks, blockquotes, tables, drop cursors).
+### PLAN-SETTINGS STEP 1 (commit `c4db29f`)
 
-Frontmatter handling préservé : `splitFrontmatter` / `joinFrontmatter` en pré/post-traitement, `<details>` collapsed au-dessus de l'éditeur, round-trip YAML intact (3 fixtures `tests/fixtures/c1/*.md` valident).
+Data layer pour la v1 des préférences user :
 
-## Bugs RÉSOLUS pendant la migration
+**Backend Rust :**
+- `models::UserSettings` avec sous-structs (appearance, editor, source, files, behavior) + `Default` impls.
+- `commands::settings::{settings_read, settings_write}` Tauri commands. Atomic write (`.tmp` → rename), corruption-safe (malformed JSON → defaults + `.bak`).
+- 8 tests Rust : defaults / round-trip / parent dir / pas de tmp leftover / malformed → defaults + backup / overwrite atomique / defaults documentés / JSON keys camelCase.
 
-- **Drag-drop block "pas de ligne bleue rien" (Crepe)** : résolu nativement par BlockNote (plugin DropCursor + SideMenu via composant Svelte 2.5.c).
-- **Drag preview leak `.preview { position: relative }`** : trouvé en testant 2.5.d. La clone du drag preview de BlockNote (1280×410, opacity 0.001) restait dans le flow à cause d'un reliquat CSS Crepe, poussant la status bar à chaque dragstart. Fix : retrait de la règle (`a250096`).
-- **Tauri WKWebView interception drag HTML5** : `dragDropEnabled: true` (défaut) absorbe les events drag/drop pour exposer l'API file-drop OS. Sur macOS, ça bloquait tout drag in-page. Fix : `dragDropEnabled: false` dans `tauri.conf.json` (`21ac2ee`). Trade-off : on perd l'API file-drop OS (Markhub ne l'utilisait pas).
-- **`replaceBlocks` initial déclenche `onChange`** : sans précaution, le mount du fichier ré-emettait le contenu vers `onChange` → autosave inutile. Flag `suppressNextChange` ajouté (`902bf82`).
-- **`Shift+Home` non-déterministe dans la contenteditable BlockNote (Playwright)** : workaround via `Shift+ArrowLeft × N` documenté dans le helper `typeAndSelect`.
+**Front Svelte 5 :**
+- `tauri/types.ts` : types `UserSettings` + sections + `DEFAULT_USER_SETTINGS` constant.
+- `tauri/api.ts` : wrappers `settingsRead` / `settingsWrite`.
+- `stores/settings.svelte.ts` : `settingsStore` (rune `$state`), debounced 250ms persist via `setTimeout`. **Le theme est délégué au `themeStore` existant** (lui reste l'applicator runtime + listener `prefers-color-scheme`).
+- Boot hydration câblée dans `+page.svelte` après `vaultsStore.load` et `themeStore.init`.
+- 10 tests vitest : load/falls-back/idempotent/set immediate/persists/debounce-collapse/setTheme/no-bridge-when-unchanged/load-bridges-theme/mergeWithDefaults.
 
-## Bugs CONNUS hors scope migration
+**Déviations documentées du plan :**
+- `appearance.theme` reste typé `'dark' | 'light' | 'system'` (legacy 3-value) au lieu des 4 themes du plan — leur CSS n'existe pas, c'est STEP 3.
+- `editor_line_height: f64` → drop du derive `Eq` sur le struct (PartialEq suffit pour les tests).
 
-- **Drag-drop fichier → dossier dans la sidebar** : "doesn't work at all" en réel (HTML5 native dans `FileTree.svelte`). Workplan §C3 prévoit la migration vers pointer events. **Non investigué pendant C1**, reste à faire.
-- **Folder-delete sidebar EPERM (macOS)** : `confirmDeleteEntry` route les dossiers vers `fileDelete` (Rust `fs::remove_file`) qui renvoie EPERM. Bug code, pas TCC. Diagnostic complet posé 2026-05-10 par 2 agents diag. **À fixer sur branche `fix/folder-delete-permission` depuis `main`**, post-merge C1.
+### PLAN-SETTINGS STEP 2 (commit `59893c7`)
 
-## Ce qui MARCHE en réel (smoke des étapes ⏸ pending validation explicite)
+UI shell du modal :
 
-Tests automatiques verts + smoke partiel confirmé pour :
-- Édition WYSIWYG BlockNote (taper, autosave 1.5s).
-- Slash menu (`/`) — apparition, filtrage, transform.
-- Formatting toolbar — sélection → toolbar au-dessus, B/I/S/code/lien.
-- Side menu — hover block → `⋮⋮` + `+`, drag-reorder via `⋮⋮` avec drop indicator natif, click `⋮⋮` → sub-menu transform.
-- Table handles — hover cellule → row/col handles draggables, +row sur dernière row, +col sur dernière col, resize colonne natif.
-- Link toolbar — click sur lien existant → toolbar au-dessous, édition URL + Enter, bouton supprimer.
-- Frontmatter — `<details>` au-dessus, round-trip préservé.
-- Tauri drag-drop — explicitement validé par l'user ("OK ! bravo").
+**Composant `SettingsModal.svelte` :**
+- Backdrop (`var(--color-backdrop)` z-index 200) + panneau centré 760×600 (`--radius-xl`, `--shadow-xl`, `--color-bg-raised`).
+- Header : titre + bouton X.
+- Body : left rail 200px (6 sections avec icônes Lucide) + content area.
+- Right pane : placeholder ("Les contrôles de cette section seront ajoutés à l'étape suivante.") — STEP 3+ remplit.
+- A11y : `role="dialog"` + `aria-modal` + `aria-labelledby` ; rail items avec `aria-current` sur la section active ; icônes Lucide `aria-hidden focusable=false`.
+- Auto-focus du panel à l'ouverture (Escape marche sans premier clic).
+- Backdrop click + Escape ferment.
+- Tous les visuels via tokens design-system (zéro hex/px hardcodé).
 
-**Validations user explicites pendantes** : étapes 2.5.a, 2.5.b, 4 (bascule), 2.5.c (smoke partiel post-Tauri-fix), 2.5.d, 2.5.e, 3 (polish), 5 (cleanup). L'user a autorisé le run au bout sans smoke entre chaque étape (décision conjointe documentée).
+**Store additions (`settings.svelte.ts`) :**
+- `isOpen` + `activeSection` runes `$state`.
+- `open(section?)` / `close()` méthodes.
+- `SETTINGS_SECTIONS` typed const + `SettingsSection` union (pour deep-link via `settings.open.appearance` etc. — utilisé par PLAN-COMMAND-SYSTEM plus tard).
 
-## État des autres chantiers (workplan)
+**Trigger temporaire :**
+- Global keydown handler `Cmd+,` / `Ctrl+,` dans `+page.svelte` (binding direct en attendant que PLAN-COMMAND-SYSTEM route ça via le command registry).
+
+**Tests :**
+- 10 tests vitest component : pas rendu si fermé, 6 sections présentes, Appearance par défaut, switch section sur clic, deep-link via `open(section)`, close-button, backdrop click ferme (sauf clic dans le modal), Escape ferme, Escape no-op si déjà fermé, attributs a11y corrects.
+- 5 tests visual Playwright : shell dark, shell light, deep-link advanced, escape close, backdrop close. Nouveau fixture `?fixture=settings-modal&section=...` dans `/_visual`.
+
+## Bugs CONNUS hors scope
+
+- **Drag-drop fichier → dossier dans la sidebar** : "doesn't work at all" en réel + régression "Failed to rename ... os error 2" confirmée pendant DESIGN-DEFAULTS. Tentative d'agent dédié en worktree pendant cette nuit → tué en cours de RED phase (un seul fichier test commencé `tests/component/FileTreeDragDrop.test.svelte.ts`, jamais commité, perdu avec le worktree). **À reprendre en session directe** (probablement pas en agent autonome — voir [[feedback-parallel-agent-worktrees]]). Plan inchangé dans WORKPLAN.md §C3.
+
+## Worktrees / agents : leçon de la nuit
+
+- Lancé 2 agents parallèles (folder-delete + drag-drop) avec `isolation: "worktree"`. **Les deux ont opéré dans mon arbre principal au lieu de leur worktree**, probablement parce que les prompts mentionnaient des paths comme `src-tauri/src/...` que les agents ont résolus contre `/Users/lkid/Projects/products/markhub` (le project root cité dans le prompt). L'agent folder-delete a même stashé mes travaux WIP settings avant de coder ses propres edits — comportement "poli" mais hors-scope.
+- Le folder-delete fix était fonctionnel et committé dans le main worktree (`2fadb5b`), donc récupération propre via `git stash pop` + cleanup.
+- L'agent drag-drop a été interrompu trop tôt ; rien à récupérer.
+- **Pour les futures sessions** : éviter `Agent + isolation: worktree` quand les prompts font référence à des paths absolus, ou bien les agents prendre soin de localiser eux-mêmes leur CWD. Voir mémoire `[[feedback-parallel-agent-worktrees]]`.
+
+## État des chantiers (workplan)
 
 | Chantier | Statut |
 |---|---|
-| **C1 — Migration Crepe → BlockNote** | **✅ MERGÉ sur `main` (commit `0e72755`)** |
-| **PLAN-DESIGN-DEFAULTS (10 steps)** | **✅ TERMINÉ 2026-05-11 — branche `feat/design-defaults` prête merge** |
-| PLAN-COMMAND-SYSTEM (Cmd+K / Cmd+P / Shift+F) | PAS DÉMARRÉ — plan rédigé, à attaquer post-merge DESIGN-DEFAULTS |
-| PLAN-SETTINGS (panel settings) | PAS DÉMARRÉ — plan rédigé, à attaquer après COMMAND-SYSTEM |
-| C2 — Système de toast / notifications | DÉBLOQUÉ |
-| C3 — Drag-drop sidebar (HTML5 → pointer events) | DÉBLOQUÉ — bug CASSÉ confirmé en réel, reste à investiguer |
-| Folder-delete EPERM (hors plan) | DIAGNOSTIQUÉ — fix prêt à coder sur `fix/folder-delete-permission` depuis `main` |
+| C1 — Migration Crepe → BlockNote | ✅ MERGÉ sur `main` (2026-05-11) |
+| PLAN-DESIGN-DEFAULTS (10 steps) | ✅ MERGÉ sur `main` (2026-05-12 nuit) |
+| **PLAN-SETTINGS (8 steps)** | **🟡 EN COURS — STEP 1 + 2 ✅ sur `main`, STEP 3 next** |
+| PLAN-COMMAND-SYSTEM (Cmd+K / Cmd+P / Shift+F) | PAS DÉMARRÉ — plan rédigé. Prerequisite (DESIGN-DEFAULTS ✅) levé. Mais Matheo a explicitement dit "settings d'abord". |
+| Folder-delete EPERM | ✅ FIXÉ sur `main` (2026-05-12 nuit) |
+| C2 — Toast / notifications | DÉBLOQUÉ |
+| C3 — Drag-drop sidebar (HTML5 → pointer events) | DÉBLOQUÉ — tentative agent nuit avortée |
 | Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — explicitement skippé |
 | Outline panel (sommaire) | PAS DÉMARRÉ — brief posé, aucun code |
 | Empty state | ✅ LIVRÉ dans DESIGN-DEFAULTS STEP 6 |
-
-## Fichiers temporaires conservés (déviations du plan, justifiées)
-
-- `MIGRATION-NOTES.md` (racine) : notes d'investigation BlockNote. Plan disait de la supprimer à l'étape 5. **Conservée** : aucune dépendance code, valeur historique, zéro coût.
-- `src/routes/_blocknote-test/+page.svelte` : route dev BlockNote. Plan disait de la supprimer. **Conservée** : 3 specs E2E actives (`blocknote-slash-menu`, `blocknote-formatting-toolbar`, `blocknote-roundtrip`, 8 tests) l'utilisent comme dev test surface. Migrer ces specs vers `/_visual` aurait coûté plus que la valeur. Route dev-only, ne pollue pas le bundle prod.
-
-## Stash
-
-- `agents-prep-work-stash` (~2 semaines, refactors I1/I2 obsolètes). Drop probable, à arbitrer.
 
 ## Fichiers à relire en début de prochaine session
 
 1. `STATE.md` (ce fichier — porte d'entrée)
 2. `CLAUDE.md` (méthodologie permanente)
-3. `WORKPLAN.md` (plan global, C1 mergé, DESIGN-DEFAULTS prête merge, COMMAND-SYSTEM/SETTINGS au planning)
-4. `JOURNAL.md` (dernières entrées — clôture DESIGN-DEFAULTS au 2026-05-11)
-5. `plan-110526/PLAN-DESIGN-DEFAULTS.md` (tableau de progression complet + commit ladder + décisions clés)
-6. `plan-110526/DESIGN-PRINCIPLES.md` (source de vérité visuelle — nuance density chrome/canvas ajoutée 2026-05-11)
-7. `plan-110526/PLAN-COMMAND-SYSTEM.md` (prochain chantier à attaquer post-merge)
+3. `WORKPLAN.md` (plan global)
+4. `JOURNAL.md` (dernières entrées — clôture STEP 1 + 2 de SETTINGS au 2026-05-12 nuit)
+5. **`plan-110526/PLAN-SETTINGS.md`** (chantier ACTIF — tableau de progression à jour, STEP 3 next)
+6. `plan-110526/DESIGN-PRINCIPLES.md` (source de vérité visuelle)
+7. `plan-110526/PLAN-COMMAND-SYSTEM.md` (prochain chantier après SETTINGS)
 8. `BACKLOG.md` (hors-scope MVP)
 9. `SPEC.md` / `design.md` / `PLAN.md` (référence)
 
-Mémoire persistante : `pending_folder_delete.md` rappelle le diagnostic du bug folder-delete pour la prochaine session quand l'user voudra l'attaquer.
+## Smoke tests à faire par Matheo en début de session
+
+1. **Folder-delete (le bug qui te bloquait depuis 2026-05-10)** :
+   - `npm run tauri dev`
+   - Créer un dossier dans la sidebar, mettre 1-2 fichiers dedans, click droit → Supprimer → confirmer.
+   - **Attendu** : dossier supprimé sans erreur. Avant le fix : toast `Failed to delete X: Operation not permitted (os error 1)`.
+
+2. **Settings modal STEP 2** :
+   - `npm run tauri dev`
+   - Appuyer **Cmd+,** (macOS) ou **Ctrl+,**.
+   - **Attendu** : modal centré, backdrop sombre, 6 sections en rail gauche (Apparence par défaut), placeholder à droite. Click sur chaque section change la sélection active.
+   - Test fermeture : Escape ferme, click sur backdrop ferme, click sur bouton X ferme.
+
+3. **Pas de régression visuelle** :
+   - L'éditeur, la sidebar, l'EmptyState au boot doivent être identiques à avant (les 40 baselines existantes sont toujours vertes).
+
+## Prochaine étape
+
+**STEP 3 — Appearance section** (PLAN-SETTINGS) : theme cards row + editor font selector + sliders fontSize / lineHeight / contentWidth + live preview paragraph. Demande l'oeil de Matheo (visuel + live preview) → laissée hors session autonome.
+
+Une fois Matheo a validé les smoke tests STEP 1+2, je peux attaquer STEP 3 en session collaborative.
+
+## Mémoire persistante mise à jour
+
+- `pending_folder_delete.md` → **à supprimer** (bug fixé).
+- `feedback-branch-strategy.md` → nouveau : Matheo travaille seul, commits directement sur `main`.
+- `feedback-merge-authorization.md` → nouveau : Claude peut merger / supprimer branches locales sans demander.
+- `feedback-parallel-agent-worktrees.md` → nouveau : limites du dispatch parallèle avec isolation: worktree.

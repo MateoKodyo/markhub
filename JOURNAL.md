@@ -1120,3 +1120,99 @@ Branche `feat/design-defaults` à 13 commits ahead de `main`, prête merge manue
 Prochain chantier : **PLAN-COMMAND-SYSTEM** (Cmd+K command palette, Cmd+P file picker, Shift+F filter) — 8 steps. Branche dédiée `feat/command-system` depuis `main` post-merge.
 
 Memory persistante toujours à jour : `pending_folder_delete.md` rappelle le diag du folder-delete EPERM, à attaquer un jour.
+
+---
+
+# Session 2026-05-12 (nuit, autonome) — merge design-defaults + folder-delete + PLAN-SETTINGS STEP 1 + 2
+
+## Contexte
+
+Matheo va dormir. Demande à Claude d'analyser les journaux et de proposer ce qui est faisable en autonomie. Discussion : COMMAND-SYSTEM / SETTINGS / drag-drop / folder-delete sont tous candidats. Matheo choisit **PLAN-SETTINGS en priorité** ("les commandes ne sont pas une priorité"). Il valide aussi : (a) fusionner les branches dans un main global maintenant (il s'embrouillait dans les commits), (b) supprimer les branches obsolètes, (c) cette nuit travailler directement sur `main` (zero ceremony).
+
+**Politique mise en mémoire :**
+- `feedback-branch-strategy.md` : par défaut commit sur `main`. Branches dédiées uniquement quand vraiment instable / expérimental.
+- `feedback-merge-authorization.md` : Claude peut merger les branches feature sur main directement (l'ancienne règle "Matheo merge manuellement" est levée). Le push sur origin reste à Matheo.
+
+## Setup initial (avant le code)
+
+1. `git switch main` puis `git merge --ff-only feat/design-defaults` (13 commits ahead → main passe de `0e72755` à `659eba2`).
+2. `git branch -d feat/design-defaults feat/blocknote-migration feat/blocknote-step4-ui-finish` (3 branches obsolètes nettoyées).
+
+## Tentative dispatch parallèle (avec leçons)
+
+L'user a explicitement demandé "tu ne lancerais pas une équipe en parallèle aussi ? Le drag and drop par exemple." → lancement de 2 agents `general-purpose` avec `isolation: "worktree"`, en background :
+- Agent A : folder-delete EPERM fix (mémoire `pending_folder_delete` comme brief de diagnostic).
+- Agent B : C3 drag-drop sidebar (HTML5 → pointer events).
+
+**Les deux agents ont opéré dans MON arbre principal au lieu de leur worktree.** Probable cause : les prompts contenaient des chemins relatifs (`src-tauri/src/...`) que les agents ont résolus contre `/Users/lkid/Projects/products/markhub` (le project root cité en intro) plutôt que contre le worktree path. L'agent folder-delete a même fait un `git stash` poli de mon travail settings WIP avant de coder, puis créé une branche `fix/folder-delete-permission` dans mon arbre principal et committé `2fadb5b`.
+
+**Récupération propre** :
+- `git switch main` → `git merge --ff-only fix/folder-delete-permission` (FF clean) → `git branch -d fix/folder-delete-permission` → `git stash pop stash@{0}` (récupère mon WIP mod.rs + models.rs).
+- Re-éditer manuellement `lib.rs` pour ajouter `settings_read` / `settings_write` (n'étaient pas dans le stash — l'Edit initial avait échoué avec "file modified since read" pendant que l'agent éditait le même fichier).
+- Worktrees forcés `git worktree remove -f -f` + branches `worktree-agent-*` supprimées.
+
+L'agent drag-drop a été tué en RED phase ; il n'avait commencé qu'un fichier test (`tests/component/FileTreeDragDrop.test.svelte.ts`, jamais commité) → perdu avec le worktree. **À reprendre en session directe.** Mémoire `feedback-parallel-agent-worktrees.md` posée.
+
+## Commits livrés (3, sur `main`)
+
+```
+59893c7 feat(settings): modal shell with section navigation            ← STEP 2 settings
+c4db29f feat(settings): persistent settings store with Tauri backend   ← STEP 1 settings
+2fadb5b fix(files): folder deletion uses remove_dir_all (fixes EPERM)  ← folder-delete (de l'agent)
+```
+
+## Folder-delete fix (`2fadb5b`)
+
+Le diagnostic posé le 10/05 par 2 agents diag était exact : bug code, pas TCC. macOS `unlink(2)` sur un dossier renvoie EPERM. Fix livré : nouvelle commande Rust `folder_delete` avec `fs::remove_dir_all`, gated by `resolve_safe_path` + `ensure_writable` + refus si relative path vide (racine vault), enregistrée dans `lib.rs`. Front : `folderDelete` wrapper + dispatch `entry.isDirectory` dans `Sidebar.svelte`. 5 tests Rust (empty / non-empty / refuse root / refuse traversal / refuse readonly).
+
+Mémoire `pending_folder_delete.md` → à supprimer (résolu).
+
+## STEP 1 — Settings store + persistence (`c4db29f`)
+
+**Backend Rust** : `models::UserSettings` (versioned + 5 nested sections), `commands::settings::{settings_read, settings_write}`. **Atomic write** via `.tmp` + `fs::rename` (POSIX-atomic). **Resilient read** : missing file → defaults silencieux ; malformed JSON → defaults + backup `.bak` + warning log. 8 tests Rust (defaults / round-trip / parent dirs / pas de .tmp leftover / malformed → backup / overwrite atomique / schema defaults / camelCase JSON keys).
+
+**Front Svelte 5** : `tauri/types.ts` ajout `UserSettings` + `DEFAULT_USER_SETTINGS`. `tauri/api.ts` wrappers. `stores/settings.svelte.ts` : `settingsStore` rune `$state` avec debounce 250ms via `setTimeout`. **Theme délégué au themeStore existant** (pas de duplication de logique runtime — `themeStore.init()` + `setPreference()` font le boulot). Boot hydration câblée dans `+page.svelte` après `vaultsStore.load` et `themeStore.init`. 10 tests vitest sur le store contract (mocks api + themeStore via `vi.mock`).
+
+**Déviations documentées** :
+- `appearance.theme: string` reste typé `'dark' | 'light' | 'system'` (legacy 3 valeurs) au lieu des 4 themes du plan. Les 4 themes du plan n'ont pas de CSS → STEP 3 les implémentera.
+- `editor_line_height: f64` → drop `Eq` derive sur le struct (PartialEq suffit pour les tests).
+
+## STEP 2 — Modal shell + navigation (`59893c7`)
+
+**Composant `SettingsModal.svelte`** :
+- Backdrop (`--color-backdrop`, z-index 200) + panneau centré 760×600 (`--radius-xl`, `--shadow-xl`).
+- Header : titre + bouton X (Lucide).
+- Left rail 200px : 6 sections avec icônes Lucide (Palette, Settings, Code, Folder, MousePointer, Wrench).
+- Right pane : placeholder pour STEP 3+.
+- A11y : `role="dialog"` + `aria-modal` + `aria-labelledby` ; `aria-current` sur la section active ; icônes Lucide `aria-hidden`.
+- Auto-focus du panel à l'ouverture pour que Escape fonctionne sans préliminaire.
+- Backdrop click + Escape ferment (Escape vérifie `isOpen` pour ne pas hijack quand fermé).
+- Tous visuels via tokens design-system : `--color-bg-raised`, `--color-border`, `--color-surface-veil`, `--color-surface-hover`, `--color-accent`, `--radius-*`, `--shadow-xl`, `--space-*`, `--duration-base`, `--easing-standard`. Zéro hex/px hardcodé.
+
+**Store additions** : `isOpen` + `activeSection` runes, `open(section?)` / `close()`. `SETTINGS_SECTIONS` typed const + `SettingsSection` union (utilisé par PLAN-COMMAND-SYSTEM pour deep-link `settings.open.appearance` etc.).
+
+**Keyboard trigger temporaire** : `Cmd+,` / `Ctrl+,` global handler dans `+page.svelte` (OS-standard pour Settings). Quand PLAN-COMMAND-SYSTEM lance, ce binding migrera dans le command registry.
+
+**Tests** :
+- 10 tests vitest component (mocks api + themeStore).
+- 5 tests visual Playwright : shell dark + shell light + deep-link advanced + escape close + backdrop close. Nouveau fixture `?fixture=settings-modal&section=...` dans `/_visual/+page.svelte`.
+
+## Tests finaux après cette session
+
+- cargo : **87/87 ✅** (74 + 5 folder-delete + 8 settings backend)
+- vitest : **213/213 ✅** (193 + 10 settings store + 10 SettingsModal component)
+- svelte-check : **0/0 ✅**
+- visual Playwright : **45/45 ✅** (40 + 5 settings-modal)
+
+## Validation user pendante
+
+L'user dort. Au matin, smoke tests à faire (procédure détaillée dans `STATE.md` § "Smoke tests à faire par Matheo") :
+1. Folder-delete sur un vrai dossier dans la sidebar.
+2. `Cmd+,` ouvre le modal Settings, navigation rail OK, Escape/backdrop/X ferment.
+3. Pas de régression visuelle sur l'éditeur / sidebar / EmptyState.
+
+## Prochaine étape
+
+Si smoke tests passent : **STEP 3 — Appearance section** (theme cards, font selectors, sliders avec live preview). Nécessite l'oeil de Matheo (visuel) → ne sera PAS attaqué en autonomie. En session collaborative directe.
+
+Pas de scope creep cette nuit : pas de touche à drag-drop / toast / outline / onglets / etc. Strict respect du scope SETTINGS demandé par Matheo.
