@@ -152,7 +152,7 @@ The modal is opened via:
 | 2. Modal shell + navigation | ✅ | `59893c7` | ✅ smoke OK 2026-05-12 matin |
 | 3. Appearance section | ✅ | `39d2027` | ⏸ pending smoke |
 | 4. Editor section | ✅ | `d9dd033` | ⏸ pending smoke |
-| 5. Source mode + Files + Behavior sections | ✅ | `7c1f40d` | ⏸ pending smoke |
+| 5. Source mode + Files + Behavior sections | ✅ | `40feb30` | ⏸ pending smoke |
 | 6. Advanced section | ⏳ | — | — |
 | 7. Command palette integration | ⏳ | — | — |
 | 8. Final audit + closure | ⏳ | — | — |
