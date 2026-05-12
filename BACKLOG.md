@@ -4,6 +4,9 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### Settings v1 — wiring différé
+- **Appliquer `appearance.editorFontSize` + `editorLineHeight` au body de l'éditeur** — STEP 3 livre le store + le modal + le live preview dans le modal. Le wiring DANS BlockNote a été tenté en STEP 3+ et reverté le 2026-05-12 nuit (commit `b2c19d2`) : BlockNote applique son propre cascade sur `.bn-default-styles`, `.bn-block-outer` et `.bn-block-content[data-content-type=...]`, et nos overrides CSS + JS-DOM + MutationObserver ont fini par freezer l'éditeur. **Chemin propre = passer par l'API de theming / styling de BlockNote** (le fichier `editor-blocknote.css` utilise déjà ses variables `--bn-*` propres, c'est probablement la bonne porte). Ce qui MARCHE déjà live : theme, font family du chrome heading (via `--font-editor`), content width, autosave delay, spellcheck, mono font. Reste : body font-size + body line-height.
+
 ### Phase 5
 - **Panneau de settings vault** — alternative au menu contextuel pour exposer rename / toggle mode / change color, plus extensible (futur : custom icon, ordering).
 - **Color picker custom** dans le menu contextuel d'un vault — permettre à l'utilisateur de choisir explicitement la couleur au lieu de la rotation auto.
