@@ -199,6 +199,119 @@ pub fn duplicate_file(vault: &Vault, relative: &str) -> Result<String, String> {
     Ok(new_rel)
 }
 
+/// Import external markdown files into `vault` under `target_parent`.
+///
+/// Each source must already exist on disk and have a `.md` / `.markdown`
+/// extension; anything else is rejected upfront so the call is all-or-
+/// nothing (no partial imports leaving the user guessing which file
+/// landed).
+///
+/// Naming collisions in the target directory get a ` copie` / ` copie 2`
+/// suffix (same algorithm as `duplicate_file`) so the original file in
+/// the vault is never silently overwritten.
+///
+/// Refused on readonly vaults; the target parent must already exist
+/// and be a directory inside the vault.
+///
+/// Returns the list of new relative paths (one per imported file), in the
+/// same order as the input.
+pub fn import_files(
+    vault: &Vault,
+    source_paths: &[String],
+    target_parent: &str,
+) -> Result<Vec<String>, String> {
+    ensure_writable(vault)?;
+
+    let parent_abs = resolve_safe_path(vault, target_parent)?;
+    if !parent_abs.exists() {
+        return Err(format!("Target directory not found: {target_parent}"));
+    }
+    if !parent_abs.is_dir() {
+        return Err(format!("Target is not a directory: {target_parent}"));
+    }
+
+    // Pre-validate every source before copying anything — we don't want a
+    // partial import where the 4th file errored after the first 3 landed.
+    for src_str in source_paths {
+        let src = Path::new(src_str);
+        if !src.exists() {
+            return Err(format!("Source not found: {src_str}"));
+        }
+        if !src.is_file() {
+            return Err(format!("Source is not a file: {src_str}"));
+        }
+        let ext_lower = src
+            .extension()
+            .map(|s| s.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+        if ext_lower != "md" && ext_lower != "markdown" {
+            let name = src
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            return Err(format!(
+                "Only markdown files can be imported (got .{ext_lower}): {name}"
+            ));
+        }
+    }
+
+    // Track names taken DURING this import so the same input twice doesn't
+    // collide with itself (collision detection has to look at both
+    // disk-existing names AND names we just claimed in this loop).
+    let mut taken: Vec<String> = Vec::new();
+    let mut imported: Vec<String> = Vec::new();
+
+    for src_str in source_paths {
+        let src = Path::new(src_str);
+        let stem = src
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let ext_lower = src
+            .extension()
+            .map(|s| s.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+        let ext = format!(".{ext_lower}");
+
+        let mut attempt = 0u32;
+        let new_name = loop {
+            let candidate_name = if attempt == 0 {
+                format!("{stem}{ext}")
+            } else if attempt == 1 {
+                format!("{stem} copie{ext}")
+            } else {
+                format!("{stem} copie {attempt}{ext}")
+            };
+            let candidate_abs = parent_abs.join(&candidate_name);
+            if !candidate_abs.exists() && !taken.contains(&candidate_name) {
+                break candidate_name;
+            }
+            attempt += 1;
+            if attempt > 100 {
+                return Err(format!(
+                    "Too many name collisions for {} — clean up the target directory",
+                    src.file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default()
+                ));
+            }
+        };
+
+        let dst = parent_abs.join(&new_name);
+        fs::copy(src, &dst).map_err(|e| format!("Failed to import {src_str}: {e}"))?;
+
+        let new_rel = if target_parent.is_empty() {
+            new_name.clone()
+        } else {
+            format!("{target_parent}/{new_name}")
+        };
+        taken.push(new_name);
+        imported.push(new_rel);
+    }
+
+    Ok(imported)
+}
+
 /// Reveal the file at `relative` inside `vault` in the macOS Finder.
 /// Uses `open -R` directly (no extra Tauri plugin dependency). Read-only
 /// operation: works regardless of the vault's readonly flag.
@@ -382,6 +495,17 @@ pub fn file_duplicate(
 ) -> Result<String, String> {
     let v = vault_for(&app, &vault_id)?;
     duplicate_file(&v, &relative_path)
+}
+
+#[tauri::command]
+pub fn file_import(
+    app: AppHandle,
+    vault_id: String,
+    source_paths: Vec<String>,
+    target_parent: String,
+) -> Result<Vec<String>, String> {
+    let v = vault_for(&app, &vault_id)?;
+    import_files(&v, &source_paths, &target_parent)
 }
 
 #[tauri::command]
@@ -904,8 +1028,153 @@ mod tests {
     }
 
     // ============================================================
-    // Phase 5b — reveal_in_finder (light test — we don't actually open Finder)
+    // import_files
     // ============================================================
+
+    /// Stage a fake "outside file" the way a Finder pick would land — in a
+    /// temp dir distinct from the vault, so the source path is absolute and
+    /// the vault doesn't already hold it.
+    fn stage_source(content: &str, name: &str) -> (TempDir, String) {
+        let dir = TempDir::new().unwrap();
+        let p = dir.path().join(name);
+        std::fs::write(&p, content).unwrap();
+        let abs = p.to_string_lossy().to_string();
+        (dir, abs)
+    }
+
+    #[test]
+    fn import_copies_a_single_markdown_into_the_vault_root() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        let (_src_dir, src_abs) = stage_source("hello", "note.md");
+        let imported = import_files(&v, &[src_abs], "").expect("import ok");
+        assert_eq!(imported, vec!["note.md".to_string()]);
+        let dst = g.path().join("note.md");
+        assert!(dst.exists());
+        assert_eq!(fs::read_to_string(dst).unwrap(), "hello");
+    }
+
+    #[test]
+    fn import_returns_one_relative_path_per_source_in_order() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let (_s1, a1) = stage_source("a", "alpha.md");
+        let (_s2, a2) = stage_source("b", "bravo.markdown");
+        let imported = import_files(&v, &[a1, a2], "").expect("import ok");
+        assert_eq!(
+            imported,
+            vec!["alpha.md".to_string(), "bravo.markdown".to_string()]
+        );
+    }
+
+    #[test]
+    fn import_renames_on_collision_with_copie_suffix() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "note.md", "existing");
+        let (_src_dir, src_abs) = stage_source("imported", "note.md");
+        let imported = import_files(&v, &[src_abs], "").unwrap();
+        assert_eq!(imported, vec!["note copie.md".to_string()]);
+        assert_eq!(fs::read_to_string(g.path().join("note.md")).unwrap(), "existing");
+        assert_eq!(
+            fs::read_to_string(g.path().join("note copie.md")).unwrap(),
+            "imported"
+        );
+    }
+
+    #[test]
+    fn import_handles_repeated_collisions_with_incrementing_suffix() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "note.md", "0");
+        write_fixture(g.path(), "note copie.md", "1");
+        let (_src_dir, src_abs) = stage_source("new", "note.md");
+        let imported = import_files(&v, &[src_abs], "").unwrap();
+        assert_eq!(imported, vec!["note copie 2.md".to_string()]);
+        assert!(g.path().join("note copie 2.md").exists());
+    }
+
+    #[test]
+    fn import_avoids_same_name_collisions_within_one_call() {
+        // Two sources with the same basename — the second must get a suffix
+        // even though neither name existed on disk before the call started.
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let (_s1, a1) = stage_source("first", "note.md");
+        let (_s2, a2) = stage_source("second", "note.md");
+        let imported = import_files(&v, &[a1, a2], "").unwrap();
+        assert_eq!(
+            imported,
+            vec!["note.md".to_string(), "note copie.md".to_string()]
+        );
+    }
+
+    #[test]
+    fn import_into_a_subdirectory() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        std::fs::create_dir(g.path().join("sub")).unwrap();
+        let (_src_dir, src_abs) = stage_source("x", "note.md");
+        let imported = import_files(&v, &[src_abs], "sub").unwrap();
+        assert_eq!(imported, vec!["sub/note.md".to_string()]);
+        assert!(g.path().join("sub/note.md").exists());
+    }
+
+    #[test]
+    fn import_rejects_non_markdown_extensions() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let (_src_dir, src_abs) = stage_source("not markdown", "image.png");
+        let err = import_files(&v, &[src_abs], "").expect_err("png rejected");
+        assert!(err.contains("Only markdown files"));
+    }
+
+    #[test]
+    fn import_rejects_missing_source() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let err =
+            import_files(&v, &["/tmp/does-not-exist-xyz.md".to_string()], "").expect_err("missing");
+        assert!(err.contains("Source not found"));
+    }
+
+    #[test]
+    fn import_rejects_when_target_parent_is_not_a_directory() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(g.path(), "blocker", "x"); // file at the target path
+        let (_src_dir, src_abs) = stage_source("x", "note.md");
+        let err = import_files(&v, &[src_abs], "blocker").expect_err("not a dir");
+        assert!(err.contains("not a directory"));
+    }
+
+    #[test]
+    fn import_rejects_when_target_parent_does_not_exist() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let (_src_dir, src_abs) = stage_source("x", "note.md");
+        let err = import_files(&v, &[src_abs], "does/not/exist").expect_err("missing target");
+        assert!(err.contains("Target directory not found"));
+    }
+
+    #[test]
+    fn import_is_rejected_on_readonly_vault() {
+        let (_g, v) = make_vault(VaultMode::Readonly);
+        let (_src_dir, src_abs) = stage_source("x", "note.md");
+        let err = import_files(&v, &[src_abs], "").expect_err("readonly");
+        assert!(err.contains("Vault is readonly"));
+    }
+
+    #[test]
+    fn import_rejects_target_parent_path_traversal() {
+        let (_g, v) = make_vault(VaultMode::Edit);
+        let (_src_dir, src_abs) = stage_source("x", "note.md");
+        let err = import_files(&v, &[src_abs], "../escape").expect_err("traversal");
+        assert!(err.contains("Path outside vault"));
+    }
+
+    #[test]
+    fn import_is_atomic_on_validation_error_no_partial_copy() {
+        // First source is fine, second has a bad extension. The pre-check
+        // ensures NEITHER lands in the vault — the user gets a clean error
+        // instead of "alpha.md got imported but image.png errored".
+        let (g, v) = make_vault(VaultMode::Edit);
+        let (_s1, a1) = stage_source("a", "alpha.md");
+        let (_s2, a2) = stage_source("x", "image.png");
+        let err = import_files(&v, &[a1, a2], "").expect_err("pre-validation");
+        assert!(err.contains("Only markdown files"));
+        assert!(!g.path().join("alpha.md").exists(), "partial copy must not happen");
+    }
 
     #[test]
     fn reveal_rejects_path_outside_vault() {

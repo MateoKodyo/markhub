@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { FilePlus, FolderPlus, Plus, Search } from 'lucide-svelte';
+	import { FileInput, FilePlus, FolderPlus, Plus, Search } from 'lucide-svelte';
+	import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 	import VaultList from './VaultList.svelte';
 	import FileTree, { type CreatingAt, type TreeContext } from './FileTree.svelte';
 	import ContextMenu, { type MenuItem } from './ContextMenu.svelte';
@@ -13,6 +14,7 @@
 		vaultScan,
 		fileCreate,
 		fileDelete,
+		fileImport,
 		fileRename,
 		fileDuplicate,
 		fileRevealInFinder,
@@ -427,6 +429,59 @@
 		}
 	}
 
+	/**
+	 * Import external markdown files into the active vault. The target
+	 * parent is derived from the current selection (same rule as
+	 * `startCreate`): selecting a folder puts the imports inside it,
+	 * selecting a file puts them in that file's parent folder, no
+	 * selection puts them at the vault root.
+	 */
+	async function handleImport() {
+		const id = vaultsStore.activeVaultId;
+		if (!id || vaultsStore.isActiveVaultReadonly) return;
+
+		topLevelError = null;
+		let picked: string | string[] | null;
+		try {
+			picked = await openFileDialog({
+				multiple: true,
+				directory: false,
+				filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
+			});
+		} catch (e) {
+			topLevelError = `Sélection de fichiers impossible : ${String(e)}`;
+			return;
+		}
+		if (!picked) return;
+		const sources = Array.isArray(picked) ? picked : [picked];
+		if (sources.length === 0) return;
+
+		const targetParent = findInsertionTarget(
+			selectedEntry
+				? {
+						relativePath: selectedEntry.relativePath,
+						isDirectory: selectedEntry.isDirectory
+					}
+				: null
+		);
+
+		try {
+			const imported = await fileImport(id, sources, targetParent);
+			await refreshScan();
+			// Auto-expand the target parent so the user sees the imported files.
+			if (targetParent && !expandedSet.has(targetParent)) {
+				void vaultsStore.toggleFolderExpansion(id, targetParent);
+			}
+			// Surface the first imported file as the new selection so the user
+			// can immediately jump into it.
+			if (imported.length > 0) {
+				selectedEntry = { name: '', relativePath: imported[0], isDirectory: false };
+			}
+		} catch (e) {
+			topLevelError = `Import impossible : ${String(e)}`;
+		}
+	}
+
 	async function handleMoveFile(sourcePath: string, targetParentPath: string) {
 		const id = vaultsStore.activeVaultId;
 		if (!id || vaultsStore.isActiveVaultReadonly) return;
@@ -687,6 +742,16 @@
 						onclick={() => startCreate('folder')}
 					>
 						<FolderPlus size={14} />
+					</button>
+					<button
+						type="button"
+						class="icon-btn"
+						title="Importer des fichiers Markdown"
+						aria-label="Importer des fichiers Markdown"
+						disabled={vaultsStore.isActiveVaultReadonly}
+						onclick={handleImport}
+					>
+						<FileInput size={14} />
 					</button>
 				</div>
 			</header>

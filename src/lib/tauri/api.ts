@@ -96,6 +96,19 @@ export const fileDuplicate = (
 	relativePath: string
 ): Promise<string> => invoke('file_duplicate', { vaultId, relativePath });
 
+/**
+ * Import external markdown files into the vault under `targetParent`
+ * (empty string = vault root). Only `.md` / `.markdown` extensions are
+ * accepted; collisions in the target directory get a " copie" / " copie 2"
+ * suffix. Returns the list of new relative paths.
+ */
+export const fileImport = (
+	vaultId: string,
+	sourcePaths: string[],
+	targetParent: string
+): Promise<string[]> =>
+	invoke('file_import', { vaultId, sourcePaths, targetParent });
+
 /** Reveal a file or folder in the macOS Finder (no plugin dependency). */
 export const fileRevealInFinder = (
 	vaultId: string,
