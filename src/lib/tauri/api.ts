@@ -119,21 +119,3 @@ export const settingsRead = (): Promise<UserSettings> => invoke('settings_read')
  */
 export const settingsWrite = (settings: UserSettings): Promise<void> =>
 	invoke('settings_write', { settings });
-
-/**
- * Initiate an OS-level drag of `absolutePath` out of the Tauri webview.
- * The user can then drop the file on the Desktop, in a Finder window, in
- * Mail to attach, etc. — the OS owns the drop. `mode` defaults to "copy"
- * (Markhub keeps the original; the destination receives a copy).
- *
- * Note: `@crabnebula/tauri-plugin-drag`'s TS surface requires an `icon`
- * path. We pass the file path itself — on macOS the OS reads the icon
- * from the file and renders the drag preview with the right glyph.
- */
-export async function dragFileOut(
-	absolutePath: string,
-	mode: 'copy' | 'move' = 'copy'
-): Promise<void> {
-	const { startDrag } = await import('@crabnebula/tauri-plugin-drag');
-	await startDrag({ item: [absolutePath], icon: absolutePath, mode });
-}

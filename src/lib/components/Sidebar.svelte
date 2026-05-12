@@ -17,8 +17,7 @@
 		fileDuplicate,
 		fileRevealInFinder,
 		folderCreate,
-		folderDelete,
-		dragFileOut
+		folderDelete
 	} from '$lib/tauri/api';
 	import { joinPath, getFileName, getParentPath, isMarkdownFile } from '$lib/utils/path';
 	import {
@@ -428,23 +427,6 @@
 		}
 	}
 
-	/**
-	 * Cmd-drag a file out of the app — toward Finder, the Desktop, Mail, etc.
-	 * Resolves the absolute path against the active vault and hands off to
-	 * `tauri-plugin-drag`, which initiates an OS-level drag. Markhub keeps
-	 * the original; the destination receives a copy.
-	 */
-	async function handleDragOut(entry: import('$lib/tauri/types').FileEntry) {
-		const vault = vaultsStore.activeVault;
-		if (!vault) return;
-		const absolutePath = joinPath(vault.path, entry.relativePath);
-		try {
-			await dragFileOut(absolutePath);
-		} catch (e) {
-			topLevelError = `Drag externe impossible : ${String(e)}`;
-		}
-	}
-
 	async function handleMoveFile(sourcePath: string, targetParentPath: string) {
 		const id = vaultsStore.activeVaultId;
 		if (!id || vaultsStore.isActiveVaultReadonly) return;
@@ -742,7 +724,6 @@
 					onRenameSubmit={commitRename}
 					onRenameCancel={cancelRename}
 					onMoveFile={handleMoveFile}
-					onDragOut={handleDragOut}
 				/>
 			{/if}
 		</section>

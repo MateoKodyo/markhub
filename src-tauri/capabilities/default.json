@@ -9,7 +9,6 @@
     "core:default",
     "core:window:allow-start-dragging",
     "dialog:default",
-    "dialog:allow-open",
-    "drag:default"
+    "dialog:allow-open"
   ]
 }
