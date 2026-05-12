@@ -18,10 +18,12 @@
  */
 
 import { activeFileStore } from '$lib/stores/activeFile.svelte';
+import { paletteStore } from '$lib/stores/palette.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { themeStore } from '$lib/stores/theme.svelte';
 import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { vaultsStore } from '$lib/stores/vaults.svelte';
+import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
 import * as api from '$lib/tauri/api';
 import { commandRegistry } from './registry.svelte';
 
@@ -163,6 +165,28 @@ export function registerAppCommands(): void {
 		shortcut: '⌘,',
 		handler: () => settingsStore.open()
 	});
+
+	// ----- Palette modes (open the palette itself) -----
+	commandRegistry.register({
+		id: 'palette.open',
+		label: 'Open Command Palette',
+		group: 'View',
+		shortcut: '⌘K',
+		handler: () => paletteStore.open('command')
+	});
+
+	commandRegistry.register({
+		id: 'palette.openFile',
+		label: 'Go to File…',
+		group: 'View',
+		shortcut: '⌘P',
+		handler: () => {
+			// Fire-and-forget refresh so the palette opens immediately on the
+			// last-known tree, then updates reactively as new entries arrive.
+			void vaultTreeStore.refresh();
+			paletteStore.open('file');
+		}
+	});
 }
 
 /**
@@ -173,6 +197,7 @@ export function registerAppCommands(): void {
 export const APP_KEYMAP = {
 	'$mod+s': 'file.save',
 	'$mod+k': 'palette.open',
+	'$mod+p': 'palette.openFile',
 	'$mod+,': 'settings.open'
 } as const;
 
@@ -190,7 +215,9 @@ export function unregisterAppCommands(): void {
 		'view.toggleSidebar',
 		'view.toggleTheme',
 		'view.toggleEditorMode',
-		'settings.open'
+		'settings.open',
+		'palette.open',
+		'palette.openFile'
 	]) {
 		commandRegistry.unregister(id);
 	}

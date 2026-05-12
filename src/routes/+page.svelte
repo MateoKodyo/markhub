@@ -13,11 +13,16 @@
 	import { themeStore } from '$lib/stores/theme.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
+	import { paletteStore } from '$lib/stores/palette.svelte';
+	import { recentFilesStore } from '$lib/stores/recentFiles.svelte';
+	import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import CommandMode from '$lib/components/palette/CommandMode.svelte';
+	import FileMode from '$lib/components/palette/FileMode.svelte';
 	import { commandRegistry, type Command } from '$lib/commands/registry.svelte';
 	import { recentCommandsStore } from '$lib/commands/recent.svelte';
 	import { rankCommands } from '$lib/commands/fuzzy';
+	import { rankFiles, type FilePaletteEntry } from '$lib/commands/fuzzyFiles';
 	import { joinPath } from '$lib/utils/path';
 	import * as api from '$lib/tauri/api';
 
@@ -106,57 +111,66 @@
 		root.setProperty('--content-max-width', `${a.editorContentWidth}px`);
 	});
 
-	// --- Command palette wiring (STEP 3 — Command mode) -------------------
-	// State owned here because the palette opens overlaid on +page; STEP 4
-	// and STEP 6 will widen `paletteMode` to also include 'file' / 'search'.
-	let paletteOpen = $state(false);
-	let paletteMode = $state<'command'>('command');
-	let paletteQuery = $state('');
-	let paletteSelectedIndex = $state(0);
-	let paletteItemCount = $state(0);
-
-	function openPalette(mode: 'command'): void {
-		paletteMode = mode;
-		paletteQuery = '';
-		paletteSelectedIndex = 0;
-		paletteOpen = true;
-	}
-
+	// --- Command palette wiring -------------------------------------------
+	// Palette state lives in `paletteStore` so the catalog can drive it
+	// (`palette.open`, `palette.openFile`) without reaching into +page.
+	// Activation paths live here because they need to record into the
+	// MRU stores and dispatch to the right handler (command vs. file).
 	function activateCommand(cmd: Command): void {
-		paletteOpen = false;
+		paletteStore.close();
 		recentCommandsStore.record(cmd.id);
 		void cmd.handler();
 	}
 
-	// Mirror CommandMode's ranking here so keyboard Enter (which fires
+	function activateFile(entry: FilePaletteEntry): void {
+		paletteStore.close();
+		recentFilesStore.record({
+			vaultId: entry.vaultId,
+			relativePath: entry.relativePath
+		});
+		void activeFileStore.openFile(entry.vaultId, entry.relativePath);
+	}
+
+	// Mirror each mode's ranking so keyboard Enter (which fires
 	// CommandPalette.onActivate(index)) resolves to the same row the body
-	// displays. Both call sites use the same `rankCommands` inputs, so
-	// they stay in lockstep.
-	const paletteRanked = $derived(
-		paletteMode === 'command'
+	// displays. Both shell + body use the same ranking inputs.
+	const paletteRankedCommands = $derived(
+		paletteStore.mode === 'command'
 			? rankCommands(
 					commandRegistry.getAll(),
-					paletteQuery,
+					paletteStore.query,
 					recentCommandsStore.getRecent()
 				)
 			: []
 	);
 
-	function paletteActivateByIndex(index: number): void {
-		const cmd = paletteRanked[index]?.command;
-		if (cmd) activateCommand(cmd);
-	}
-
-	$effect(() => {
-		commandRegistry.register({
-			id: 'palette.open',
-			label: 'Open Command Palette',
-			group: 'View',
-			shortcut: '⌘K',
-			handler: () => openPalette('command')
-		});
-		return () => commandRegistry.unregister('palette.open');
+	const paletteFileExclude = $derived.by(() => {
+		const set = new Set<string>();
+		const af = activeFileStore.activeFile;
+		if (af) set.add(`${af.vaultId}::${af.relativePath}`);
+		return set;
 	});
+
+	const paletteRankedFiles = $derived(
+		paletteStore.mode === 'file'
+			? rankFiles(
+					vaultTreeStore.files,
+					paletteStore.query,
+					recentFilesStore.getRecent(),
+					paletteFileExclude
+				)
+			: []
+	);
+
+	function paletteActivateByIndex(index: number): void {
+		if (paletteStore.mode === 'command') {
+			const cmd = paletteRankedCommands[index]?.command;
+			if (cmd) activateCommand(cmd);
+		} else if (paletteStore.mode === 'file') {
+			const entry = paletteRankedFiles[index]?.entry;
+			if (entry) activateFile(entry);
+		}
+	}
 
 	// view.toggleEditorMode dispatches `app:toggleEditorMode`; listen and
 	// flip editorMode here (preview ↔ source). Only flips when an active
@@ -402,23 +416,34 @@
 
 <SettingsModal />
 
-<!-- Command palette — STEP 3 (Command mode). STEP 4/6 will add 'file'
-	 and 'search' modes, swapping the body based on paletteMode. -->
+<!-- Command palette — owned by paletteStore. Body swaps on mode:
+	 'command' (Cmd+K) | 'file' (Cmd+P) | 'search' (Cmd+Shift+F, STEP 6). -->
 <CommandPalette
-	open={paletteOpen}
-	placeholder="Type a command…"
-	itemCount={paletteItemCount}
-	bind:query={paletteQuery}
-	bind:selectedIndex={paletteSelectedIndex}
-	onClose={() => (paletteOpen = false)}
+	open={paletteStore.isOpen}
+	placeholder={paletteStore.mode === 'file'
+		? 'Go to file…'
+		: paletteStore.mode === 'search'
+			? 'Search across vault…'
+			: 'Type a command…'}
+	itemCount={paletteStore.itemCount}
+	bind:query={paletteStore.query}
+	bind:selectedIndex={paletteStore.selectedIndex}
+	onClose={() => paletteStore.close()}
 	onActivate={paletteActivateByIndex}
 >
-	{#if paletteMode === 'command'}
+	{#if paletteStore.mode === 'command'}
 		<CommandMode
-			query={paletteQuery}
-			selectedIndex={paletteSelectedIndex}
-			bind:itemCount={paletteItemCount}
+			query={paletteStore.query}
+			selectedIndex={paletteStore.selectedIndex}
+			bind:itemCount={paletteStore.itemCount}
 			onActivate={activateCommand}
+		/>
+	{:else if paletteStore.mode === 'file'}
+		<FileMode
+			query={paletteStore.query}
+			selectedIndex={paletteStore.selectedIndex}
+			bind:itemCount={paletteStore.itemCount}
+			onActivate={activateFile}
 		/>
 	{/if}
 </CommandPalette>
