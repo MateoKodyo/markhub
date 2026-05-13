@@ -89,7 +89,13 @@
 	// `palette:action` event and we route it to the right local function.
 	$effect(() => {
 		const onPaletteAction = (e: Event) => {
-			const detail = (e as CustomEvent<{ action?: string }>).detail;
+			const detail = (e as CustomEvent<{ action?: string; paths?: string[] }>).detail;
+			// `importPaths` is allowed even without a vault — the handler
+			// itself surfaces the missing-vault error via toast.
+			if (detail?.action === 'importPaths') {
+				void handleImport(detail.paths ?? []);
+				return;
+			}
 			if (!vaultsStore.activeVaultId) return;
 			if (detail?.action === 'newFile') startCreate('file');
 			else if (detail?.action === 'newFolder') startCreate('folder');
@@ -468,26 +474,54 @@
 	 * `startCreate`): selecting a folder puts the imports inside it,
 	 * selecting a file puts them in that file's parent folder, no
 	 * selection puts them at the vault root.
+	 *
+	 * `externalSources` lets a caller bypass the native dialog and feed
+	 * absolute paths directly — used by the OS drag-drop bridge in
+	 * +page.svelte. Non-markdown paths are filtered out silently.
 	 */
-	async function handleImport() {
+	async function handleImport(externalSources?: string[]) {
 		const id = vaultsStore.activeVaultId;
-		if (!id || vaultsStore.isActiveVaultReadonly) return;
-
-		topLevelError = null;
-		let picked: string | string[] | null;
-		try {
-			picked = await openFileDialog({
-				multiple: true,
-				directory: false,
-				filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
-			});
-		} catch (e) {
-			topLevelError = `Sélection de fichiers impossible : ${String(e)}`;
+		if (!id || vaultsStore.isActiveVaultReadonly) {
+			if (externalSources) {
+				toast.error('Aucun vault actif', {
+					details: 'Ouvre un vault avant de glisser des fichiers'
+				});
+			}
 			return;
 		}
-		if (!picked) return;
-		const sources = Array.isArray(picked) ? picked : [picked];
-		if (sources.length === 0) return;
+
+		topLevelError = null;
+		let sources: string[];
+		if (externalSources) {
+			sources = externalSources.filter(
+				(p) => p.toLowerCase().endsWith('.md') || p.toLowerCase().endsWith('.markdown')
+			);
+			if (sources.length === 0) {
+				toast.warning('Aucun fichier Markdown dans la sélection');
+				return;
+			}
+			const ignored = externalSources.length - sources.length;
+			if (ignored > 0) {
+				toast.info(
+					`${ignored} fichier${ignored > 1 ? 's' : ''} non-Markdown ignoré${ignored > 1 ? 's' : ''}`
+				);
+			}
+		} else {
+			let picked: string | string[] | null;
+			try {
+				picked = await openFileDialog({
+					multiple: true,
+					directory: false,
+					filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
+				});
+			} catch (e) {
+				topLevelError = `Sélection de fichiers impossible : ${String(e)}`;
+				return;
+			}
+			if (!picked) return;
+			sources = Array.isArray(picked) ? picked : [picked];
+			if (sources.length === 0) return;
+		}
 
 		const targetParent = findInsertionTarget(
 			selectedEntry
@@ -761,7 +795,12 @@
 	}
 </script>
 
-<aside class="sidebar" class:is-collapsed={collapsed} inert={collapsed}>
+<aside
+	class="sidebar"
+	class:is-collapsed={collapsed}
+	inert={collapsed}
+	data-sidebar-root
+>
 	{#if topLevelError}
 		<p class="top-error" role="alert">{topLevelError}</p>
 	{/if}
@@ -817,7 +856,7 @@
 						title="Importer des fichiers Markdown"
 						aria-label="Importer des fichiers Markdown"
 						disabled={vaultsStore.isActiveVaultReadonly}
-						onclick={handleImport}
+						onclick={() => handleImport()}
 					>
 						<FileInput size={14} />
 					</button>

@@ -239,6 +239,52 @@
 	});
 	// --- end Command palette wiring ---------------------------------------
 
+	// --- OS drag-drop bridge (Finder → sidebar) ---------------------------
+	// With `dragDropEnabled: true` in tauri.conf.json, the webview no
+	// longer swallows OS-level drops. Tauri emits `tauri://drag-drop`
+	// with the absolute paths + the drop position (physical pixels).
+	// We only honor drops that land over the Sidebar — drops on the
+	// editor area stay no-op for now (BlockNote doesn't expose a clean
+	// "insert file block" entry point for arbitrary markdown).
+	$effect(() => {
+		let unlisten: (() => void) | null = null;
+		void (async () => {
+			const win = getCurrentWindow();
+			unlisten = await win.listen<{
+				paths: string[];
+				position: { x: number; y: number };
+			}>('tauri://drag-drop', (event) => {
+				const { paths, position } = event.payload;
+				if (!paths || paths.length === 0) return;
+				const sidebarEl = document.querySelector(
+					'[data-sidebar-root]'
+				) as HTMLElement | null;
+				if (!sidebarEl) return;
+				const rect = sidebarEl.getBoundingClientRect();
+				// Tauri emits the position in physical pixels; CSS rects are
+				// in CSS pixels. Convert so the hit-test is accurate on
+				// high-DPI screens.
+				const dpr = window.devicePixelRatio || 1;
+				const x = position.x / dpr;
+				const y = position.y / dpr;
+				const inSidebar =
+					x >= rect.left &&
+					x <= rect.right &&
+					y >= rect.top &&
+					y <= rect.bottom;
+				if (!inSidebar) return;
+				window.dispatchEvent(
+					new CustomEvent('palette:action', {
+						detail: { action: 'importPaths', paths }
+					})
+				);
+			});
+		})();
+		return () => {
+			unlisten?.();
+		};
+	});
+
 	onMount(async () => {
 		try {
 			await vaultsStore.load();
