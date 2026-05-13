@@ -184,12 +184,13 @@ BlockNote has its own CSS variable namespace (e.g., `--bn-colors-editor-backgrou
 
 | Step | Status | Commit | Matheo validation |
 |------|--------|--------|-------------------|
-| 1. Theming infrastructure (manager + catalog + migration) | ✅ | (à venir) | 2026-05-13 |
-| 2. Solar theme | ✅ | (à venir) | smoke pending |
-| 3. Tokyo theme | ✅ | (à venir) | smoke pending |
-| 4. Theme picker UI (Settings → Appearance) | ✅ | (à venir) | smoke pending |
-| 5. OS-follow mechanism + transitions | ✅ | (à venir) | smoke pending |
-| 6. Full audit + closure | ✅ | (à venir) | smoke pending |
+| 1. Theming infrastructure (manager + catalog + migration) | ✅ | `af998e5` | 2026-05-13 |
+| 2. Solar theme | ✅ | `d738ade` | 2026-05-13 |
+| 3. Tokyo theme | ✅ | `f2e9be1` | 2026-05-13 |
+| 4. Theme picker UI (Settings → Appearance) | ✅ | `29e7106` + `cd636e0` (UX refactor) | 2026-05-13 |
+| 5. OS-follow mechanism + transitions | ✅ | `01f1992` | 2026-05-13 |
+| 6. Full audit + closure | ✅ | `fc18d14` | 2026-05-13 |
+| **Hotfix: CSS specificity (theme selectors lost vs. :root fallback)** | ✅ | `cd636e0` | 2026-05-13 |
 
 ---
 
