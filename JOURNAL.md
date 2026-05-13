@@ -1647,3 +1647,137 @@ PLAN-SETTINGS sera officiellement clos après le smoke matinal. Pistes ensuite :
 - C2 Toast system
 - Outline V2 (Notion-style rail) si valeur perçue suffisante
 - Flash blanc resize (objc) — non urgent
+
+
+# Session 2026-05-14 (soir) — toast étoffé + cleanup behavior + onglets + find + resize handles
+
+Grosse session post-PLAN-SETTINGS / post-PLAN-COMMAND-SYSTEM. Six "mini-chantiers" enchaînés dans l'ordre B → C → A (tabs) → find Cmd+F → resize handles. 16 commits.
+
+## Préambule — revert body typography (commits `e95f058` + `d29952a`)
+
+4e tentative de wirer `appearance.editorFontSize` + `editorLineHeight` au body BlockNote (commit `a8bbc41` "apply on commit via remount") confirmée NON FONCTIONNELLE par smoke réel. Decision Matheo : "on traîne dessus, plus tard, next". Reverted via `git revert a8bbc41`. BACKLOG entry mise à jour avec les 4 tentatives cumulées et le path propre identifié (BlockNote theming API).
+
+## B — Toast coverage étoffé (commit `5e3390b`)
+
+Couverture des actions write-side restantes :
+- Vault ajouté / renommé (toasts success + error)
+- Inline file/folder rename success
+- Move via context-menu folder picker (success/error)
+- **Autosave failure → toast sticky** (`duration: 0`) parce que la pill 'error' du status est trop discrète pour perdre du travail silencieusement.
+
+`activeFile.svelte.ts` importe maintenant `toast` directement (premier store-to-store import du projet — kept narrow).
+
+## C — Retrait section Behavior (commit `80a420c`)
+
+`askBeforeClosingUnsaved` était devenu inerte depuis le fix flush inconditionnel (commit `b3069da`). Section Settings vide nettoyée :
+- TS : retiré `BehaviorSettings` + `'behavior'` de `SettingsSection`/`SETTINGS_SECTIONS`
+- `SettingsBehavior.svelte` + son test → deleted
+- `SettingsModal` : retire la nav entry + le routing
+- `Sidebar.handleOpenFile` : simplifié (le flush vit dans le store)
+- Catalog : retire `settings.open.behavior`
+- Rust : `BehaviorSettings` struct GARDÉE pour la backward-compat des configs `settings.json` existants — serde silencieusement drop le field côté TS.
+
+Settings modal passe de 6 à 5 sections.
+
+## A — Onglets de fichiers Phase 5c (commit `9305417` + 5 polish)
+
+**Recon stratégique** : 3 options évaluées (tabs natifs macOS via `tabbingIdentifier` NSWindow, Tauri 2 multi-webview, JS-driven custom). JS-driven retenu — les autres isolent l'état entre tabs ce qui briserait Markhub's single vault/settings/palette/sidebar. Détaillé dans le commit message.
+
+**Refactor activeFileStore en place** :
+- Garde l'API publique (`activeFile`, `content`, `status`, `lastSavedAt`) en getters sur le tab actif.
+- Ajoute `tabs: Tab[]`, `activeTabId`, `closeTab`, `closeActiveTab`, `activateTab`, `activateTabAtIndex`, `reorderTabs`.
+- `openFile(vaultId, path)` : dedupe (active le tab existant) ou append. Atomic insert post-fileRead.
+- Per-tab autosave timers (Map) : un switch ne drop pas un flush pendant.
+- 12 tests unit nouveaux pour le nouveau contrat.
+
+**TabBar.svelte** : drag-reorder HTML5, click active, × close (hidden until hover/active), labels shrink, file icon. Pattern Cursor : 28px de haut, transparent au repos, accent stripe en drop indicator.
+
+**Catalog + keymap** : `tab.close` (⌘W) visible, `tab.goto.1..9` hidden avec `when` clauses. APP_KEYMAP wired.
+
+**Polish séquence** (5 commits successifs basés sur les retours visuels) :
+- `81ad262` : Augmente la hauteur, retire breadcrumb path + bar border (Matheo "on perd de la place")
+- `bcee136` : Refonte Cursor-style : 28px, transparent, font-size: 12, drop indicator en accent stripe
+- `7ddd7a9` : Fold le `.content-header` (mode toggle + outline) DANS la TabBar via slot `trailing` (économie 44px vertical)
+- `ad343d7` : Add file icon `FileText` 12px à gauche du nom (parité Cursor)
+- `679fe5e` : Hide scrollbar + fade 16px avant les trailing controls
+- `9a3f1a3` : Refactor two-zone layout pour éviter que les tabs scroll sous les controls (sticky était dans le scroll container)
+
+Tests à jour : vitest 394/394 (+18 — 12 tabs API + 6 TabBar component), svelte-check 0/0.
+
+## Cmd+F find-in-document (commit `43c8f91`)
+
+Barre flottante anchored top-right de l'éditeur. State dans `findStore` (séparé du component). Catalog `find.open` (⌘F) + `find.next` (⌘G) + `find.previous` (⇧⌘G). `computeMatches` helper pur case-insensitive sans overlap.
+
+Editor.svelte : $effect réagit à `findStore.activeIndex` — preview mode auto-switch source (même trade-off que Cmd+Shift+F search hits, BACKLOG'd). Source mode focus + selectionRange native + scroll au tiers haut.
+
+13 tests : 5 computeMatches + 8 findStore. **Total vitest 407/407**.
+
+## Resize handles trio (commits `d7996e0` + `653bffc` + `fa5b1b4`)
+
+Trois zones resizables :
+1. **Sidebar gauche** (width entre 180-480, default 240)
+2. **Outline panel droit** (width entre 200-480, default 260)
+3. **Split vertical dans la sidebar** : Vaults (haut) / Fichiers (bas) — height entre 80-600, default 200
+
+Toutes persistées en localStorage (`markhub.ui.sidebarWidth.v1`, `outlineWidth.v1`, `vaultsHeight.v1`).
+
+**ResizeHandle.svelte** :
+- Premier essai (`d7996e0`) : `setPointerCapture` + handle dans le flex flow. Marchait pour sidebar, PAS pour outline (silently swallowed events sur macOS Tauri).
+- Fix (`653bffc`) : window-level pointermove/pointerup listeners, registered at pointerdown. `touch-action: none` pour pas se faire bouffer par le browser scroll. API renommée `width` → `size` puisque le bar peut être horizontal ou vertical.
+- Outline-side fix (`fa5b1b4`) : déplacement du handle DANS OutlinePanel via `position: absolute` sur son edge gauche, hors du flex flow où il était absorbé par stacking context du main editor.
+
+## Vault + icon header (commit `05d5420`)
+
+Parité avec la section Files : `+` icon-btn dans le header `VAULTS` à droite du label (clic = `handleAddVault`). Retire le gros bouton "Ajouter vault" en bas de la liste. Sidebar uniformise avec le pattern de la Files section.
+
+## Outline jump fix (commit `078d849`)
+
+Régression apparue après le refactor tabs : les clicks sur le sommaire landaient sur le mauvais bloc en preview mode. Cause : `scrollToNthHeadingInPreview` walk `editor.document` et compte les heading blocks, mais `OutlinePanel` dérive son `index` de `extractHeadings` sur le markdown source. Les deux divergent sur certains docs (BlockNote re-interprète, ou l'ordre shift après edit).
+
+Fix : aligner sur le pattern Cmd+F / Cmd+Shift+F. En preview, toujours `app:toggleEditorMode` + `scrollToLineInSource(line)`. Source-mode est la source de vérité. Plus de scrollToNthHeadingInPreview.
+
+## Tests finaux
+
+- cargo : **120/120 ✅**
+- vitest : **407/407 ✅** (+13 find, +18 tabs depuis dernier journal)
+- svelte-check : **0 erreur / 0 warning ✅**
+
+## Surface en production après cette session
+
+**Raccourcis** :
+- ⌘K palette commandes — ⌘P file switcher — ⌘⇧F search vault
+- ⌘F find-in-document (nouveau)
+- ⌘\ outline panel toggle
+- ⌘W ferme le tab actif — ⌘1..9 active le N-ième tab
+- ⌘S save manuel — ⌘, settings
+- ⌘G next match / ⇧⌘G previous match (find)
+
+**Layout** : 3 colonnes resizables (sidebar + main + outline), split vertical sidebar (vaults/files), tabs Cursor-style compacts en haut de l'éditeur avec mode-toggle + outline button intégrés à droite.
+
+**Tabs** : open via Sidebar/Cmd+P, dedupe sur même fichier, drag-reorder, scroll horizontal franc, fade 16px avant les controls.
+
+**Toast** : couvre tous les write-side handlers + save error sticky.
+
+## Décisions importantes
+
+1. **Tabs natifs macOS rejetés** — état partagé inter-tabs (vault, sidebar, palette) serait cauchemar à synchroniser.
+2. **Body typography définitivement reverted** — 4e tentative échouée, BACKLOG via BlockNote theming API uniquement.
+3. **Pattern "auto-switch source pour les scrolls"** maintenant universel (find, search hits, outline). Source-mode = source de vérité pour le scroll programmatique.
+4. **Setting `askBeforeClosingUnsaved` supprimé** — Rust struct gardé pour compat.
+
+## Prochaine session
+
+PLAN-COMMAND-SYSTEM follow-ups restants en BACKLOG :
+- BlockNote line→block resolution (V2 — pour scroll preview natif)
+- Double-scan vaultTreeStore/Sidebar
+- SearchOptions UI (toggles case/whole-word/regex)
+- Drag-drop FROM Finder (refactor pointer events)
+- Body typography via theming API
+- Flash blanc resize (objc CALayer)
+- Outline V2 rail Notion-style
+
+Plus features atypique :
+- Pin tab (épingler)
+- Tab right-click menu (close others, close to right, etc.)
+- Réordrer vaults dans Sidebar
+- Find-and-replace (extension de Cmd+F)

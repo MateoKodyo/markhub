@@ -5,36 +5,37 @@
 
 ## Date de mise à jour
 
-2026-05-14 (après-midi) — session collaborative continue depuis le matin. Bilan :
-
-- **PLAN-COMMAND-SYSTEM 8/8 ✅ MERGÉ + PUSHÉ** sur `origin/main`.
-- **Outline panel V1 ✅** — `Cmd+\\` + bouton `PanelRight` dans le header éditeur. Click sur un heading → scroll source-mode (réutilise jump-to-line) OU preview-mode (via BlockNote `editor.document` walk + `scrollIntoView`).
-- **Token estimate StatusBar ✅** — pill cycle words → chars → ~tokens (heuristique `chars / 4`, prefixed "~").
-- **PLAN-SETTINGS STEPS 6/7/8 livrés** (smoke pending) — Advanced section + 6 section deep-link commands + closure docs.
-- **Body typography fix** — TENTÉ via remount (commit `a8bbc41` + `!important` hammer) puis REVERTED (`e95f058`). N'a pas tenu en réel. Décision Matheo : laisser tomber, BACKLOG. Preview live dans le modal continue de marcher ; l'éditeur reste à 15px/1.6.
-- **Drag-drop dossier sidebar fixé** + 4 bugs BlockNote (slash menu /query persistant, "Liste à cocher" manquante, edit perdu au switch, checkbox visuelle sobre).
-- Tentative `backgroundColor` au resize → reverted, tracé en BACKLOG (WKWebView macOS).
+2026-05-14 (soir) — session marathon après-PLAN-SETTINGS + PLAN-COMMAND-SYSTEM. 16 commits enchaînés couvrant : revert body typography (4e échec), toast étoffé, retrait section Behavior, **onglets de fichiers Phase 5c**, **Cmd+F find-in-document**, **3 resize handles** (sidebar/outline/split vertical), polish UX tabs Cursor-style.
 
 ## Branche courante
 
-`main` — **5 commits ahead de `origin/main`** depuis le dernier push (`47693f9`). Push à faire quand Matheo veut.
+`main` — synced avec `origin/main` (push à jour).
 
-Commits depuis le dernier push (du plus ancien au plus récent) :
+Dernière séquence de commits :
 
 ```
-189098d feat(status-bar): rough token estimate in the count cycle
-0ab0098 feat(outline): toggleable TOC panel on the right (Cmd+\\)
-47693f9 feat(editor): icon-only mode toggle + Outline button next to it  ← dernier push
-fead47e docs(backlog): track the resize white-flash issue as deferred
-a8bbc41 feat(settings): body typography wiring via apply-on-commit remount
-58b33c5 feat(settings): advanced section + section deep-links (STEPS 6 + 7)
-[closure] chore(state): closure PLAN-SETTINGS — handoff docs refresh
+078d849 fix(outline): route outline-panel jumps through source-mode scroll
+fa5b1b4 fix(panels): outline resize handle now lives on the panel's edge
+05d5420 refactor(sidebar): + icon next to "Vaults" header, drop the bottom button
+653bffc fix(panels): window-level pointer events + third resize (vaults / files)
+d7996e0 feat(panels): resize handles for the sidebar + outline columns
+43c8f91 feat(editor): in-document find bar (⌘F)
+9a3f1a3 fix(tabs): two-zone layout — trailing chrome can't be underflown
+679fe5e style(tabs): hide scrollbar + 16px fade before the trailing controls
+ad343d7 style(tabs): add file icon left of each tab name (Cursor parity)
+7ddd7a9 style(tabs): fold the editor chrome row into the tab bar
+bcee136 style(tabs): Cursor-style compact tab bar with horizontal scroll
+81ad262 style(tabs): polish — taller rows, drop breadcrumb path + bar border
+9305417 feat(tabs): editor file tabs (Phase 5c)
+80a420c refactor(settings): retire the redundant Behavior section
+5e3390b feat(toast): cover the remaining vault + rename + save flows (C2 v1.5)
+ca779fd revert(sidebar): disable drag-drop from Finder — restore in-app HTML5 drag
 ```
 
 ## Tests (état final)
 
-- cargo : **120/120 ✅** (115 + 5 nouveaux pour STEP 6 settings backend)
-- vitest : **350/350 ✅** (339 + 11 nouveaux pour outline + token)
+- cargo : **120/120 ✅**
+- vitest : **407/407 ✅**
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
@@ -42,75 +43,85 @@ a8bbc41 feat(settings): body typography wiring via apply-on-commit remount
 
 | Chantier | Statut |
 |---|---|
-| C1 — Migration Crepe → BlockNote | ✅ MERGÉ sur `main` (2026-05-11) |
-| PLAN-DESIGN-DEFAULTS (10 steps) | ✅ MERGÉ sur `main` (2026-05-12) |
-| **PLAN-SETTINGS (8 steps)** | **✅ 8/8 code livré, smoke audit pending** |
-| Folder-delete EPERM | ✅ FIXÉ + smoke OK |
-| Import de fichiers markdown | ✅ LIVRÉ 2026-05-13 |
-| PLAN-COMMAND-SYSTEM (8 steps) | ✅ MERGÉ + PUSHÉ sur `origin/main` (2026-05-14) |
-| Drag-drop sidebar — dossier + visual root drop | ✅ FIXÉ 2026-05-14 |
-| Outline panel V1 (sommaire toggleable) | ✅ LIVRÉ 2026-05-14 |
-| Token estimate StatusBar | ✅ LIVRÉ 2026-05-14 |
-| Body typography fix (PLAN-SETTINGS STEP 3 dette) | ✅ RÉSOLU 2026-05-14 (apply-on-commit) |
-| C2 — Toast / notifications | DÉBLOQUÉ — pas démarré |
-| C5 — Drag-drop OS depuis Finder | ⏳ PAS DÉMARRÉ |
-| Outline V2 (rail Notion-style hover) | gelé — V1 jugé suffisant 2026-05-14 |
-| Onglets de fichiers (Phase 5c) | gelé |
+| C1 — Migration Crepe → BlockNote | ✅ MERGÉ (2026-05-11) |
+| PLAN-DESIGN-DEFAULTS | ✅ MERGÉ (2026-05-12) |
+| PLAN-SETTINGS (8 steps) | ✅ MERGÉ 2026-05-14 (STEP 3 partielle, body typo BACKLOG) |
+| PLAN-COMMAND-SYSTEM (8 steps) | ✅ MERGÉ 2026-05-14 |
+| Folder-delete EPERM | ✅ |
+| Import de fichiers markdown | ✅ |
+| Drag-drop sidebar (dossiers + root drop) | ✅ |
+| Outline panel V1 | ✅ |
+| Token estimate StatusBar | ✅ |
+| C2 — Toast system | ✅ (couverture complète write-side + save error) |
+| C3 — Drag-drop sidebar pointer events | ✅ user-validated |
+| C5 — Drag-drop FROM Finder | ⛔ reverted (Tauri/HTML5 incompat, BACKLOG) |
+| **Onglets de fichiers (Phase 5c)** | **✅ MERGÉ 2026-05-14 — JS-driven, Cursor-style** |
+| **Cmd+F find-in-document** | **✅ LIVRÉ 2026-05-14** |
+| **Resize handles trio (sidebar / outline / split vertical)** | **✅ LIVRÉ 2026-05-14** |
+| Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG (BlockNote theming API) |
+| Outline V2 Notion rail | gelé (V1 valide) |
+| Flash blanc resize | gelé (objc CALayer) |
+| Scroll preview natif (BlockNote line→block) | gelé (workaround source-mode partout) |
 
-## Surface livrée en production (recap)
+## Surface livrée en production
 
 **Raccourcis globaux** :
-- `Cmd+K` — palette de commandes (9 visibles + 8 méta) + prefix switching `>` `@` `#`
-- `Cmd+P` — file switcher (fuzzy filename+path, MRU)
-- `Cmd+Shift+F` — search vault (ripgrep-backed)
-- `Cmd+\\` — toggle outline panel
-- `Cmd+S` — save (hidden, via autosave + manual flush)
-- `Cmd+,` — settings
+- `⌘K` palette de commandes (catalog file/vault/view/settings/tabs)
+- `⌘P` file switcher (fuzzy filename+path, MRU, dedupe tabs)
+- `⌘⇧F` search vault (ripgrep)
+- `⌘F` find-in-document (nouveau)
+- `⌘G` / `⇧⌘G` next/previous match
+- `⌘\` outline panel toggle
+- `⌘W` ferme le tab actif
+- `⌘1..9` active le N-ième tab
+- `⌘S` save manuel — `⌘,` settings
 
-**Settings** : 6 sections (Apparence, Éditeur, Source, Fichiers, Comportement, Avancé). Body font-size + line-height appliqués via remount au close du modal.
+**Layout 3 colonnes resizables** :
+- Sidebar gauche (180-480px) avec **split vertical** Vaults/Files (80-600px)
+- Main editor au milieu avec tabs Cursor-style intégrant le mode-toggle + outline button
+- Outline panel droite (200-480px) toggleable, handle de resize sur son edge gauche
 
-**Editor** : Preview / Source (icônes) + Outline (toggle). Drag-drop dossier dans la sidebar. Checkboxes sobre sans strikethrough.
+**Toast system** : couvre tous les write-side handlers (create/delete/duplicate/move/import/rename de fichier ET dossier, vault add/remove/rename/toggle-mode, copy path) + save error sticky (`duration: 0`).
 
-## Smoke pending (à faire par Matheo)
+**Settings** : 5 sections (Apparence / Éditeur / Source / Fichiers / Avancé). Behavior section retirée (redondante). Avancé : Open config folder + Export/Import JSON + version.
 
-PLAN-SETTINGS STEP 6/7/8 :
-- Open config folder → ouvre bien Finder au bon path
-- Export : sauve un JSON valide
-- Import : charge un JSON valide ET rejette un malformed
-- Round-trip : export → modifier → import → state restauré
-- Version display : affiche bien `Markhub v0.1.0`
-- Cmd+K → "Settings: Editor" / etc. ouvre directement à la section
+## Pattern "auto-switch source" pour le scroll programmatique
 
-Body typography :
-- Open Settings → modifier fontSize ou lineHeight → préview live dans le modal
-- Fermer modal → l'éditeur applique les nouvelles valeurs (un flash de remount, acceptable)
+Toutes les opérations qui scrollent vers une position du doc (Cmd+F find, Cmd+Shift+F search hits, Outline click) **basculent automatiquement en source mode** quand l'utilisateur est en preview. Source-mode est la source de vérité ; native textarea selection sert de cue visuel. Le path preview-natif via BlockNote API est BACKLOG'd (instabilité observée sur les 4 tentatives).
 
-## Dettes / dépendances ajoutées par cette session
-
-- npm : `lucide-svelte` icons utilisés (déjà installée)
-- localStorage keys ajoutées : `markhub.ui.outlineOpen.v1`
-
-## BACKLOG enrichi par cette session
+## BACKLOG (dettes ouvertes)
 
 Voir `BACKLOG.md` :
-- **Flash blanc au resize** — WKWebView macOS, 2 tentatives reverted, à reprendre via objc
-- **Outline V2** (Notion-style hover rail) — pas urgent, V1 valide la valeur
-- **PLAN-COMMAND-SYSTEM follow-ups** (`askBeforeClosingUnsaved` redondant, line→block preview jump, double scan, SearchOptions UI)
+- **Body editor font-size + line-height** (4e tentative reverted — path propre = BlockNote theming API)
+- **Scroll-in-preview pour jumps** (workaround source-mode partout, V2 via ProseMirror view.coordsAtPos)
+- **Drag-drop FROM Finder** (refactor pointer events nécessaire)
+- **Flash blanc resize** (objc CALayer)
+- **PLAN-COMMAND-SYSTEM follow-ups** : double-scan vault tree, SearchOptions UI
+- **Outline V2 Notion rail** (gelé, V1 suffit)
+
+Idées identifiées en cours de session 2026-05-14 :
+- Pin tab (épingler un tab pour qu'il survive ⌘W global / close-others)
+- Tab right-click menu (close others / close to right / close all)
+- Réordrer vaults dans Sidebar (drag-drop)
+- Find-and-replace (extension du find Cmd+F)
 
 ## Fichiers à relire en début de prochaine session
 
 1. `STATE.md` (ce fichier — porte d'entrée)
-2. `CLAUDE.md` (méthodologie)
-3. `WORKPLAN.md` (plan global)
-4. **Dernière entrée de `JOURNAL.md`** (clôture session 2026-05-14)
+2. `CLAUDE.md`
+3. `WORKPLAN.md`
+4. **Dernière entrée `JOURNAL.md`** (session 2026-05-14 soir)
 5. `BACKLOG.md` (dettes + items différés)
-6. `plan-110526/PLAN-SETTINGS.md` (tableau de progression — 8/8 code livré)
 
 ## Prochaine session
 
-Au choix :
-- **Smoke + signature PLAN-SETTINGS** (10-15 min) → fin officielle du chantier
-- **PLAN-COMMAND-SYSTEM follow-ups** (`askBeforeClosingUnsaved` cleanup, line→block, SearchOptions UI) — ~2h
-- **C2 Toast system** — chantier mature, ~2h
-- **Outline V2** (Notion rail) — ~3h
-- **Flash blanc resize** (objc CALayer) — ~1-2h research
+Toutes les pistes :
+- Tab right-click menu + middle-click close (~30min, UX cliché attendu)
+- Pin tab (~1h)
+- Réordrer vaults (~30min)
+- Find-and-replace (~1h, extension Cmd+F)
+- Body typography via BlockNote theming API (~2-3h research+dev)
+- Scroll preview via ProseMirror view.coordsAtPos (~1-2h)
+- Drag-drop FROM Finder via pointer events (~1-2h)
+- Outline V2 Notion rail (~3h)
+- Multi-cursor / smooth caret (nice-to-have)
