@@ -113,13 +113,6 @@
 		const root = document.documentElement.style;
 		root.setProperty('--font-editor', EDITOR_FAMILY_BY_ID[a.editorFont] ?? EDITOR_FAMILY_BY_ID.geist);
 		root.setProperty('--content-max-width', `${a.editorContentWidth}px`);
-		// Body font-size + line-height — consumed by `editor-blocknote.css`
-		// overrides on `.bn-default-styles` and `.bn-block-outer`. The vars
-		// update live (modal preview reads them via the same tokens), but
-		// the main editor only picks them up on the next remount, which is
-		// triggered by `settingsStore.appliedRevision` in `editorKey`.
-		root.setProperty('--editor-body-font-size', `${a.editorFontSize}px`);
-		root.setProperty('--editor-body-line-height', String(a.editorLineHeight));
 	});
 
 	// --- Command palette wiring -------------------------------------------
@@ -327,14 +320,10 @@
 	}
 
 	// Re-key on file switch so the BlockNote instance is fully reset.
-	// Also include `settingsStore.appliedRevision` so closing the Settings
-	// modal triggers a remount — that's how body font-size / line-height
-	// land in the editor (BlockNote's cascade is fought-too-hard to win
-	// at runtime; remount-and-reapply is the agreed pattern, see BACKLOG).
 	const editorKey = $derived(
 		activeFileStore.activeFile
-			? `${activeFileStore.activeFile.vaultId}:${activeFileStore.activeFile.relativePath}:${settingsStore.appliedRevision}`
-			: `empty:${settingsStore.appliedRevision}`
+			? `${activeFileStore.activeFile.vaultId}:${activeFileStore.activeFile.relativePath}`
+			: 'empty'
 	);
 
 	/**

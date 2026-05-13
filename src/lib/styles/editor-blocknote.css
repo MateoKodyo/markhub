@@ -33,31 +33,23 @@
 
 /* ────────────────────────────────────────────────────────────
  *  2. Editor container — typography baseline.
- *
- *  Body font-size + line-height read from CSS vars set by +page.svelte
- *  (`--editor-body-font-size` / `--editor-body-line-height`). These
- *  update live, but the visible change only lands after the editor
- *  remounts — triggered by `settingsStore.appliedRevision` flowing into
- *  `editorKey`. This is the "apply on commit" pattern: the modal preview
- *  feels live (it reads the same vars), the editor commits on modal close.
- *  See BACKLOG.md for the history of the live-via-cascade attempts.
  * ──────────────────────────────────────────────────────────── */
 .preview .bn-editor {
 	font-family: var(--font-editor);
-	font-size: var(--editor-body-font-size, 15px);
-	line-height: var(--editor-body-line-height, 1.6);
+	font-size: 15px;
+	line-height: 1.6;
 	color: var(--color-text-primary);
 	background: transparent;
 }
 
-/* `.bn-block-outer` has `line-height: 1.5` baked in by BlockNote (Block.css)
- * — same-specificity rule but BlockNote's stylesheet wins by load order. We
- * raise specificity here (descendant `.preview`) and consume the same var
- * so a single setting controls both the inline-content rhythm and the
- * inter-block rhythm. */
-.preview .bn-block-outer {
-	line-height: var(--editor-body-line-height, 1.6);
-}
+/* Editor body typography overrides (font family / size / line-height) are
+   currently deferred — BlockNote's internal cascade applies styles at
+   multiple levels (`.bn-default-styles`, `.bn-block-outer`, per-content-type
+   block-content rules) that our overrides could not reach without invasive
+   `!important` + JS-driven DOM mutations, which deteriorated into the
+   editor freezing on every keystroke. The clean path forward is BlockNote's
+   own theming/styling API — tracked in BACKLOG.md. Until then, the editor
+   body keeps the baseline above (15px / 1.6 / Geist via --font-editor). */
 
 .preview .bn-editor h1,
 .preview .bn-editor h2,
