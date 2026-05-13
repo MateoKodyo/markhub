@@ -12,14 +12,18 @@
 const LS_OUTLINE_KEY = 'markhub.ui.outlineOpen.v1';
 const LS_SIDEBAR_W_KEY = 'markhub.ui.sidebarWidth.v1';
 const LS_OUTLINE_W_KEY = 'markhub.ui.outlineWidth.v1';
+const LS_VAULTS_H_KEY = 'markhub.ui.vaultsHeight.v1';
 
 const DEFAULT_SIDEBAR_WIDTH = 240;
 const DEFAULT_OUTLINE_WIDTH = 260;
+const DEFAULT_VAULTS_HEIGHT = 200;
 
 export const SIDEBAR_MIN_WIDTH = 180;
 export const SIDEBAR_MAX_WIDTH = 480;
 export const OUTLINE_MIN_WIDTH = 200;
 export const OUTLINE_MAX_WIDTH = 480;
+export const VAULTS_MIN_HEIGHT = 80;
+export const VAULTS_MAX_HEIGHT = 600;
 
 function readOutlineInitial(): boolean {
 	if (typeof localStorage === 'undefined') return false;
@@ -43,6 +47,9 @@ class UiStateStore {
 	);
 	outlineWidth = $state<number>(
 		readWidth(LS_OUTLINE_W_KEY, DEFAULT_OUTLINE_WIDTH, OUTLINE_MIN_WIDTH, OUTLINE_MAX_WIDTH)
+	);
+	vaultsHeight = $state<number>(
+		readWidth(LS_VAULTS_H_KEY, DEFAULT_VAULTS_HEIGHT, VAULTS_MIN_HEIGHT, VAULTS_MAX_HEIGHT)
 	);
 
 	toggleSidebar(): void {
@@ -69,6 +76,14 @@ class UiStateStore {
 		this.outlineWidth = clamped;
 		if (typeof localStorage !== 'undefined') {
 			localStorage.setItem(LS_OUTLINE_W_KEY, String(clamped));
+		}
+	}
+
+	setVaultsHeight(px: number): void {
+		const clamped = Math.max(VAULTS_MIN_HEIGHT, Math.min(VAULTS_MAX_HEIGHT, px));
+		this.vaultsHeight = clamped;
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(LS_VAULTS_H_KEY, String(clamped));
 		}
 	}
 }

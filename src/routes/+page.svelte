@@ -393,7 +393,7 @@
 		<Sidebar collapsed={uiStateStore.sidebarCollapsed} />
 		{#if !uiStateStore.sidebarCollapsed}
 			<ResizeHandle
-				width={uiStateStore.sidebarWidth}
+				size={uiStateStore.sidebarWidth}
 				direction="right"
 				ariaLabel="Redimensionner la sidebar"
 				onResize={(w) => uiStateStore.setSidebarWidth(w)}
@@ -512,7 +512,7 @@
 
 		{#if uiStateStore.outlineOpen && activeFileStore.activeFile}
 			<ResizeHandle
-				width={uiStateStore.outlineWidth}
+				size={uiStateStore.outlineWidth}
 				direction="left"
 				ariaLabel="Redimensionner le sommaire"
 				onResize={(w) => uiStateStore.setOutlineWidth(w)}

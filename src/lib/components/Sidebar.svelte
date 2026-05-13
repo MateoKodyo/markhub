@@ -7,6 +7,7 @@
 	import InputDialog from './InputDialog.svelte';
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import FolderPickerDialog from './FolderPickerDialog.svelte';
+	import ResizeHandle from './ResizeHandle.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
@@ -815,7 +816,10 @@
 		<p class="top-error" role="alert">{topLevelError}</p>
 	{/if}
 
-	<section class="sidebar-section vaults-section">
+	<section
+		class="sidebar-section vaults-section"
+		style="height: {uiStateStore.vaultsHeight}px"
+	>
 		<header class="section-header">
 			<span class="label">Vaults</span>
 		</header>
@@ -836,6 +840,12 @@
 	</section>
 
 	{#if vaultsStore.activeVault}
+		<ResizeHandle
+			size={uiStateStore.vaultsHeight}
+			direction="down"
+			ariaLabel="Redimensionner la liste des vaults"
+			onResize={(h) => uiStateStore.setVaultsHeight(h)}
+		/>
 		<section class="sidebar-section files-section">
 			<header class="section-header files-header">
 				<span class="label">Fichiers</span>
@@ -984,11 +994,17 @@
 		flex-direction: column;
 		gap: var(--space-2);
 		padding: var(--space-4) var(--space-3);
+	}
+
+	.vaults-section {
+		flex: 0 0 auto;
+		overflow: auto;
+		min-height: 0;
 		border-bottom: 1px solid var(--color-border-subtle);
 	}
 
 	.files-section {
-		flex: 1;
+		flex: 1 1 auto;
 		min-height: 0;
 		overflow: auto;
 		border-bottom: none;
