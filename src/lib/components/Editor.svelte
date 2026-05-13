@@ -323,7 +323,12 @@
 				await import('@blocknote/core');
 			if (cancelled) return;
 
-			const editor = BlockNoteEditor.create();
+			// `setIdAttribute: true` stamps each block with `data-id="…"` in
+			// the DOM. Without it, `scrollToBlockInPreview` can't query
+			// the rendered node (BlockNote keeps the id internally only).
+			// Needed by jump-to-line search hits, outline clicks, and the
+			// post-jump accent flash.
+			const editor = BlockNoteEditor.create({ setIdAttribute: true });
 			editor.mount(root);
 
 			// Replace the empty default doc with the parsed body. Use the
