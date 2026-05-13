@@ -1,0 +1,72 @@
+/* Tokyo — saturated dark theme, Tokyo Night inspiration.
+ * PLAN-THEMING §STEP 3 — fourth theme in the curated catalog.
+ *
+ * Mood vs. Markhub Dark: deep midnight blue base (vs. warm near-black),
+ * vivid violet/magenta accent (vs. Markhub Dark's blue), lavender-white
+ * text (vs. warm parchment). Late-night coding, atmospheric, saturated.
+ *
+ * Hex values match the plan's starting set — iterate visually with Matheo
+ * if anything reads wrong on the actual app surface.
+ */
+
+[data-theme='tokyo'] {
+	/* Canvas — Tokyo Night palette */
+	--color-bg-sidebar: #16161e; /* Deepest — sidebar */
+	--color-bg: #1a1b26; /* Midnight blue canvas */
+	--color-bg-raised: #24283b; /* Lifted panel */
+
+	/* Surfaces — lavender-tinted veils */
+	--color-surface-veil: rgba(192, 202, 245, 0.04);
+	--color-surface-active: rgba(192, 202, 245, 0.1);
+	--color-surface-hover: rgba(192, 202, 245, 0.06);
+	--color-surface-strong: rgba(192, 202, 245, 0);
+
+	/* Borders — lavender at low alpha */
+	--color-border-strong: rgba(192, 202, 245, 0.16);
+	--color-border: rgba(192, 202, 245, 0.08);
+	--color-border-subtle: rgba(192, 202, 245, 0.04);
+
+	/* Text — lavender-tinted white scale */
+	--color-text-primary: #c0caf5; /* Tokyo Night fg */
+	--color-text-body: #a9b1d6; /* fg-dim */
+	--color-text-secondary: #9aa5ce;
+	--color-text-muted: #7982a9;
+	--color-text-disabled: #565f89;
+
+	/* Interactive — lifted panel surface */
+	--color-button-bg: #2f334d;
+	--color-button-text: #c0caf5;
+	--color-button-bg-hover: #383e5c;
+
+	/* Accent — vivid violet, distinct from Markhub Dark's blue */
+	--color-accent: #bb9af7;
+	--color-accent-hover: #c8acfa;
+	--color-accent-text: #1a1b26;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(187, 154, 247, 0.28);
+
+	/* Status — Tokyo Night palette */
+	--color-status-ok: #9ece6a; /* green */
+	--color-status-warn: #e0af68; /* yellow */
+	--color-status-error: #f7768e; /* red */
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(247, 118, 142, 0.1);
+	--color-danger-border: rgba(247, 118, 142, 0.3);
+
+	--color-backdrop: rgba(0, 0, 0, 0.55);
+
+	/* Shadows — deeper than Markhub Dark to push the saturated canvas. */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.45);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.28);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+	/* Atmospheric glow — saturated violet on top, deep cyan bottom-right.
+	 * Tokyo Night vibe: signs and neons through a midnight window. */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(187, 154, 247, 0.06), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(125, 207, 255, 0.05), transparent 55%);
+}
