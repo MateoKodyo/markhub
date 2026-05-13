@@ -306,6 +306,7 @@
 		{@const isOpen = isExpanded(entry.relativePath)}
 		{@const isRenaming = renamingPath === entry.relativePath}
 		{@const isDropTarget = dragOverPath === entry.relativePath}
+		{@const isDragSource = dragSourcePath === entry.relativePath}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="directory"
@@ -313,6 +314,7 @@
 			class:is-expanded={isOpen}
 			class:is-selected={selectedPath === entry.relativePath}
 			class:is-drop-target={isDropTarget}
+			class:is-drag-source={isDragSource}
 		>
 			{#if isRenaming}
 				<div class="row inline-renaming" data-testid="inline-rename">
@@ -347,6 +349,9 @@
 					ondblclick={(e) => onEntryDoubleClick(e, entry)}
 					onkeydown={(e) => onEntryKeyDown(e, entry)}
 					oncontextmenu={(e) => onEntryContextMenu(e, entry)}
+					draggable={!readonly}
+					ondragstart={(e) => handleDragStart(e, entry)}
+					ondragend={handleDragEnd}
 					ondragover={(e) => handleDragOverFolder(e, entry)}
 					ondragleave={() => handleDragLeaveFolder(entry)}
 					ondrop={(e) => handleDropOnFolder(e, entry)}
