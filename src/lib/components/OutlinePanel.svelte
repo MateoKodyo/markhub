@@ -43,7 +43,12 @@
 	}
 </script>
 
-<aside class="outline-panel" aria-label="Sommaire du document" data-testid="outline-panel">
+<aside
+	class="outline-panel"
+	aria-label="Sommaire du document"
+	data-testid="outline-panel"
+	style="--outline-w: {uiStateStore.outlineWidth}px"
+>
 	<header class="outline-header">
 		<span class="outline-title">Sommaire</span>
 		<button
@@ -92,7 +97,7 @@
 
 <style>
 	.outline-panel {
-		flex: 0 0 260px;
+		flex: 0 0 var(--outline-w, 260px);
 		display: flex;
 		flex-direction: column;
 		min-height: 0;

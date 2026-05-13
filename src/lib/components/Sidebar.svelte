@@ -11,6 +11,7 @@
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import {
 		vaultScan,
 		fileCreate,
@@ -808,6 +809,7 @@
 	class:is-collapsed={collapsed}
 	inert={collapsed}
 	data-sidebar-root
+	style="--sidebar-w: {uiStateStore.sidebarWidth}px"
 >
 	{#if topLevelError}
 		<p class="top-error" role="alert">{topLevelError}</p>
@@ -945,11 +947,19 @@
 	.sidebar {
 		display: flex;
 		flex-direction: column;
-		width: 280px;
+		width: var(--sidebar-w, 280px);
 		flex-shrink: 0;
 		background: var(--color-bg-sidebar);
 		border-right: 1px solid var(--color-border-subtle);
 		overflow: hidden;
+		transition:
+			border-right-width var(--duration-base) var(--easing-standard);
+	}
+
+	/* Width transition kicks in ONLY for the collapse toggle. During a
+	 * resize-handle drag, instant width changes feel right; a 160ms
+	 * easing would lag and feel rubbery. */
+	.sidebar.is-collapsed {
 		transition:
 			width var(--duration-base) var(--easing-standard),
 			border-right-width var(--duration-base) var(--easing-standard);

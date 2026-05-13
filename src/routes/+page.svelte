@@ -9,6 +9,7 @@
 	import OutlinePanel from '$lib/components/OutlinePanel.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import FindBar from '$lib/components/FindBar.svelte';
+	import ResizeHandle from '$lib/components/ResizeHandle.svelte';
 	import { findStore } from '$lib/stores/find.svelte';
 	import InputDialog from '$lib/components/InputDialog.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
@@ -390,6 +391,14 @@
 
 	<div class="app-body">
 		<Sidebar collapsed={uiStateStore.sidebarCollapsed} />
+		{#if !uiStateStore.sidebarCollapsed}
+			<ResizeHandle
+				width={uiStateStore.sidebarWidth}
+				direction="right"
+				ariaLabel="Redimensionner la sidebar"
+				onResize={(w) => uiStateStore.setSidebarWidth(w)}
+			/>
+		{/if}
 
 		<main class="content">
 		{#if loadError}
@@ -502,6 +511,12 @@
 		</main>
 
 		{#if uiStateStore.outlineOpen && activeFileStore.activeFile}
+			<ResizeHandle
+				width={uiStateStore.outlineWidth}
+				direction="left"
+				ariaLabel="Redimensionner le sommaire"
+				onResize={(w) => uiStateStore.setOutlineWidth(w)}
+			/>
 			<OutlinePanel />
 		{/if}
 	</div>
