@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Lock, PanelLeft } from 'lucide-svelte';
+	import { Code2, Eye, Lock, PanelLeft, PanelRight } from 'lucide-svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
@@ -406,8 +406,10 @@
 							class:is-active={editorMode === 'preview'}
 							onclick={() => (editorMode = 'preview')}
 							aria-pressed={editorMode === 'preview'}
+							aria-label="Mode preview"
+							title="Preview"
 						>
-							Preview
+							<Eye size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />
 						</button>
 						<button
 							type="button"
@@ -415,10 +417,29 @@
 							class:is-active={editorMode === 'source'}
 							onclick={() => (editorMode = 'source')}
 							aria-pressed={editorMode === 'source'}
+							aria-label="Mode source"
+							title="Source"
 						>
-							Source
+							<Code2 size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />
 						</button>
 					</div>
+					<button
+						type="button"
+						class="icon-toggle"
+						class:is-active={uiStateStore.outlineOpen}
+						onclick={() => uiStateStore.toggleOutline()}
+						aria-pressed={uiStateStore.outlineOpen}
+						aria-label="Afficher le sommaire"
+						title="Sommaire (⌘\\)"
+						data-testid="outline-toggle"
+					>
+						<PanelRight
+							size={14}
+							strokeWidth={1.5}
+							aria-hidden="true"
+							focusable="false"
+						/>
+					</button>
 				</div>
 			</header>
 
@@ -650,16 +671,16 @@
 	}
 
 	.seg-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: calc(var(--pill-height) - 4px);
 		height: calc(var(--pill-height) - 4px);
-		padding: 0 var(--space-2);
+		padding: 0;
 		border: 0;
 		border-radius: calc(var(--pill-radius) - 2px);
 		background: transparent;
 		color: var(--color-text-secondary);
-		/* `--font-ui` is the locked plan-aligned alias for the UI font
-		 * (currently resolves to `--font-sans`; will diverge from
-		 * `--font-editor` once PLAN-SETTINGS lands). Pipeline proof for
-		 * PLAN-DESIGN-DEFAULTS step 1. */
 		font-family: var(--font-ui);
 		font-size: var(--text-label);
 		line-height: 1;
@@ -679,6 +700,41 @@
 	}
 
 	.seg-btn:focus-visible {
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
+		outline-offset: 1px;
+	}
+
+	/* Outline toggle — standalone (no mutex). Same vertical size as the
+	 * mode-toggle pill so the two groups line up; smaller padding so it
+	 * reads as a single icon button rather than a segmented control. */
+	.icon-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--pill-height);
+		height: var(--pill-height);
+		padding: 0;
+		border: 0;
+		border-radius: var(--pill-radius);
+		background: transparent;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
+	}
+
+	.icon-toggle:hover {
+		background: var(--pill-bg);
+		color: var(--color-text-primary);
+	}
+
+	.icon-toggle.is-active {
+		background: var(--pill-bg);
+		color: var(--color-text-primary);
+	}
+
+	.icon-toggle:focus-visible {
 		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
 		outline-offset: 1px;
 	}
