@@ -115,6 +115,11 @@
 		const sourcePath = e.dataTransfer?.getData(DRAG_MIME);
 		if (!sourcePath) return;
 		e.preventDefault();
+		// Stop the event from bubbling up to the .tree-wrap ondrop, which
+		// would fire a second `handleDropOnFolder(e, null)` and try to
+		// move-to-root a source path that the first call already moved.
+		// Symptom: "No such file or directory" on the second rename.
+		e.stopPropagation();
 		const targetParent = target ? target.relativePath : '';
 		dragOverPath = null;
 		dragSourcePath = null;
