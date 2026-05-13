@@ -211,9 +211,12 @@
 		if (findStore.isOpen) findStore.refresh();
 	});
 
-	// Outline-panel clicks dispatch `outline:jumpToHeading` with both a
-	// line number (for source mode) AND a zero-based heading index (for
-	// preview mode — BlockNote document position).
+	// Outline-panel clicks dispatch `outline:jumpToHeading` with a line
+	// number (markdown source) AND the heading's index in the doc. We
+	// always route through source-mode `scrollToLineInSource` — the
+	// BlockNote `editor.document` walk diverged from `extractHeadings`
+	// in real docs, landing on the wrong block. Same trade-off as
+	// Cmd+F / Cmd+Shift+F: auto-switch source for deterministic scroll.
 	$effect(() => {
 		const onJumpHeading = (e: Event) => {
 			const detail = (e as CustomEvent<{ line: number; index: number }>).detail;
@@ -222,13 +225,8 @@
 				scrollToLineInSource(detail.line);
 				return;
 			}
-			// Preview mode: try BlockNote first. If the block can't be
-			// resolved (rare), fall back to switching to source mode and
-			// jumping there once the textarea has mounted.
-			const ok = scrollToNthHeadingInPreview(detail.index);
-			if (ok) return;
 			window.dispatchEvent(new CustomEvent('app:toggleEditorMode'));
-			// Wait one tick for the source textarea to mount, then jump.
+			// Wait one tick for the source textarea to mount.
 			setTimeout(() => scrollToLineInSource(detail.line), 50);
 		};
 		window.addEventListener('outline:jumpToHeading', onJumpHeading);
