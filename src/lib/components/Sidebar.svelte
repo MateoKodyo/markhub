@@ -507,16 +507,23 @@
 		try {
 			await fileRename(id, sourcePath, newRel);
 			await refreshScan();
-			// Auto-expand the destination folder so the user sees the moved file.
+			// Auto-expand the destination folder so the user sees the moved item.
 			if (targetParentPath && !expandedSet.has(targetParentPath)) {
 				void vaultsStore.toggleFolderExpansion(id, targetParentPath);
 			}
-			// If the moved file was the open one, follow it to its new path.
-			if (
-				activeFileStore.activeFile?.vaultId === id &&
-				activeFileStore.activeFile?.relativePath === sourcePath
-			) {
-				void activeFileStore.openFile(id, newRel);
+			// Follow the open file if it was the moved item OR a descendant
+			// of the moved folder — otherwise the editor would silently keep
+			// pointing at a stale path and re-save to the old location on
+			// the next flush.
+			const open = activeFileStore.activeFile;
+			if (open && open.vaultId === id) {
+				if (open.relativePath === sourcePath) {
+					void activeFileStore.openFile(id, newRel);
+				} else if (open.relativePath.startsWith(sourcePath + '/')) {
+					const remainder = open.relativePath.slice(sourcePath.length + 1);
+					const newOpenPath = joinPath(newRel, remainder);
+					void activeFileStore.openFile(id, newOpenPath);
+				}
 			}
 		} catch (e) {
 			topLevelError = `Déplacement impossible : ${String(e)}`;

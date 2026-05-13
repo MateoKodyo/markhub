@@ -74,7 +74,7 @@
 	let dragSourcePath = $state<string | null>(null);
 
 	function handleDragStart(e: DragEvent, entry: FileEntry) {
-		if (readonly || entry.isDirectory) {
+		if (readonly) {
 			e.preventDefault();
 			return;
 		}
@@ -116,6 +116,10 @@
 			? sourcePath.slice(0, sourcePath.lastIndexOf('/'))
 			: '';
 		if (currentParent === targetParent) return;
+		// Anti-cycle: a folder cannot be dropped onto itself or onto one
+		// of its own descendants (that would create a path loop).
+		if (targetParent === sourcePath) return;
+		if (targetParent.startsWith(sourcePath + '/')) return;
 		await onMoveFile(sourcePath, targetParent);
 	}
 
