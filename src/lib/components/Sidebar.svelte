@@ -820,8 +820,19 @@
 		class="sidebar-section vaults-section"
 		style="height: {uiStateStore.vaultsHeight}px"
 	>
-		<header class="section-header">
+		<header class="section-header files-header">
 			<span class="label">Vaults</span>
+			<div class="header-actions">
+				<button
+					type="button"
+					class="icon-btn"
+					onclick={handleAddVault}
+					aria-label="Ajouter un vault"
+					title="Ajouter un vault"
+				>
+					<Plus size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />
+				</button>
+			</div>
 		</header>
 		{#if vaultsStore.vaults.length === 0}
 			<p class="empty-vaults">Aucun vault. Ajoutez votre premier vault.</p>
@@ -833,10 +844,6 @@
 				onContextMenu={openVaultContextMenu}
 			/>
 		{/if}
-		<button class="button add-vault-btn" onclick={handleAddVault} aria-label="Ajouter un vault">
-			<Plus size={14} />
-			<span>Ajouter vault</span>
-		</button>
 	</section>
 
 	{#if vaultsStore.activeVault}
@@ -1056,12 +1063,6 @@
 		font-size: var(--text-caption);
 		color: var(--color-text-secondary);
 		font-style: italic;
-	}
-
-	.add-vault-btn {
-		justify-content: flex-start;
-		margin-top: var(--space-1);
-		gap: 6px;
 	}
 
 	.filter-row {
