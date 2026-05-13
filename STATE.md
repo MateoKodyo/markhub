@@ -11,7 +11,7 @@
 - **Outline panel V1 ✅** — `Cmd+\\` + bouton `PanelRight` dans le header éditeur. Click sur un heading → scroll source-mode (réutilise jump-to-line) OU preview-mode (via BlockNote `editor.document` walk + `scrollIntoView`).
 - **Token estimate StatusBar ✅** — pill cycle words → chars → ~tokens (heuristique `chars / 4`, prefixed "~").
 - **PLAN-SETTINGS STEPS 6/7/8 livrés** (smoke pending) — Advanced section + 6 section deep-link commands + closure docs.
-- **Body typography fix résolu** — pattern "apply on commit" via remount BlockNote (commit `a8bbc41`). Clôture le BACKLOG du 12/05.
+- **Body typography fix** — TENTÉ via remount (commit `a8bbc41` + `!important` hammer) puis REVERTED (`e95f058`). N'a pas tenu en réel. Décision Matheo : laisser tomber, BACKLOG. Preview live dans le modal continue de marcher ; l'éditeur reste à 15px/1.6.
 - **Drag-drop dossier sidebar fixé** + 4 bugs BlockNote (slash menu /query persistant, "Liste à cocher" manquante, edit perdu au switch, checkbox visuelle sobre).
 - Tentative `backgroundColor` au resize → reverted, tracé en BACKLOG (WKWebView macOS).
 

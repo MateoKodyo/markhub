@@ -150,7 +150,7 @@ The modal is opened via:
 |------|--------|--------|-------------------|
 | 1. Settings store + persistence | ✅ | `c4db29f` | ✅ smoke OK 2026-05-12 matin |
 | 2. Modal shell + navigation | ✅ | `59893c7` | ✅ smoke OK 2026-05-12 matin |
-| 3. Appearance section | ✅ | `39d2027` + `13489ac` + `a8bbc41` | ✅ body font/size/lh now wired via apply-on-commit remount 2026-05-14 |
+| 3. Appearance section | 🟡 | `39d2027` + `13489ac` | ⚠️ body font/size/lh tentative remount 2026-05-14 (commit `a8bbc41`) reverted (`e95f058`) — n'a pas marché en réel ; BACKLOG |
 | 4. Editor section | ✅ | `d9dd033` | ✅ smoke OK 2026-05-13 matin |
 | 5. Source mode + Files + Behavior sections | ✅ | `40feb30` | ✅ smoke OK 2026-05-13 matin |
 | 6. Advanced section | 🟡 code livré | `58b33c5` | smoke pending — Open config, Export/Import JSON, version |
