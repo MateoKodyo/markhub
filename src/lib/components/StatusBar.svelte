@@ -16,7 +16,7 @@
 	import type { SaveStatus } from '$lib/stores/activeFile.svelte';
 	import { computeDocumentStats } from '$lib/stores/documentStats.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
-	import { themeStore } from '$lib/stores/theme.svelte';
+	import { themeManager } from '$lib/theming/manager.svelte';
 
 	let {
 		vault = null,
@@ -55,13 +55,15 @@
 	}
 
 	const themeTitle = $derived.by(() => {
-		switch (themeStore.preference) {
-			case 'dark':
+		switch (themeManager.preference.mode) {
+			case 'always-dark':
 				return 'Thème : sombre — cliquer pour clair';
-			case 'light':
+			case 'always-light':
 				return 'Thème : clair — cliquer pour système';
-			case 'system':
-				return `Thème : système (${themeStore.effective}) — cliquer pour sombre`;
+			case 'system': {
+				const family = themeManager.osPrefersDark ? 'sombre' : 'clair';
+				return `Thème : système (${family}) — cliquer pour sombre`;
+			}
 			default:
 				return 'Thème';
 		}
@@ -189,12 +191,15 @@
 			class="pill pill-btn pill-icon"
 			title={themeTitle}
 			aria-label={themeTitle}
-			onclick={() => void themeStore.cycle()}
+			onclick={() => {
+				themeManager.cycleMode();
+				settingsStore.setTheme(themeManager.preference);
+			}}
 			data-testid="theme-toggle"
 		>
-			{#if themeStore.preference === 'light'}
+			{#if themeManager.preference.mode === 'always-light'}
 				<Sun size={12} aria-hidden="true" focusable="false" />
-			{:else if themeStore.preference === 'dark'}
+			{:else if themeManager.preference.mode === 'always-dark'}
 				<Moon size={12} aria-hidden="true" focusable="false" />
 			{:else}
 				<Monitor size={12} aria-hidden="true" focusable="false" />

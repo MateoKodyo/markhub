@@ -3,30 +3,36 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 
 vi.mock('../../src/lib/tauri/api', () => ({
 	settingsRead: vi.fn().mockResolvedValue({
-		version: 1,
+		version: 2,
 		appearance: {
-			theme: 'system',
+			themeMode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark',
 			editorFont: 'geist',
 			editorFontSize: 16,
 			editorLineHeight: 1.6,
-			editorContentWidth: 720
+			editorContentWidth: 60
 		},
 		editor: { autosaveDelayMs: 1500, spellCheck: true },
 		source: { monoFont: 'geist-mono' },
-		files: { confirmDelete: true },
+		files: { confirmDelete: true }
 	}),
 	settingsWrite: vi.fn().mockResolvedValue(undefined)
 }));
 
 const { themeSetPreference, themeInit } = vi.hoisted(() => ({
-	themeSetPreference: vi.fn().mockResolvedValue(undefined),
+	themeSetPreference: vi.fn(),
 	themeInit: vi.fn()
 }));
-vi.mock('../../src/lib/stores/theme.svelte', () => ({
-	themeStore: {
+vi.mock('../../src/lib/theming/manager.svelte', () => ({
+	themeManager: {
 		init: themeInit,
 		setPreference: themeSetPreference,
-		preference: 'system'
+		preference: {
+			mode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark'
+		}
 	}
 }));
 

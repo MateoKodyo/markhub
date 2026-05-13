@@ -2,20 +2,25 @@
 	import { Monitor, Moon, Sun } from 'lucide-svelte';
 	import type { ComponentType, SvelteComponent } from 'svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
-	import type { ThemePreference } from '$lib/tauri/types';
+	import type { FollowMode } from '$lib/tauri/types';
 
 	type IconComponent = ComponentType<SvelteComponent>;
 
 	type ThemeOption = {
-		id: ThemePreference;
+		id: FollowMode;
+		/** Stable identifier used in `data-testid` — preserved across the v1→v2
+		 *  migration so existing Playwright selectors keep matching. */
+		testId: string;
 		label: string;
 		icon: IconComponent;
 	};
 
+	// STEP 1 keeps the legacy 3-button segmented control (Sombre / Clair / Système).
+	// STEP 4 of PLAN-THEMING will replace this with the two-slot picker.
 	const THEMES: readonly ThemeOption[] = [
-		{ id: 'dark', label: 'Sombre', icon: Moon as unknown as IconComponent },
-		{ id: 'light', label: 'Clair', icon: Sun as unknown as IconComponent },
-		{ id: 'system', label: 'Système', icon: Monitor as unknown as IconComponent }
+		{ id: 'always-dark', testId: 'dark', label: 'Sombre', icon: Moon as unknown as IconComponent },
+		{ id: 'always-light', testId: 'light', label: 'Clair', icon: Sun as unknown as IconComponent },
+		{ id: 'system', testId: 'system', label: 'Système', icon: Monitor as unknown as IconComponent }
 	];
 
 	type FontOption = {
@@ -58,8 +63,12 @@
 
 	const current = $derived(settingsStore.current.appearance);
 
-	function selectTheme(id: ThemePreference): void {
-		settingsStore.setTheme(id);
+	function selectTheme(mode: FollowMode): void {
+		settingsStore.setTheme({
+			mode,
+			lightTheme: current.lightTheme,
+			darkTheme: current.darkTheme
+		});
 	}
 
 	function selectFont(id: string): void {
@@ -114,7 +123,7 @@
 			>
 				{#each THEMES as theme (theme.id)}
 					{@const Icon = theme.icon}
-					{@const isActive = current.theme === theme.id}
+					{@const isActive = current.themeMode === theme.id}
 					<button
 						type="button"
 						class="settings-segment"
@@ -122,7 +131,7 @@
 						role="radio"
 						aria-checked={isActive}
 						onclick={() => selectTheme(theme.id)}
-						data-testid={`appearance-theme-${theme.id}`}
+						data-testid={`appearance-theme-${theme.testId}`}
 					>
 						<Icon size={13} aria-hidden="true" focusable="false" />
 						<span>{theme.label}</span>

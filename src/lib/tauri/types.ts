@@ -39,14 +39,31 @@ export type Settings = {
  * match Rust's `#[serde(rename_all = "camelCase")]` on `UserSettings` and
  * its nested structs (see `src-tauri/src/models.rs`).
  *
- * Theme is currently typed as `'dark' | 'light' | 'system'` (the legacy
- * theme model) — STEP 3 (Appearance section) will widen it to the 4 curated
- * themes when their CSS lands.
+ * Theme model (v2, PLAN-THEMING STEP 1):
+ *   - `themeMode`  — system follow, always light, or always dark
+ *   - `lightTheme` — which catalog theme to use when light is active
+ *   - `darkTheme`  — which catalog theme to use when dark is active
+ *
+ * The legacy `theme: 'dark'|'light'|'system'` field (v1) migrates to this
+ * trio in `mergeWithDefaults` on first load; see PLAN-THEMING §STEP 1.
  */
-export type ThemePreference = 'dark' | 'light' | 'system';
+export type FollowMode = 'system' | 'always-light' | 'always-dark';
+
+export type ThemeId = 'markhub-light' | 'markhub-dark';
+
+export interface ThemePreference {
+	mode: FollowMode;
+	lightTheme: ThemeId;
+	darkTheme: ThemeId;
+}
+
+/** v1 theme value — kept for the migration path only. Do not use in new code. */
+export type LegacyThemePreference = 'dark' | 'light' | 'system';
 
 export type AppearanceSettings = {
-	theme: ThemePreference;
+	themeMode: FollowMode;
+	lightTheme: ThemeId;
+	darkTheme: ThemeId;
 	editorFont: string;
 	editorFontSize: number;
 	editorLineHeight: number;
@@ -77,7 +94,7 @@ export type FilesSettings = {
  * working without it on the TS side. */
 
 export type UserSettings = {
-	version: 1;
+	version: 2;
 	appearance: AppearanceSettings;
 	editor: EditorSettings;
 	source: SourceSettings;
@@ -85,9 +102,11 @@ export type UserSettings = {
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
-	version: 1,
+	version: 2,
 	appearance: {
-		theme: 'system',
+		themeMode: 'system',
+		lightTheme: 'markhub-light',
+		darkTheme: 'markhub-dark',
 		// ID matching the picker in `SettingsAppearance.svelte`. The actual
 		// font-family stack is resolved there from this ID.
 		editorFont: 'geist',

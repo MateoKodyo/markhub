@@ -1,0 +1,84 @@
+/* Markhub Dark — the warm near-black default theme.
+ * PLAN-THEMING §STEP 1 — extracted from `app.css` into a per-theme file.
+ *
+ * Scope: every token defined here applies only when `<html data-theme>`
+ * equals "markhub-dark". The theme-agnostic tokens (typography, spacing,
+ * radius, motion, content layout) live in `app.css :root` and are shared
+ * across every theme.
+ */
+
+[data-theme='markhub-dark'] {
+	/* Canvas — warm near-black, never blue-tinted.
+	 * Three-tier hierarchy (darkest → lightest):
+	 *   --color-bg-sidebar : sidebar / chrome (most recessed)
+	 *   --color-bg         : main editor canvas (default body bg)
+	 *   --color-bg-raised  : popovers, dialogs, slash menu (elevated)
+	 * Same warm hue, only OKLCH lightness varies — preserves Warp's
+	 * monochromatic warm-gray identity. */
+	--color-bg-sidebar: #060504;
+	--color-bg: #0a0908;
+	--color-bg-raised: #121110;
+
+	/* Surfaces (IDE-style — much subtler than the marketing spec) */
+	--color-surface-veil: rgba(255, 255, 255, 0.03);
+	--color-surface-active: rgba(255, 255, 255, 0.05); /* List item active state */
+	--color-surface-hover: rgba(255, 255, 255, 0.025);
+	--color-surface-strong: #16151400;
+
+	/* Borders — depth via semi-transparent borders, never shadows */
+	--color-border-strong: rgba(226, 226, 226, 0.16); /* Containment */
+	--color-border: rgba(255, 255, 255, 0.08); /* Default panel borders */
+	--color-border-subtle: rgba(255, 255, 255, 0.04);
+
+	/* Text — warm parchment, never pure white */
+	--color-text-primary: #faf9f6; /* Warm Parchment */
+	--color-text-body: #afaeac; /* Ash Gray — workhorse reading color */
+	--color-text-secondary: #868584; /* Stone Gray */
+	--color-text-muted: #666469; /* Purple-tint gray — links, tertiary */
+	--color-text-disabled: #4a4c50; /* Between muted and surface — for disabled controls */
+
+	/* Interactive — restrained dark pill */
+	--color-button-bg: #353534; /* Earth Gray */
+	--color-button-text: #afaeac;
+	--color-button-bg-hover: #3f3f3e;
+
+	/* Accent — single saturated color reserved for primary CTAs (Warp uses blue) */
+	--color-accent: #3b82f6;
+	--color-accent-hover: #4f8ff7;
+	--color-accent-text: #ffffff;
+	/* Plan-aligned alias — same value as --color-accent-text (industry naming). */
+	--color-accent-fg: var(--color-accent-text);
+	/* Text selection — accent at ~30% opacity. Visible without screaming. */
+	--color-selection: rgba(59, 130, 246, 0.32);
+
+	/* Status indicators (sparse use) */
+	--color-status-ok: #4ade80;
+	--color-status-warn: #fbbf24;
+	--color-status-error: #f87171;
+	/* Plan-aligned aliases (success/warning/danger naming convention). */
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	/* Danger surface — used by error notices in dialogs and the
+	 * "destructive action" header bar of confirm-delete modals. */
+	--color-danger-bg: rgba(248, 113, 113, 0.08);
+	--color-danger-border: rgba(248, 113, 113, 0.25);
+
+	/* Modal / dialog backdrop. Used by InputDialog, ConfirmDialog. */
+	--color-backdrop: rgba(0, 0, 0, 0.5);
+
+	/* Popover shadow — slash menu, floating toolbar, link tooltip, dialogs.
+	 * Higher alpha on dark since the canvas swallows depth. */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+	/* Shadow palette (plan §7) — layered, subtle, never single hard drops. */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.22);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
+
+	/* Ambient gradient — Warp's signature warm-edge / cool-corner glow */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(255, 170, 110, 0.06), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(140, 100, 200, 0.05), transparent 55%);
+}

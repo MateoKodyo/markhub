@@ -15,7 +15,6 @@
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
-	import { themeStore } from '$lib/stores/theme.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { paletteStore } from '$lib/stores/palette.svelte';
@@ -258,12 +257,9 @@
 	onMount(async () => {
 		try {
 			await vaultsStore.load();
-			// Theme has to init AFTER vaultsStore.load so it sees the persisted
-			// `settings.theme`. Sets data-theme on <html> + listens to OS changes.
-			themeStore.init();
-			// Hydrate the v1 user settings (PLAN-SETTINGS) from `settings.json`.
-			// Internally bridges its `appearance.theme` to themeStore, so the
-			// new preference (when present) wins over the legacy config.theme.
+			// The v2 user settings (PLAN-SETTINGS + PLAN-THEMING) drive the
+			// theme — `settingsStore.load()` internally wires `themeManager`
+			// to the persisted preference and starts the OS listener.
 			await settingsStore.load();
 			// Restore the last-opened vault (so the sidebar shows the right
 			// files), but DO NOT auto-open the last file — the launch screen

@@ -3,7 +3,7 @@
  * boot. Replaces the STEP 1 `seedCommands` once Command mode is live.
  *
  * Commands fall into three implementation flavors:
- *   1. Direct store calls — themeStore.cycle(), settingsStore.open(), …
+ *   1. Direct store calls — themeManager.cycleMode(), settingsStore.open(), …
  *   2. Tauri command wrappers — api.fileRevealInFinder, …
  *   3. `palette:action` events — for actions that depend on Sidebar-local
  *      state (active vault, file-tree handlers). Sidebar.svelte listens
@@ -21,7 +21,7 @@ import { activeFileStore } from '$lib/stores/activeFile.svelte';
 import { findStore } from '$lib/stores/find.svelte';
 import { paletteStore } from '$lib/stores/palette.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
-import { themeStore } from '$lib/stores/theme.svelte';
+import { themeManager } from '$lib/theming/manager.svelte';
 import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { vaultsStore } from '$lib/stores/vaults.svelte';
 import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
@@ -125,7 +125,8 @@ export function registerAppCommands(): void {
 		label: 'Toggle Theme',
 		group: 'View',
 		handler: () => {
-			void themeStore.cycle();
+			themeManager.cycleMode();
+			settingsStore.setTheme(themeManager.preference);
 		}
 	});
 

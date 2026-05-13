@@ -1,99 +1,83 @@
 /* Markhub — design tokens
- * Source: design.md (warm-dark IDE aesthetic, Warp-inspired) + a derived
- * warm-light palette for `data-theme="light"`.
+ * Source: design.md (warm-dark IDE aesthetic, Warp-inspired).
  * SPEC.md §2 anchors this file as the canonical design system.
  *
- * Theme strategy: tokens default to dark on bare `:root`. The light variant
- * lives under `:root[data-theme="light"]` and only redefines the colour /
- * shadow / gradient layer — typography, spacing and radius are theme-agnostic.
+ * Theme strategy (PLAN-THEMING §STEP 1):
+ *   - Theme-agnostic tokens (typography, spacing, radius, motion, content,
+ *     pills) live in bare `:root` and apply unconditionally.
+ *   - Color / shadow / gradient tokens live in per-theme files under
+ *     `./styles/themes/`, scoped to `[data-theme="<id>"]` selectors.
+ *   - Bare `:root` ALSO carries the markhub-dark color tokens as a cold-start
+ *     fallback — should the JS-driven manager not run before first paint,
+ *     the app reads as dark instead of unstyled. STEP 5 of PLAN-THEMING
+ *     will tighten this with a pre-hydration script in `app.html`.
  *
- * The runtime store (`stores/theme.svelte.ts`) sets/removes `data-theme`
- * directly on <html> based on user preference (saved in config.json) and the
- * OS-level `prefers-color-scheme` media query when in 'system' mode.
+ * Runtime applicator: `src/lib/theming/manager.svelte.ts` writes the chosen
+ * theme id (one of the catalog ids) to `<html data-theme>`. Switching themes
+ * = switching that attribute; CSS does the rest.
  */
 
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 
+@import './styles/themes/markhub-dark.css';
+@import './styles/themes/markhub-light.css';
+
 :root {
 	/* ============================================================
-	 * COLOR PALETTE — DARK (default, applied on bare :root)
+	 * COLOR PALETTE — FALLBACK (markhub-dark, applied before the
+	 * theme manager runs on cold start). The same tokens are re-declared
+	 * under `[data-theme="markhub-dark"]` in `themes/markhub-dark.css` so
+	 * explicit selection works identically.
 	 * ============================================================ */
 
-	/* Canvas — warm near-black, never blue-tinted.
-	 * Three-tier hierarchy (darkest → lightest):
-	 *   --color-bg-sidebar : sidebar / chrome (most recessed)
-	 *   --color-bg         : main editor canvas (default body bg)
-	 *   --color-bg-raised  : popovers, dialogs, slash menu (elevated)
-	 * Same warm hue, only OKLCH lightness varies — preserves Warp's
-	 * monochromatic warm-gray identity. */
 	--color-bg-sidebar: #060504;
 	--color-bg: #0a0908;
 	--color-bg-raised: #121110;
 
-	/* Surfaces (IDE-style — much subtler than the marketing spec) */
 	--color-surface-veil: rgba(255, 255, 255, 0.03);
-	--color-surface-active: rgba(255, 255, 255, 0.05); /* List item active state */
+	--color-surface-active: rgba(255, 255, 255, 0.05);
 	--color-surface-hover: rgba(255, 255, 255, 0.025);
 	--color-surface-strong: #16151400;
 
-	/* Borders — depth via semi-transparent borders, never shadows */
-	--color-border-strong: rgba(226, 226, 226, 0.16); /* Containment */
-	--color-border: rgba(255, 255, 255, 0.08); /* Default panel borders */
+	--color-border-strong: rgba(226, 226, 226, 0.16);
+	--color-border: rgba(255, 255, 255, 0.08);
 	--color-border-subtle: rgba(255, 255, 255, 0.04);
 
-	/* Text — warm parchment, never pure white */
-	--color-text-primary: #faf9f6; /* Warm Parchment */
-	--color-text-body: #afaeac; /* Ash Gray — workhorse reading color */
-	--color-text-secondary: #868584; /* Stone Gray */
-	--color-text-muted: #666469; /* Purple-tint gray — links, tertiary */
-	--color-text-disabled: #4a4c50; /* Between muted and surface — for disabled controls */
+	--color-text-primary: #faf9f6;
+	--color-text-body: #afaeac;
+	--color-text-secondary: #868584;
+	--color-text-muted: #666469;
+	--color-text-disabled: #4a4c50;
 
-	/* Interactive — restrained dark pill */
-	--color-button-bg: #353534; /* Earth Gray */
+	--color-button-bg: #353534;
 	--color-button-text: #afaeac;
 	--color-button-bg-hover: #3f3f3e;
 
-	/* Accent — single saturated color reserved for primary CTAs (Warp uses blue) */
 	--color-accent: #3b82f6;
 	--color-accent-hover: #4f8ff7;
 	--color-accent-text: #ffffff;
-	/* Plan-aligned alias — same value as --color-accent-text (industry naming). */
 	--color-accent-fg: var(--color-accent-text);
-	/* Text selection — accent at ~30% opacity. Visible without screaming. */
 	--color-selection: rgba(59, 130, 246, 0.32);
 
-	/* Status indicators (sparse use) */
 	--color-status-ok: #4ade80;
 	--color-status-warn: #fbbf24;
 	--color-status-error: #f87171;
-	/* Plan-aligned aliases (success/warning/danger naming convention). */
 	--color-success: var(--color-status-ok);
 	--color-warning: var(--color-status-warn);
 	--color-danger: var(--color-status-error);
-	/* Danger surface — used by error notices in dialogs and the
-	 * "destructive action" header bar of confirm-delete modals.
-	 * Theme-specific RGB so the hue matches --color-status-error in
-	 * each theme (dark = #f87171, light = #dc2626). */
 	--color-danger-bg: rgba(248, 113, 113, 0.08);
 	--color-danger-border: rgba(248, 113, 113, 0.25);
 
-	/* Modal / dialog backdrop. Used by InputDialog, ConfirmDialog. */
 	--color-backdrop: rgba(0, 0, 0, 0.5);
 
-	/* Popover shadow — slash menu, floating toolbar, link tooltip, dialogs.
-	 * Higher alpha on dark since the canvas swallows depth. */
 	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.35);
 
-	/* Shadow palette (plan §7) — layered, subtle, never single hard drops.
-	 * Dark theme uses higher alphas because the warm-black canvas swallows
-	 * depth; the light theme overrides these with smaller alphas. */
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
 	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.22);
 	--shadow-lg: var(--shadow-popover);
-	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.40), 0 2px 4px rgba(0, 0, 0, 0.25);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
 
-	/* Ambient gradient — Warp's signature warm-edge / cool-corner glow */
 	--gradient-ambient:
 		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(255, 170, 110, 0.06), transparent 60%),
 		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(140, 100, 200, 0.05), transparent 55%);
@@ -195,71 +179,6 @@
 	--duration-base: 150ms;
 	--duration-slow: 200ms;
 	--easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ============================================================
- * COLOR PALETTE — LIGHT (warm IDE light, NOT a Notion white)
- * ============================================================
- * Same hue family as the dark palette (warm parchment / earth gray),
- * inverted lightness with manual tweaks for perceptual contrast.
- * Sidebar stays the most recessed surface (darker tinted beige) to
- * keep the chrome → canvas → raised hierarchy coherent across themes. */
-:root[data-theme='light'] {
-	--color-bg-sidebar: #f1efe9;
-	--color-bg: #faf9f6;
-	--color-bg-raised: #ffffff;
-
-	--color-surface-veil: rgba(0, 0, 0, 0.03);
-	--color-surface-active: rgba(0, 0, 0, 0.07);
-	--color-surface-hover: rgba(0, 0, 0, 0.04);
-	--color-surface-strong: rgba(0, 0, 0, 0);
-
-	--color-border-strong: rgba(0, 0, 0, 0.16);
-	--color-border: rgba(0, 0, 0, 0.1);
-	--color-border-subtle: rgba(0, 0, 0, 0.05);
-
-	--color-text-primary: #1c1b1a;
-	--color-text-body: #4a4948;
-	/* Bumped from #75736f → #6c6a66 (2026-05-12) to clear WCAG AA 4.5:1
-	 * on the SIDEBAR background (#f1efe9), where the previous value only
-	 * hit 4.12:1. Used by `.label` 11px uppercase chrome that doesn't
-	 * qualify as "large text" and must satisfy normal AA. */
-	--color-text-secondary: #6c6a66;
-	/* Bumped from #a09e9a → #8a8884 (2026-05-11) to clear WCAG AA-large
-	 * (3.36:1 on bg vs 2.54:1 before). Warm tint preserved. */
-	--color-text-muted: #8a8884;
-	--color-text-disabled: #b4b6ba; /* Between muted and border — disabled controls */
-
-	--color-button-bg: #e0ddd6;
-	--color-button-text: #1c1b1a;
-	--color-button-bg-hover: #d6d2c9;
-
-	--color-accent: #2563eb;
-	--color-accent-hover: #1d4ed8;
-	--color-accent-text: #ffffff;
-	--color-selection: rgba(37, 99, 235, 0.18);
-
-	--color-status-ok: #16a34a;
-	--color-status-warn: #d97706;
-	--color-status-error: #dc2626;
-	/* Light-theme danger surface — uses the light --color-status-error RGB. */
-	--color-danger-bg: rgba(220, 38, 38, 0.08);
-	--color-danger-border: rgba(220, 38, 38, 0.25);
-
-	--color-backdrop: rgba(0, 0, 0, 0.3);
-
-	/* Lighter shadow on light: dark shadows would punch holes. */
-	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.08);
-
-	/* Shadow palette overrides — smaller alphas on light (the canvas already
-	 * has enough contrast; heavy shadows read cartoonish on paper). */
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
-	--shadow-lg: var(--shadow-popover);
-	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
-
-	/* Neutralize the warm/cool ambient glow on light — would muddy the canvas. */
-	--gradient-ambient: none;
 }
 
 /* === Reset & base === */

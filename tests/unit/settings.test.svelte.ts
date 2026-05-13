@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { UserSettings } from '../../src/lib/tauri/types';
+import type { ThemePreference, UserSettings } from '../../src/lib/tauri/types';
 import { DEFAULT_USER_SETTINGS } from '../../src/lib/tauri/types';
 
 // Mock the Tauri API surface — we never want a real `invoke` in vitest.
@@ -11,23 +11,36 @@ vi.mock('../../src/lib/tauri/api', () => ({
 	settingsWrite: (s: UserSettings) => settingsWriteMock(s)
 }));
 
-// Mock themeStore to verify the theme side-effect contract without
-// pulling in the full theme logic (which has its own tests).
+// Mock themeManager to verify the theme side-effect contract without
+// pulling in the full theming logic (which has its own tests).
 const themeInit = vi.fn();
-const themeSetPreference = vi.fn().mockResolvedValue(undefined);
-let themeCurrentPreference = 'system';
-vi.mock('../../src/lib/stores/theme.svelte', () => ({
-	themeStore: {
-		init: () => themeInit(),
-		setPreference: (p: 'dark' | 'light' | 'system') => {
-			themeCurrentPreference = p;
-			return themeSetPreference(p);
+const themeSetPreference = vi.fn();
+let themePreferenceState: ThemePreference = {
+	mode: 'system',
+	lightTheme: 'markhub-light',
+	darkTheme: 'markhub-dark'
+};
+vi.mock('../../src/lib/theming/manager.svelte', () => ({
+	themeManager: {
+		init: (p: ThemePreference) => {
+			themePreferenceState = p;
+			themeInit(p);
+		},
+		setPreference: (p: ThemePreference) => {
+			themePreferenceState = p;
+			themeSetPreference(p);
 		},
 		get preference() {
-			return themeCurrentPreference;
+			return themePreferenceState;
 		}
 	}
 }));
+
+const v2Prefs = (mode: ThemePreference['mode'] = 'system'): ThemePreference => ({
+	mode,
+	lightTheme: 'markhub-light',
+	darkTheme: 'markhub-dark'
+});
 
 describe('settingsStore', () => {
 	let settingsStore: typeof import('../../src/lib/stores/settings.svelte').settingsStore;
@@ -38,8 +51,8 @@ describe('settingsStore', () => {
 		settingsReadMock.mockReset();
 		settingsWriteMock.mockReset().mockResolvedValue(undefined);
 		themeInit.mockReset();
-		themeSetPreference.mockReset().mockResolvedValue(undefined);
-		themeCurrentPreference = 'system';
+		themeSetPreference.mockReset();
+		themePreferenceState = v2Prefs();
 		const mod = await import('../../src/lib/stores/settings.svelte');
 		settingsStore = mod.settingsStore;
 		mergeWithDefaults = mod.mergeWithDefaults;
@@ -52,7 +65,7 @@ describe('settingsStore', () => {
 			...DEFAULT_USER_SETTINGS,
 			appearance: {
 				...DEFAULT_USER_SETTINGS.appearance,
-				theme: 'dark',
+				themeMode: 'always-dark',
 				editorFontSize: 18
 			}
 		};
@@ -60,7 +73,7 @@ describe('settingsStore', () => {
 
 		await settingsStore.load();
 
-		expect(settingsStore.current.appearance.theme).toBe('dark');
+		expect(settingsStore.current.appearance.themeMode).toBe('always-dark');
 		expect(settingsStore.current.appearance.editorFontSize).toBe(18);
 		expect(settingsReadMock).toHaveBeenCalledOnce();
 	});
@@ -68,7 +81,6 @@ describe('settingsStore', () => {
 	// ------ S2.2 — load() falls back to defaults when read throws ------
 	it('load() falls back to defaults when api.settingsRead rejects', async () => {
 		settingsReadMock.mockRejectedValue(new Error('boom'));
-		// Silence the console.warn from the store.
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 		await settingsStore.load();
@@ -124,25 +136,27 @@ describe('settingsStore', () => {
 		}
 		await settingsStore.flushForTest();
 		expect(settingsWriteMock).toHaveBeenCalledOnce();
-		// The single write that lands is the latest value (font size 23).
 		const lastCall = settingsWriteMock.mock.calls.at(-1)?.[0] as UserSettings;
 		expect(lastCall.appearance.editorFontSize).toBe(23);
 	});
 
-	// ------ S2.7 — setTheme() bridges to themeStore ------
-	it('setTheme() updates current and bridges to themeStore.setPreference', async () => {
+	// ------ S2.7 — setTheme() bridges to themeManager ------
+	it('setTheme() updates current and bridges to themeManager.setPreference', async () => {
 		settingsReadMock.mockResolvedValue(DEFAULT_USER_SETTINGS);
 		await settingsStore.load();
-		settingsStore.setTheme('light');
-		expect(settingsStore.current.appearance.theme).toBe('light');
-		expect(themeSetPreference).toHaveBeenLastCalledWith('light');
+		const nextPrefs = v2Prefs('always-light');
+		settingsStore.setTheme(nextPrefs);
+		expect(settingsStore.current.appearance.themeMode).toBe('always-light');
+		expect(settingsStore.current.appearance.lightTheme).toBe('markhub-light');
+		expect(settingsStore.current.appearance.darkTheme).toBe('markhub-dark');
+		expect(themeSetPreference).toHaveBeenLastCalledWith(nextPrefs);
 	});
 
 	// ------ S2.8 — set() does NOT re-bridge theme when unchanged ------
-	it('set() skips theme side-effect when appearance.theme is unchanged', async () => {
+	it('set() skips theme side-effect when theme trio is unchanged', async () => {
 		settingsReadMock.mockResolvedValue(DEFAULT_USER_SETTINGS);
 		await settingsStore.load();
-		themeSetPreference.mockClear(); // forget the call made during load()
+		themeSetPreference.mockClear();
 		settingsStore.set({
 			...DEFAULT_USER_SETTINGS,
 			editor: { autosaveDelayMs: 500, spellCheck: false }
@@ -150,32 +164,167 @@ describe('settingsStore', () => {
 		expect(themeSetPreference).not.toHaveBeenCalled();
 	});
 
-	// ------ S2.9 — load() bridges theme into themeStore ------
-	it('load() pushes the persisted theme into themeStore when different from current', async () => {
+	// ------ S2.9 — load() bridges theme into themeManager ------
+	it('load() pushes the persisted theme into themeManager', async () => {
 		settingsReadMock.mockResolvedValue({
 			...DEFAULT_USER_SETTINGS,
-			appearance: { ...DEFAULT_USER_SETTINGS.appearance, theme: 'dark' }
+			appearance: { ...DEFAULT_USER_SETTINGS.appearance, themeMode: 'always-dark' }
 		});
 		await settingsStore.load();
 		expect(themeInit).toHaveBeenCalled();
-		expect(themeSetPreference).toHaveBeenCalledWith('dark');
+		const lastInit = themeInit.mock.calls.at(-1)?.[0] as ThemePreference;
+		expect(lastInit.mode).toBe('always-dark');
+		expect(lastInit.lightTheme).toBe('markhub-light');
+		expect(lastInit.darkTheme).toBe('markhub-dark');
 	});
 
 	// ------ S2.10 — mergeWithDefaults tolerates partial payloads ------
 	it('mergeWithDefaults fills missing sections from defaults', () => {
 		const partial = {
+			version: 2 as const,
 			appearance: {
-				theme: 'dark' as const,
-				editorFont: 'Geist Sans',
+				themeMode: 'always-dark' as const,
+				lightTheme: 'markhub-light' as const,
+				darkTheme: 'markhub-dark' as const,
+				editorFont: 'geist',
 				editorFontSize: 20,
 				editorLineHeight: 1.6,
-				editorContentWidth: 720
+				editorContentWidth: 60
 			}
 		};
 		const merged = mergeWithDefaults(partial);
+		expect(merged.version).toBe(2);
+		expect(merged.appearance.themeMode).toBe('always-dark');
 		expect(merged.appearance.editorFontSize).toBe(20);
 		expect(merged.editor).toEqual(DEFAULT_USER_SETTINGS.editor);
 		expect(merged.source).toEqual(DEFAULT_USER_SETTINGS.source);
 		expect(merged.files).toEqual(DEFAULT_USER_SETTINGS.files);
+	});
+
+	// ============================================================
+	// v1 → v2 migration tests (NEW in PLAN-THEMING STEP 1)
+	// ============================================================
+
+	// ------ S2.M1 — v1 'light' migrates to mode=system + markhub-light slot ------
+	it('migrates v1 {theme:"light"} → v2 {mode:"system", lightTheme:"markhub-light"}', () => {
+		const v1Payload = {
+			version: 1 as const,
+			appearance: {
+				theme: 'light',
+				editorFont: 'geist',
+				editorFontSize: 16,
+				editorLineHeight: 1.6,
+				editorContentWidth: 60
+			}
+		};
+		// `mergeWithDefaults` accepts unknown legacy shapes — cast for the call.
+		const merged = mergeWithDefaults(v1Payload as never);
+		expect(merged.version).toBe(2);
+		expect(merged.appearance.themeMode).toBe('system');
+		expect(merged.appearance.lightTheme).toBe('markhub-light');
+		expect(merged.appearance.darkTheme).toBe('markhub-dark');
+		// The legacy field must not survive into v2.
+		expect((merged.appearance as unknown as { theme?: string }).theme).toBeUndefined();
+	});
+
+	// ------ S2.M2 — v1 'dark' migrates identically (slots stay default) ------
+	it('migrates v1 {theme:"dark"} → v2 with default slots', () => {
+		const v1Payload = {
+			version: 1 as const,
+			appearance: {
+				theme: 'dark',
+				editorFont: 'geist',
+				editorFontSize: 16,
+				editorLineHeight: 1.6,
+				editorContentWidth: 60
+			}
+		};
+		const merged = mergeWithDefaults(v1Payload as never);
+		expect(merged.appearance.themeMode).toBe('system');
+		expect(merged.appearance.lightTheme).toBe('markhub-light');
+		expect(merged.appearance.darkTheme).toBe('markhub-dark');
+	});
+
+	// ------ S2.M3 — v1 'system' migrates to system ------
+	it('migrates v1 {theme:"system"} → v2 {mode:"system"}', () => {
+		const v1Payload = {
+			version: 1 as const,
+			appearance: {
+				theme: 'system',
+				editorFont: 'geist',
+				editorFontSize: 16,
+				editorLineHeight: 1.6,
+				editorContentWidth: 60
+			}
+		};
+		const merged = mergeWithDefaults(v1Payload as never);
+		expect(merged.appearance.themeMode).toBe('system');
+	});
+
+	// ------ S2.M4 — corrupt v1 (unknown theme string) falls back to defaults ------
+	it('falls back to default theme prefs when v1 theme is unknown', () => {
+		const v1Payload = {
+			version: 1 as const,
+			appearance: {
+				theme: 'banana',
+				editorFont: 'geist',
+				editorFontSize: 16,
+				editorLineHeight: 1.6,
+				editorContentWidth: 60
+			}
+		};
+		const merged = mergeWithDefaults(v1Payload as never);
+		expect(merged.appearance.themeMode).toBe('system');
+		expect(merged.appearance.lightTheme).toBe('markhub-light');
+		expect(merged.appearance.darkTheme).toBe('markhub-dark');
+	});
+
+	// ------ S2.M5 — v2 payload passes through untouched ------
+	it('passes v2 payloads through without re-migrating', () => {
+		const v2Payload: UserSettings = {
+			...DEFAULT_USER_SETTINGS,
+			appearance: {
+				themeMode: 'always-dark',
+				lightTheme: 'markhub-light',
+				darkTheme: 'markhub-dark',
+				editorFont: 'geist',
+				editorFontSize: 17,
+				editorLineHeight: 1.5,
+				editorContentWidth: 70
+			}
+		};
+		const merged = mergeWithDefaults(v2Payload);
+		expect(merged.version).toBe(2);
+		expect(merged.appearance.themeMode).toBe('always-dark');
+		expect(merged.appearance.editorFontSize).toBe(17);
+	});
+
+	// ------ S2.M6 — load() persists the migrated v2 payload back to disk ------
+	it('load() of a v1 file schedules a v2 persist (migration on first read)', async () => {
+		const v1OnDisk = {
+			version: 1,
+			appearance: {
+				theme: 'light',
+				editorFont: 'geist',
+				editorFontSize: 16,
+				editorLineHeight: 1.6,
+				editorContentWidth: 60
+			},
+			editor: { autosaveDelayMs: 1500, spellCheck: true },
+			source: { monoFont: 'geist-mono' },
+			files: { confirmDelete: true }
+		};
+		settingsReadMock.mockResolvedValue(v1OnDisk as never);
+		await settingsStore.load();
+		expect(settingsStore.current.version).toBe(2);
+		expect(settingsStore.current.appearance.themeMode).toBe('system');
+		// And the migration writes back to disk after the debounce.
+		await settingsStore.flushForTest();
+		expect(settingsWriteMock).toHaveBeenCalled();
+		const written = settingsWriteMock.mock.calls.at(-1)?.[0] as UserSettings;
+		expect(written.version).toBe(2);
+		expect(
+			(written.appearance as unknown as { theme?: string }).theme
+		).toBeUndefined();
 	});
 });

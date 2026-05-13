@@ -5,27 +5,33 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 // render. We never use the real `invoke` in vitest.
 vi.mock('../../src/lib/tauri/api', () => ({
 	settingsRead: vi.fn().mockResolvedValue({
-		version: 1,
+		version: 2,
 		appearance: {
-			theme: 'system',
+			themeMode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark',
 			editorFont: 'Geist Sans',
 			editorFontSize: 16,
 			editorLineHeight: 1.6,
-			editorContentWidth: 720
+			editorContentWidth: 60
 		},
 		editor: { autosaveDelayMs: 1500, spellCheck: true },
 		source: { monoFont: 'geist-mono' },
-		files: { confirmDelete: true },
+		files: { confirmDelete: true }
 	}),
 	settingsWrite: vi.fn().mockResolvedValue(undefined)
 }));
 
-// Mock themeStore (it would otherwise try to read vaultsStore in init()).
-vi.mock('../../src/lib/stores/theme.svelte', () => ({
-	themeStore: {
+// Mock themeManager so the modal's hydration doesn't touch matchMedia.
+vi.mock('../../src/lib/theming/manager.svelte', () => ({
+	themeManager: {
 		init: vi.fn(),
-		setPreference: vi.fn().mockResolvedValue(undefined),
-		preference: 'system'
+		setPreference: vi.fn(),
+		preference: {
+			mode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark'
+		}
 	}
 }));
 

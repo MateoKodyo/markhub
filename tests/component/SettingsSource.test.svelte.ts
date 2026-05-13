@@ -7,14 +7,18 @@ vi.mock('../../src/lib/tauri/api', () => ({
 }));
 
 const { themeSetPreference, themeInit } = vi.hoisted(() => ({
-	themeSetPreference: vi.fn().mockResolvedValue(undefined),
+	themeSetPreference: vi.fn(),
 	themeInit: vi.fn()
 }));
-vi.mock('../../src/lib/stores/theme.svelte', () => ({
-	themeStore: {
+vi.mock('../../src/lib/theming/manager.svelte', () => ({
+	themeManager: {
 		init: themeInit,
 		setPreference: themeSetPreference,
-		preference: 'system'
+		preference: {
+			mode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark'
+		}
 	}
 }));
 

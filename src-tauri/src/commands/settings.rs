@@ -192,7 +192,7 @@ mod tests {
     fn save_then_load_round_trips() {
         let (_g, path) = temp_settings_path();
         let mut s = UserSettings::default();
-        s.appearance.theme = "dark".to_string();
+        s.appearance.theme_mode = "always-dark".to_string();
         s.appearance.editor_font_size = 18;
         s.appearance.editor_line_height = 1.75;
         s.editor.autosave_delay_ms = 3000;
@@ -264,8 +264,11 @@ mod tests {
     #[test]
     fn defaults_match_documented_schema() {
         let s = UserSettings::default();
-        assert_eq!(s.version, 1);
-        assert_eq!(s.appearance.theme, "system");
+        assert_eq!(s.version, 2);
+        assert_eq!(s.appearance.theme_mode, "system");
+        assert_eq!(s.appearance.light_theme, "markhub-light");
+        assert_eq!(s.appearance.dark_theme, "markhub-dark");
+        assert_eq!(s.appearance.theme, None);
         assert_eq!(s.appearance.editor_font, "geist");
         assert_eq!(s.appearance.editor_font_size, 16);
         assert!((s.appearance.editor_line_height - 1.6).abs() < f64::EPSILON);
@@ -336,6 +339,9 @@ mod tests {
         let json = serde_json::to_string_pretty(&s).unwrap();
         // A handful of representative keys — if these are right, serde's
         // rename_all = "camelCase" is wired correctly throughout.
+        assert!(json.contains("\"themeMode\""));
+        assert!(json.contains("\"lightTheme\""));
+        assert!(json.contains("\"darkTheme\""));
         assert!(json.contains("\"editorFontSize\""));
         assert!(json.contains("\"editorLineHeight\""));
         assert!(json.contains("\"editorContentWidth\""));
@@ -346,5 +352,36 @@ mod tests {
         // And NOT snake_case leaks.
         assert!(!json.contains("editor_font_size"));
         assert!(!json.contains("autosave_delay_ms"));
+        // The legacy `theme` field must NOT appear in fresh v2 output
+        // (skip_serializing_if = "Option::is_none").
+        assert!(!json.contains("\"theme\":"));
+    }
+
+    // ------ S1.9 — v1 settings.json deserializes via legacy theme field ------
+    #[test]
+    fn load_v1_payload_keeps_legacy_theme_for_ts_migration() {
+        let (_g, path) = temp_settings_path();
+        let v1_json = r#"{
+            "version": 1,
+            "appearance": {
+                "theme": "dark",
+                "editorFont": "geist",
+                "editorFontSize": 16,
+                "editorLineHeight": 1.6,
+                "editorContentWidth": 60
+            },
+            "editor": { "autosaveDelayMs": 1500, "spellCheck": true },
+            "source": { "monoFont": "geist-mono" },
+            "files": { "confirmDelete": true }
+        }"#;
+        fs::write(&path, v1_json).unwrap();
+
+        let s = load_settings_from_path(&path);
+        // The legacy field is preserved so the TS-side migration can read it.
+        assert_eq!(s.appearance.theme, Some("dark".to_string()));
+        // The new fields fall back to their serde defaults.
+        assert_eq!(s.appearance.theme_mode, "system");
+        assert_eq!(s.appearance.light_theme, "markhub-light");
+        assert_eq!(s.appearance.dark_theme, "markhub-dark");
     }
 }

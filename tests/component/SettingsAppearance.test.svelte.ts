@@ -5,34 +5,59 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 // write that we don't want to actually hit `invoke`.
 vi.mock('../../src/lib/tauri/api', () => ({
 	settingsRead: vi.fn().mockResolvedValue({
-		version: 1,
+		version: 2,
 		appearance: {
-			theme: 'system',
+			themeMode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark',
 			editorFont: 'geist',
 			editorFontSize: 16,
 			editorLineHeight: 1.6,
-			editorContentWidth: 720
+			editorContentWidth: 60
 		},
 		editor: { autosaveDelayMs: 1500, spellCheck: true },
 		source: { monoFont: 'geist-mono' },
-		files: { confirmDelete: true },
+		files: { confirmDelete: true }
 	}),
 	settingsWrite: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Mock the runtime theme manager — we verify the bridge contract without
-// pulling in matchMedia / vaultsStore. `vi.hoisted` puts the spy in the
-// hoist scope of `vi.mock`, otherwise the factory closes over an
-// uninitialized binding.
-const { themeSetPreference, themeInit } = vi.hoisted(() => ({
-	themeSetPreference: vi.fn().mockResolvedValue(undefined),
-	themeInit: vi.fn()
-}));
-vi.mock('../../src/lib/stores/theme.svelte', () => ({
-	themeStore: {
-		init: themeInit,
-		setPreference: themeSetPreference,
-		preference: 'system'
+// pulling in matchMedia. `vi.hoisted` puts the spy in the hoist scope of
+// `vi.mock`, otherwise the factory closes over an uninitialized binding.
+const { themeSetPreference, themeInit, getThemePreference, setThemePreference } = vi.hoisted(
+	() => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		let pref: any = {
+			mode: 'system',
+			lightTheme: 'markhub-light',
+			darkTheme: 'markhub-dark'
+		};
+		return {
+			themeSetPreference: vi.fn(),
+			themeInit: vi.fn(),
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			getThemePreference: () => pref as any,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			setThemePreference: (p: any) => {
+				pref = p;
+			}
+		};
+	}
+);
+vi.mock('../../src/lib/theming/manager.svelte', () => ({
+	themeManager: {
+		init: (p: unknown) => {
+			setThemePreference(p);
+			themeInit(p);
+		},
+		setPreference: (p: unknown) => {
+			setThemePreference(p);
+			themeSetPreference(p);
+		},
+		get preference() {
+			return getThemePreference();
+		}
 	}
 }));
 
@@ -78,12 +103,20 @@ describe('SettingsAppearance', () => {
 		);
 	});
 
-	// ------ S4.3 — clicking a theme card calls themeStore.setPreference ------
-	it('clicking a theme card updates the store and bridges to themeStore', async () => {
+	// ------ S4.3 — clicking a theme card bridges to themeManager.setPreference ------
+	it('clicking the dark card writes mode=always-dark and bridges to themeManager', async () => {
 		render(SettingsAppearance);
 		await fireEvent.click(screen.getByTestId('appearance-theme-dark'));
-		expect(settingsStore.current.appearance.theme).toBe('dark');
-		expect(themeSetPreference).toHaveBeenCalledWith('dark');
+		expect(settingsStore.current.appearance.themeMode).toBe('always-dark');
+		expect(settingsStore.current.appearance.lightTheme).toBe('markhub-light');
+		expect(settingsStore.current.appearance.darkTheme).toBe('markhub-dark');
+		expect(themeSetPreference).toHaveBeenCalled();
+		const arg = themeSetPreference.mock.calls.at(-1)?.[0] as {
+			mode: string;
+			lightTheme: string;
+			darkTheme: string;
+		};
+		expect(arg.mode).toBe('always-dark');
 		expect(screen.getByTestId('appearance-theme-dark').getAttribute('aria-checked')).toBe(
 			'true'
 		);
@@ -146,9 +179,6 @@ describe('SettingsAppearance', () => {
 	it('each font card label inherits the option font-family (visual preview)', () => {
 		render(SettingsAppearance);
 		const serifCard = screen.getByTestId('appearance-font-serif') as HTMLElement;
-		// The inline style is applied on the card itself; `inherit` on the
-		// label means visually it's rendered in serif. Asserting on style
-		// attribute is enough to lock the contract.
 		expect(serifCard.style.fontFamily).toContain('Iowan');
 	});
 

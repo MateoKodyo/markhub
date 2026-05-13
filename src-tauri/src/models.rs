@@ -57,25 +57,49 @@ impl Default for Settings {
 }
 
 // ============================================================
-// User Settings v1 — PLAN-SETTINGS STEP 1
+// User Settings v2 — PLAN-SETTINGS + PLAN-THEMING STEP 1
 //
 // Lives in its own file (`settings.json`) so it can be exported / imported
 // independently of the app's machine state (vaults, last opened, expansion).
 //
-// Deviations from PLAN-SETTINGS.md, documented:
-// - `theme` is typed as a free-form `String` (default `"system"`) and accepts
-//   the legacy 3-value set ('dark' | 'light' | 'system'). The plan defines
-//   4 curated theme presets, but their CSS does not exist yet — that's STEP 3
-//   (Appearance section). Until then, the new store delegates to the existing
-//   `themeStore` so user-visible behavior stays identical.
-// - `line_height` is a real number, so we drop the `Eq` derive (PartialEq
-//   suffices for tests).
+// Theme model (v2):
+// - `theme_mode`   : 'system' | 'always-light' | 'always-dark'
+// - `light_theme`  : catalog id used when the light family is active
+// - `dark_theme`   : catalog id used when the dark family is active
+//
+// The legacy `theme` field is kept as an Option<String> so a v1 settings.json
+// still deserializes (the TS-side `mergeWithDefaults` reads it and seeds the
+// new trio). On the next write, `skip_serializing_if = "Option::is_none"`
+// drops the field from disk — so a v1 file gets upgraded on first read+write.
+//
+// `line_height` is a real number, so we drop the `Eq` derive (PartialEq
+// suffices for tests).
 // ============================================================
+
+fn default_theme_mode() -> String {
+    "system".to_string()
+}
+fn default_light_theme() -> String {
+    "markhub-light".to_string()
+}
+fn default_dark_theme() -> String {
+    "markhub-dark".to_string()
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppearanceSettings {
-    pub theme: String,
+    #[serde(default = "default_theme_mode")]
+    pub theme_mode: String,
+    #[serde(default = "default_light_theme")]
+    pub light_theme: String,
+    #[serde(default = "default_dark_theme")]
+    pub dark_theme: String,
+    /// Legacy v1 field — kept solely so a v1 settings.json deserializes
+    /// without error. The TS-side migration consumes this to seed the new
+    /// trio, then writes the file back without it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: Option<String>,
     pub editor_font: String,
     pub editor_font_size: u32,
     pub editor_line_height: f64,
@@ -85,7 +109,10 @@ pub struct AppearanceSettings {
 impl Default for AppearanceSettings {
     fn default() -> Self {
         Self {
-            theme: "system".to_string(),
+            theme_mode: default_theme_mode(),
+            light_theme: default_light_theme(),
+            dark_theme: default_dark_theme(),
+            theme: None,
             // ID matching the picker in `SettingsAppearance.svelte`. Resolved
             // to a font-family stack on the frontend (see FONTS array there).
             editor_font: "geist".to_string(),
@@ -151,7 +178,7 @@ pub struct UserSettings {
 impl Default for UserSettings {
     fn default() -> Self {
         Self {
-            version: 1,
+            version: 2,
             appearance: AppearanceSettings::default(),
             editor: EditorSettings::default(),
             source: SourceSettings::default(),
