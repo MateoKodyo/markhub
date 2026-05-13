@@ -6,6 +6,7 @@
 		splitFrontmatter
 	} from '$lib/utils/markdown';
 	import { urlOpen } from '$lib/tauri/api';
+	import { findStore } from '$lib/stores/find.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	// CSS pulled in statically so Vite HMR reloads the stylesheets on every
 	// edit. Previously these lived inside an `await Promise.all([...])` block
@@ -173,6 +174,41 @@
 		};
 		window.addEventListener('editor:jumpToLine', onJump);
 		return () => window.removeEventListener('editor:jumpToLine', onJump);
+	});
+
+	// Cmd+F find — react to the active match. Preview mode auto-switches
+	// to source (BlockNote-internal scroll is unreliable, see BACKLOG).
+	// Source mode focuses + selects + scrolls so the textarea's native
+	// blue selection lands on the match.
+	$effect(() => {
+		if (!findStore.isOpen) return;
+		const idx = findStore.activeIndex;
+		if (idx < 0 || findStore.matches.length === 0) return;
+		const offset = findStore.matches[idx];
+		const queryLen = findStore.query.length;
+		if (mode !== 'source') {
+			window.dispatchEvent(new CustomEvent('app:toggleEditorMode'));
+			return;
+		}
+		if (!sourceTextarea) return;
+		const before = content.slice(0, offset);
+		const linesBefore = before.split('\n').length;
+		sourceTextarea.focus();
+		sourceTextarea.setSelectionRange(offset, offset + queryLen);
+		const lh = parseFloat(getComputedStyle(sourceTextarea).lineHeight);
+		const lineHeight = Number.isFinite(lh) ? lh : 20;
+		sourceTextarea.scrollTop = Math.max(
+			0,
+			(linesBefore - 1) * lineHeight - sourceTextarea.clientHeight / 3
+		);
+	});
+
+	// When the user edits the content, the match offsets we stored go
+	// stale — recompute on every content change while the bar is open.
+	$effect(() => {
+		// `content` is a prop; read it to track changes.
+		const _ = content;
+		if (findStore.isOpen) findStore.refresh();
 	});
 
 	// Outline-panel clicks dispatch `outline:jumpToHeading` with both a

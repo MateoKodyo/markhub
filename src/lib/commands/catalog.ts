@@ -18,6 +18,7 @@
  */
 
 import { activeFileStore } from '$lib/stores/activeFile.svelte';
+import { findStore } from '$lib/stores/find.svelte';
 import { paletteStore } from '$lib/stores/palette.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { themeStore } from '$lib/stores/theme.svelte';
@@ -144,6 +145,34 @@ export function registerAppCommands(): void {
 		handler: () => uiStateStore.toggleOutline()
 	});
 
+	// ----- Find in document (Cmd+F) -----
+	commandRegistry.register({
+		id: 'find.open',
+		label: 'Find in Document',
+		group: 'View',
+		shortcut: '⌘F',
+		when: () => activeFileStore.activeTabId !== null,
+		handler: () => findStore.open()
+	});
+	commandRegistry.register({
+		id: 'find.next',
+		label: 'Next Match',
+		group: 'View',
+		shortcut: '⌘G',
+		hidden: true,
+		when: () => findStore.isOpen,
+		handler: () => findStore.next()
+	});
+	commandRegistry.register({
+		id: 'find.previous',
+		label: 'Previous Match',
+		group: 'View',
+		shortcut: '⇧⌘G',
+		hidden: true,
+		when: () => findStore.isOpen,
+		handler: () => findStore.previous()
+	});
+
 	// ----- Tabs -----
 	commandRegistry.register({
 		id: 'tab.close',
@@ -257,6 +286,9 @@ export const APP_KEYMAP = {
 	'$mod+p': 'palette.openFile',
 	'$mod+Shift+f': 'palette.openSearch',
 	'$mod+\\': 'view.toggleOutline',
+	'$mod+f': 'find.open',
+	'$mod+g': 'find.next',
+	'$mod+Shift+g': 'find.previous',
 	'$mod+,': 'settings.open',
 	'$mod+w': 'tab.close',
 	'$mod+1': 'tab.goto.1',
@@ -283,6 +315,9 @@ export function unregisterAppCommands(): void {
 		'view.toggleTheme',
 		'view.toggleEditorMode',
 		'view.toggleOutline',
+		'find.open',
+		'find.next',
+		'find.previous',
 		'tab.close',
 		'tab.goto.1',
 		'tab.goto.2',

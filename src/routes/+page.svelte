@@ -8,6 +8,8 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import OutlinePanel from '$lib/components/OutlinePanel.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
+	import FindBar from '$lib/components/FindBar.svelte';
+	import { findStore } from '$lib/stores/find.svelte';
 	import InputDialog from '$lib/components/InputDialog.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
@@ -462,6 +464,9 @@
 						onChange={onContentChange}
 					/>
 				{/key}
+				{#if findStore.isOpen}
+					<FindBar />
+				{/if}
 			</div>
 		{:else}
 			<EmptyState
@@ -721,6 +726,8 @@
 		flex-direction: column;
 		min-height: 0;
 		overflow: hidden;
+		/* Anchor for the position-absolute FindBar overlay. */
+		position: relative;
 	}
 
 	.placeholder {
