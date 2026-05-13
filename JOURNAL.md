@@ -1471,3 +1471,83 @@ STEP 7 (Polish + mode-switching: prefix `>` pour command, `?` pour help, mode in
 - STEP 7 — Polish + mode-switching (prefix `>` switch entre modes, mode indicator badge, ergonomics audit). ~1-2h.
 - STEP 8 — Closure (final wrap-up, push, merge sur main).
 - (en parallèle ou après) factoriser `vaultTreeStore`/Sidebar scan, BlockNote jump-to-line, body typography via API BlockNote.
+
+
+# Session 2026-05-14 (matin, collaborative) — clôture PLAN-COMMAND-SYSTEM + 4 fixes ad-hoc
+
+Matheo smoke les STEPS 1-6 livrés autonomement la veille. Tout passe ("le search est nickel"). Enchaîne STEP 7 + smoke + clôture + merge.
+
+## Catalog cleanup post-smoke (commit `d7075dc`)
+
+Smoke Cmd+K → 3 rows noise flaggés par Matheo :
+- **Save File** — autosave couvre, Cmd+S suffit en backup. Marqué `hidden: true`.
+- **Open Command Palette** — méta-circulaire (la palette est déjà ouverte). Marqué `hidden`.
+- **Next/Previous Vault** — niche, sidebar header suffit. Retirées.
+
+Nouveau champ sur le type `Command` : `hidden?: boolean`. `rankCommands` filtre. Keymap continue de résoudre les hidden (Cmd+S marche, Cmd+K marche). +1 test pour le comportement.
+
+## STEP 7 — Polish + mode-switching (commit `316ee61`)
+
+- **Mode indicator** Lucide à gauche de l'input (ChevronRight / FileText / Search). Tint accent sur file + search pour qu'on lise le mode au coup d'œil.
+- **Mode-switching par prefix** (VS Code convention) : `>` → command, `@` → file (tree refresh à l'entrée), `#` → search (no-op sans vault). Strip du prefix au switch. Si déjà dans le mode cible, le char reste dans la query.
+- Logique extraite en **fonction pure** `detectModeSwitch(currentMode, query, hasActiveVault)` → testable seule.
+- Placeholder enrichi avec les autres prefixes ("Type a command…   (@) file   (#) search").
+
+Smoke OK.
+
+## 4 fixes ad-hoc smokes matinaux
+
+### Drag-drop dossiers — 3 patches successifs
+
+1. **Fonction `handleDragStart` débridée** (commit `b9be2ce`) — j'ai retiré le guard `entry.isDirectory`. Mais le bouton DOM du dossier n'avait pas les attrs `draggable` / `ondragstart`. Le drag ne s'initiait toujours pas.
+2. **Wire des attrs sur le bouton dossier** (commit `fcda277`) — `draggable`, `ondragstart`, `ondragend` + class `is-drag-source`. Drag fonctionnel.
+3. **Anti-cycle dans `handleDropOnFolder`** (déjà dans `b9be2ce`) — refuse drop sur soi-même ou un descendant.
+4. **Open-file follow-through** (déjà dans `b9be2ce`) — si l'activeFile est dans le dossier déplacé, re-open au nouveau path. Sinon l'éditeur écrirait à l'ancien path au prochain autosave.
+5. **Root drop zone discoverable** (commit `63e22c7`) — un nested-folder vers la racine fonctionnait techniquement mais l'espace vide sous le tree est minuscule sur vault rempli, le user ne voyait pas où drop. Ajout d'un state `rootDropActive` + outline accent 2px + voile léger sur `.tree-wrap` quand dragover hors d'un row. Outline transparent au repos pour pas shifter le layout.
+
+### Bugs BlockNote post-smoke (commit `b3069da`)
+
+1. **Slash `/` reste dans le texte** après sélection. Cause : `insertOrUpdateBlockForSlashMenu` de BlockNote ne swap le bloc courant que si son contenu est exactement `/`. Tapé `/h2` → contenu `/h2` → BlockNote insère un nouveau bloc APRÈS, laissant `/h2` avant. Fix : call `suggestionMenu.clearQuery()` AVANT `item.onItemClick()` pour vider le trigger range.
+2. **"Liste à cocher" absente du menu Transform** (côté side menu). Just oublié. Ajout dans `TransformType` + `buildSubmenuItems` + le data-side-transform hidden testing button.
+3. **Checkbox toggle perdu au switch de fichier**. Diagnostic : `activeFile.openFile()` faisait `cancelPendingSave()` avant le `fileRead`. Toute modif non encore autosaved (timer 1500ms non firé) → silencieusement discardée. Pas spécifique au checkbox : valable pour TOUT edit. Sidebar.handleOpenFile faisait un flush si `askBeforeClosingUnsaved` était on, mais Cmd+P (palette) bypass et perd. Fix : `openFile` flush son pending save inconditionnellement. Effet de bord : le setting `askBeforeClosingUnsaved` devient redondant — tracé en BACKLOG.
+
+## Décisions importantes prises pendant la session
+
+1. **Cleanup catalog par feedback direct** au lieu de tracer en BACKLOG — Matheo a flaggué et fix immédiat (5 min de bénef UX).
+2. **Mode-switching par prefix** ajouté en STEP 7 — la spec ne mentionnait que `>`, étendu à `@` et `#` par symétrie.
+3. **Drag-drop dossier non-trivial** — 3 commits successifs pour atteindre le résultat smoké. Pattern : guard back, wire DOM, anti-cycle, follow-through file, visual cue zone. Tracer pour rappel : DOM ≠ logique.
+4. **Fix `openFile` flush** au lieu de toucher au setting `askBeforeClosingUnsaved` — moins de surface, plus de garantie. Le setting devient redondant → BACKLOG pour le retravailler.
+
+## Tests finaux (avant merge)
+
+- cargo : **115/115 ✅**
+- vitest : **335/335 ✅** (+10 sur la session : 9 modeSwitch + 1 mode indicator + 1 hidden command)
+- svelte-check : **0 erreur / 0 warning ✅**
+- Smoke utilisateur : OK sur les 4 axes (Cmd+K / Cmd+P / Cmd+Shift+F / drag-drop dossier + 3 bugs BlockNote)
+
+## Commits de la session (du plus ancien au plus récent)
+
+```
+d7075dc refactor(commands): trim Cmd+K catalog after morning smoke
+316ee61 feat(commands): mode indicator + prefix-based mode switching (STEP 7)
+b9be2ce fix(sidebar): allow drag-drop of folders, with anti-cycle + open-file tracking
+fcda277 fix(sidebar): wire draggable + ondragstart on the folder row
+63e22c7 fix(sidebar): make the vault-root drop zone discoverable
+b3069da fix(editor): three BlockNote bugs flagged during the morning smoke
+```
+
+Plus les 6 commits de la session nuit autonome (7543c91 → c0f9901).
+
+Total : **12 commits sur `feat/command-system`** depuis `main`.
+
+## Clôture PLAN-COMMAND-SYSTEM
+
+Tableau de progression : **8/8 ✅**. STEP 8 = ce commit de closure + le merge sur main.
+
+## Prochaine session
+
+PLAN-COMMAND-SYSTEM est terminé. Pistes :
+- **PLAN-SETTINGS STEP 6** (Avancé : open config folder + export/import JSON + version display, ~1h)
+- **Body typography fix via BlockNote theming API** (dette du PLAN-SETTINGS, ~2-3h)
+- **C2 Toast / C5 drag-drop entrée** / autre
+- Les 4 follow-ups PLAN-COMMAND-SYSTEM listés en BACKLOG

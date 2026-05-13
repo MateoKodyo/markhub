@@ -4,6 +4,13 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### PLAN-COMMAND-SYSTEM — follow-ups post-clôture (2026-05-14)
+
+- **`askBeforeClosingUnsaved` setting maintenant redondant** — `activeFile.openFile()` flush son pending save inconditionnellement (commit `b3069da`, fix du bug "checkbox non persistée"). Le toggle dans Settings n'a plus d'effet. À retravailler : soit le supprimer + clarifier le contrat "autosave + flush forcé au switch", soit le repenser pour proposer un vrai modal "Sauvegarder / Ignorer / Annuler" comme dans VS Code.
+- **`editor:jumpToLine` no-op en preview mode** — STEP 6 Search → click sur un hit ouvre le fichier mais le scroll n'arrive qu'en source mode. En preview (BlockNote), faut résoudre `lineNumber` → block correspondant. Non trivial : BlockNote n'expose pas de map ligne-markdown → block id. Option pragmatique : ouvrir en source mode si le hit vient de Search.
+- **Double scan vaultTreeStore ↔ Sidebar** — chaque switch de vault déclenche deux walks indépendants (Sidebar pour son arbre interne, vaultTreeStore pour Cmd+P). Coût ~50ms gaspillé par switch. Factorisable : Sidebar consomme vaultTreeStore.root + diffuse via les mêmes API.
+- **`SearchOptions` UI hardcodée** — `DEFAULT_SEARCH_OPTIONS` (case off, whole-word off, regex off) passé en dur. À exposer : 3 toggles compacts en footer de SearchMode, persistés en localStorage.
+
 ### Export du fichier courant (idée 2026-05-13, hors scope MVP)
 - **Export as Markdown** — commande palette qui propose un export "Save As…" du fichier courant (utilisable pour copier hors-vault). Comportement attendu : dialog natif Tauri `save` filtré `.md`, écrit le contenu actuel à l'emplacement choisi. Triviale techniquement.
 - **Export as PDF** — commande palette qui rend le markdown courant en PDF. Plus de travail : pipeline de rendu (puppeteer ? wkhtmltopdf ? `printable_web_view` Tauri ?). Décision techno à instruire en propre.
