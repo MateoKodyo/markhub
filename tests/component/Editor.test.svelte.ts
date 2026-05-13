@@ -81,27 +81,28 @@ describe('Editor', () => {
 		expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('hello');
 	});
 
-	// ------ C3.5 — frontmatter rendered as collapsible block in preview ------
-	it('renders a frontmatter block above Milkdown when content has YAML frontmatter', () => {
+	// ------ C3.5 — frontmatter rendered as dedicated UI block in preview ------
+	it('renders the FrontmatterBlock above the editor when content has YAML frontmatter', () => {
 		const md = '---\ntitle: Hello\n---\n\n# Body';
 		const { container } = render(Editor, { content: md, mode: 'preview' });
-		const fm = container.querySelector('[data-frontmatter]');
+		const fm = container.querySelector('[data-testid="frontmatter-read"]');
 		expect(fm).not.toBeNull();
-		expect(fm?.tagName).toBe('DETAILS');
-		expect(fm?.hasAttribute('open')).toBe(false);
-		expect(fm?.textContent).toContain('title: Hello');
+		// Block defaults to collapsed — only the header label + the key count
+		// are rendered. The rows themselves are hidden until the user toggles.
+		expect(fm?.textContent).toMatch(/Frontmatter/i);
+		expect(fm?.textContent).toMatch(/1\s*clé/i);
 	});
 
-	it('does NOT render the frontmatter block when content has no YAML', () => {
+	it('does NOT render any frontmatter block when content has no YAML', () => {
 		const { container } = render(Editor, { content: '# No frontmatter', mode: 'preview' });
-		expect(container.querySelector('[data-frontmatter]')).toBeNull();
+		expect(container.querySelector('[data-testid^="frontmatter-"]')).toBeNull();
 	});
 
 	// ------ C3.6 — frontmatter visible verbatim in source mode ------
 	it('keeps the frontmatter inline in the source-mode textarea (no separate block)', () => {
 		const md = '---\ntitle: src\n---\n\nbody';
 		const { container } = render(Editor, { content: md, mode: 'source' });
-		expect(container.querySelector('[data-frontmatter]')).toBeNull();
+		expect(container.querySelector('[data-testid^="frontmatter-"]')).toBeNull();
 		expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(md);
 	});
 });

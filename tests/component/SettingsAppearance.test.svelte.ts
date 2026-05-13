@@ -121,8 +121,8 @@ describe('SettingsAppearance', () => {
 		const slider = screen.getByTestId(
 			'appearance-slider-contentwidth'
 		) as HTMLInputElement;
-		await fireEvent.input(slider, { target: { value: '900' } });
-		expect(settingsStore.current.appearance.editorContentWidth).toBe(900);
+		await fireEvent.input(slider, { target: { value: '80' } });
+		expect(settingsStore.current.appearance.editorContentWidth).toBe(80);
 	});
 
 	// ------ S4.6 — live preview reflects current settings ------
@@ -132,7 +132,7 @@ describe('SettingsAppearance', () => {
 
 		// Defaults visible.
 		expect(preview.style.fontSize).toBe('16px');
-		expect(preview.style.maxWidth).toBe('720px');
+		expect(preview.style.maxWidth).toBe('60%');
 
 		// Drag fontSize → 20 and verify the preview moves with it.
 		await fireEvent.input(

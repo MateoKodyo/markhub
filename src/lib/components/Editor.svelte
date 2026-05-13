@@ -5,6 +5,8 @@
 		lineToBlockIndex,
 		splitFrontmatter
 	} from '$lib/utils/markdown';
+	import { parseFrontmatter, serializeFrontmatter } from '$lib/frontmatter/parser';
+	import FrontmatterBlock from './FrontmatterBlock.svelte';
 	import { urlOpen } from '$lib/tauri/api';
 	import { findStore } from '$lib/stores/find.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
@@ -42,11 +44,16 @@
 		content = '',
 		readonly = false,
 		mode = 'preview',
+		fileKey,
 		onChange = (_: string) => {}
 	}: {
 		content?: string;
 		readonly?: boolean;
 		mode?: EditorMode;
+		/** Stable identifier for the open file (e.g. `vaultId::relativePath`).
+		 *  Threaded into `FrontmatterBlock` so its collapsed state persists
+		 *  per file. Optional — tests render Editor without a file. */
+		fileKey?: string;
 		onChange?: (content: string) => void;
 	} = $props();
 
@@ -247,6 +254,43 @@
 	const frontmatter = $derived(split.frontmatter);
 	const body = $derived(split.body);
 
+	// Parsed view of the frontmatter for the dedicated UI block. When the
+	// file has no `---` preamble we render nothing; when it parses, we get
+	// the data; when it doesn't, the error banner gets the raw YAML.
+	const parsedFrontmatter = $derived.by<{
+		data: Record<string, unknown> | null;
+		error: string | null;
+		raw: string;
+	}>(() => {
+		if (frontmatter === null) return { data: null, error: null, raw: '' };
+		const result = parseFrontmatter(frontmatter);
+		if (result.ok) return { data: result.data, error: null, raw: '' };
+		return { data: null, error: result.error, raw: result.raw };
+	});
+
+	/** Handle a structured edit from FrontmatterBlock. Serialize the new
+	 *  data, fetch the current body (from BlockNote if mounted, else from
+	 *  the split-derived body), and emit the joined content upstream so
+	 *  the autosave pipeline does the actual disk write. */
+	async function onFrontmatterChange(
+		next: Record<string, unknown>
+	): Promise<void> {
+		const empty = Object.keys(next).length === 0;
+		// An empty object serializes to "{}\n" — we want to drop the
+		// frontmatter block entirely instead, matching the "no frontmatter"
+		// shape `splitFrontmatter` already understands.
+		const newYaml = empty ? null : serializeFrontmatter(next).replace(/\n+$/, '');
+		let currentBody = body;
+		if (editorInstance) {
+			try {
+				currentBody = await editorInstance.blocksToMarkdownLossy();
+			} catch {
+				/* fall back to the split body */
+			}
+		}
+		onChange(joinFrontmatter(newYaml, currentBody));
+	}
+
 	// Slash menu state piped from the SuggestionMenu plugin store.
 	let slashState = $state<SlashMenuState | null>(null);
 	let slashItems = $state<DefaultSuggestionItem[]>([]);
@@ -342,11 +386,11 @@
 
 		let cancelled = false;
 		const root = container;
-		// Capture frontmatter + body via untrack so this effect ONLY re-runs
-		// on mode/container changes — not on every keystroke. BlockNote owns
+		// Capture the body via untrack so this effect ONLY re-runs on
+		// mode/container changes — not on every keystroke. BlockNote owns
 		// the body once mounted; the parent re-mounts via {#key} on file
-		// switch.
-		const initialFrontmatter = untrack(() => frontmatter) ?? '';
+		// switch. (Frontmatter is read live at onChange time so the
+		// FrontmatterBlock edit path stays correct.)
 		const initialBody = untrack(() => body);
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -389,14 +433,18 @@
 			// here at mount-complete time.
 			applySpellcheck();
 
-			// Save flow.
+			// Save flow. We read `frontmatter` (the $derived) at callback-time
+			// instead of using `initialFrontmatter` so that a user edit made
+			// via FrontmatterBlock isn't clobbered by a subsequent body edit.
+			// Reading a $derived inside a non-reactive callback returns the
+			// latest value without subscribing.
 			const offChange = editor.onChange(async () => {
 				if (suppressNextChange) {
 					suppressNextChange = false;
 					return;
 				}
 				const md = await editor.blocksToMarkdownLossy();
-				onChange(joinFrontmatter(initialFrontmatter, md));
+				onChange(joinFrontmatter(frontmatter ?? '', md));
 			});
 			if (typeof offChange === 'function') unsubscribers.push(offChange);
 
@@ -762,11 +810,14 @@
 {:else}
 	<div class="canvas-scroll">
 		<div class="canvas">
-			{#if frontmatter !== null}
-				<details class="frontmatter-block" data-frontmatter>
-					<summary>Frontmatter</summary>
-					<pre><code>{frontmatter}</code></pre>
-				</details>
+			{#if parsedFrontmatter.data !== null || parsedFrontmatter.error !== null}
+				<FrontmatterBlock
+					data={parsedFrontmatter.data}
+					parseError={parsedFrontmatter.error}
+					raw={parsedFrontmatter.raw}
+					{fileKey}
+					onChange={onFrontmatterChange}
+				/>
 			{/if}
 			<div bind:this={container} data-editor="blocknote" class="preview"></div>
 		</div>
@@ -849,36 +900,6 @@
 		resize: none;
 		outline: none;
 		tab-size: 2;
-	}
-
-	.frontmatter-block {
-		background: var(--color-surface-veil);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: var(--radius-md);
-		padding: 0;
-		font-size: var(--text-caption);
-	}
-
-	.frontmatter-block > summary {
-		padding: 6px var(--space-3);
-		cursor: pointer;
-		color: var(--color-text-secondary);
-		font-family: var(--font-mono);
-		list-style: revert;
-	}
-
-	.frontmatter-block[open] > summary {
-		border-bottom: 1px solid var(--color-border-subtle);
-	}
-
-	.frontmatter-block pre {
-		margin: 0;
-		padding: var(--space-3);
-		font-family: var(--font-mono);
-		color: var(--color-text-body);
-		white-space: pre-wrap;
-		word-break: break-word;
-		line-height: 1.45;
 	}
 
 	.preview {

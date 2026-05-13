@@ -473,6 +473,9 @@
 						content={activeFileStore.content}
 						readonly={vaultsStore.isActiveVaultReadonly}
 						mode={editorMode}
+						fileKey={activeFileStore.activeFile
+							? `${activeFileStore.activeFile.vaultId}::${activeFileStore.activeFile.relativePath}`
+							: undefined}
 						onChange={onContentChange}
 					/>
 				{/key}

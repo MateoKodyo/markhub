@@ -199,7 +199,6 @@ mod tests {
         s.editor.spell_check = false;
         s.source.mono_font = "fira-code".to_string();
         s.files.confirm_delete = false;
-        s.behavior.ask_before_closing_unsaved = false;
 
         save_settings_to_path(&path, &s).expect("save ok");
         let loaded = load_settings_from_path(&path);
@@ -275,7 +274,6 @@ mod tests {
         assert!(s.editor.spell_check);
         assert_eq!(s.source.mono_font, "geist-mono");
         assert!(s.files.confirm_delete);
-        assert!(s.behavior.ask_before_closing_unsaved);
     }
 
     // ------ S6.1 — settings_export writes a valid JSON file ------
@@ -345,7 +343,6 @@ mod tests {
         assert!(json.contains("\"spellCheck\""));
         assert!(json.contains("\"monoFont\""));
         assert!(json.contains("\"confirmDelete\""));
-        assert!(json.contains("\"askBeforeClosingUnsaved\""));
         // And NOT snake_case leaks.
         assert!(!json.contains("editor_font_size"));
         assert!(!json.contains("autosave_delay_ms"));

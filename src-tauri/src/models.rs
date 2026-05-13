@@ -138,20 +138,6 @@ impl Default for FilesSettings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BehaviorSettings {
-    pub ask_before_closing_unsaved: bool,
-}
-
-impl Default for BehaviorSettings {
-    fn default() -> Self {
-        Self {
-            ask_before_closing_unsaved: true,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSettings {
@@ -160,7 +146,6 @@ pub struct UserSettings {
     pub editor: EditorSettings,
     pub source: SourceSettings,
     pub files: FilesSettings,
-    pub behavior: BehaviorSettings,
 }
 
 impl Default for UserSettings {
@@ -171,7 +156,6 @@ impl Default for UserSettings {
             editor: EditorSettings::default(),
             source: SourceSettings::default(),
             files: FilesSettings::default(),
-            behavior: BehaviorSettings::default(),
         }
     }
 }
