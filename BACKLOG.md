@@ -4,6 +4,13 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### Flash blanc au resize de la fenêtre (2026-05-14)
+- Quand on redimensionne la fenêtre Markhub, une bande blanche apparaît brièvement au bord bas et droit pendant que le WebView re-rend. Tentatives reverted :
+  - `tauri.conf.json` → ajout de `"backgroundColor": "#0a0908"` au window config. Le schéma Tauri 2 accepte le format hex, mais sur macOS + `titleBarStyle: "Overlay"` le param semble ne pas atteindre le CALayer du WKWebView.
+  - `lib.rs` setup → `window.set_background_color(Some(tauri::webview::Color(10, 9, 8, 255)))` au runtime. Compile OK mais effet visuel identique.
+- Cause probable : le NSWindow a bien notre couleur, mais pendant l'animation de resize macOS, c'est le WKWebView qui peint en blanc tant que la frame layout n'a pas convergé. Faut probablement attaquer via objc côté Rust pour set le CALayer backgroundColor directement (ou utiliser `WebViewConfiguration` au moment de la création).
+- Non bloquant pour MVP — l'effet est bref. Reprendre quand on a un focus visuel/polish.
+
 ### PLAN-COMMAND-SYSTEM — follow-ups post-clôture (2026-05-14)
 
 - **`askBeforeClosingUnsaved` setting maintenant redondant** — `activeFile.openFile()` flush son pending save inconditionnellement (commit `b3069da`, fix du bug "checkbox non persistée"). Le toggle dans Settings n'a plus d'effet. À retravailler : soit le supprimer + clarifier le contrat "autosave + flush forcé au switch", soit le repenser pour proposer un vrai modal "Sauvegarder / Ignorer / Annuler" comme dans VS Code.
