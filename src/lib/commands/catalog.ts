@@ -136,6 +136,14 @@ export function registerAppCommands(): void {
 		handler: () => dispatchEditorModeToggle()
 	});
 
+	commandRegistry.register({
+		id: 'view.toggleOutline',
+		label: 'Toggle Outline',
+		group: 'View',
+		shortcut: '⌘\\',
+		handler: () => uiStateStore.toggleOutline()
+	});
+
 	// ----- Settings -----
 	commandRegistry.register({
 		id: 'settings.open',
@@ -190,6 +198,7 @@ export const APP_KEYMAP = {
 	'$mod+k': 'palette.open',
 	'$mod+p': 'palette.openFile',
 	'$mod+Shift+f': 'palette.openSearch',
+	'$mod+\\': 'view.toggleOutline',
 	'$mod+,': 'settings.open'
 } as const;
 
@@ -205,6 +214,7 @@ export function unregisterAppCommands(): void {
 		'view.toggleSidebar',
 		'view.toggleTheme',
 		'view.toggleEditorMode',
+		'view.toggleOutline',
 		'settings.open',
 		'palette.open',
 		'palette.openFile',

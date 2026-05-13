@@ -48,31 +48,104 @@
 	let container: HTMLDivElement | null = $state(null);
 	let sourceTextarea: HTMLTextAreaElement | null = $state(null);
 
+	/** Scroll the source-mode textarea so `lineNumber` lands at ~⅓ from
+	 *  the top, focusing it and selecting the line. */
+	function scrollToLineInSource(lineNumber: number): void {
+		if (!sourceTextarea) return;
+		const lines = content.split('\n');
+		const clamped = Math.max(1, Math.min(lineNumber, lines.length));
+		const before = lines.slice(0, clamped - 1).join('\n');
+		const offset = before.length + (clamped > 1 ? 1 : 0);
+		const lineLen = lines[clamped - 1]?.length ?? 0;
+		sourceTextarea.focus();
+		sourceTextarea.setSelectionRange(offset, offset + lineLen);
+		const lh = parseFloat(getComputedStyle(sourceTextarea).lineHeight);
+		const lineHeight = Number.isFinite(lh) ? lh : 20;
+		sourceTextarea.scrollTop = Math.max(
+			0,
+			(clamped - 1) * lineHeight - sourceTextarea.clientHeight / 3
+		);
+	}
+
+	/** Find the Nth `heading` block in BlockNote's document and scroll
+	 *  its DOM element into view. Returns true on success, false if the
+	 *  block can't be located (caller can fall back to a mode switch). */
+	function scrollToNthHeadingInPreview(headingIndex: number): boolean {
+		if (!editorInstance || !container) return false;
+		try {
+			const doc = editorInstance.document;
+			if (!Array.isArray(doc)) return false;
+			let count = -1;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			let target: any = null;
+			for (const block of doc) {
+				if (block?.type === 'heading') {
+					count++;
+					if (count === headingIndex) {
+						target = block;
+						break;
+					}
+				}
+			}
+			if (!target) return false;
+			const el = container.querySelector(
+				`[data-id="${target.id}"]`
+			) as HTMLElement | null;
+			if (el) {
+				el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				return true;
+			}
+			// DOM lookup missed (BlockNote may not stamp `data-id` on every
+			// build). Fall back to the editor API, which scrolls naturally
+			// when it moves the cursor.
+			try {
+				editorInstance.setTextCursorPosition?.(target, 'start');
+				return true;
+			} catch {
+				return false;
+			}
+		} catch {
+			return false;
+		}
+	}
+
 	// Listen for jump-to-line events fired by Cmd+Shift+F search hits.
 	// Source mode focuses + selects + scrolls the corresponding line.
-	// Preview mode (BlockNote) is a no-op for now — mapping a source
-	// line to a BlockNote block is BACKLOG.
+	// Preview mode (BlockNote) is a no-op — mapping a source line to a
+	// BlockNote block is BACKLOG.
 	$effect(() => {
 		const onJump = (e: Event) => {
 			const detail = (e as CustomEvent<{ lineNumber: number }>).detail;
-			if (!detail || mode !== 'source' || !sourceTextarea) return;
-			const target = detail.lineNumber;
-			const lines = content.split('\n');
-			const clamped = Math.max(1, Math.min(target, lines.length));
-			const before = lines.slice(0, clamped - 1).join('\n');
-			const offset = before.length + (clamped > 1 ? 1 : 0);
-			const lineLen = lines[clamped - 1]?.length ?? 0;
-			sourceTextarea.focus();
-			sourceTextarea.setSelectionRange(offset, offset + lineLen);
-			const lh = parseFloat(getComputedStyle(sourceTextarea).lineHeight);
-			const lineHeight = Number.isFinite(lh) ? lh : 20;
-			sourceTextarea.scrollTop = Math.max(
-				0,
-				(clamped - 1) * lineHeight - sourceTextarea.clientHeight / 3
-			);
+			if (!detail || mode !== 'source') return;
+			scrollToLineInSource(detail.lineNumber);
 		};
 		window.addEventListener('editor:jumpToLine', onJump);
 		return () => window.removeEventListener('editor:jumpToLine', onJump);
+	});
+
+	// Outline-panel clicks dispatch `outline:jumpToHeading` with both a
+	// line number (for source mode) AND a zero-based heading index (for
+	// preview mode — BlockNote document position).
+	$effect(() => {
+		const onJumpHeading = (e: Event) => {
+			const detail = (e as CustomEvent<{ line: number; index: number }>).detail;
+			if (!detail) return;
+			if (mode === 'source') {
+				scrollToLineInSource(detail.line);
+				return;
+			}
+			// Preview mode: try BlockNote first. If the block can't be
+			// resolved (rare), fall back to switching to source mode and
+			// jumping there once the textarea has mounted.
+			const ok = scrollToNthHeadingInPreview(detail.index);
+			if (ok) return;
+			window.dispatchEvent(new CustomEvent('app:toggleEditorMode'));
+			// Wait one tick for the source textarea to mount, then jump.
+			setTimeout(() => scrollToLineInSource(detail.line), 50);
+		};
+		window.addEventListener('outline:jumpToHeading', onJumpHeading);
+		return () =>
+			window.removeEventListener('outline:jumpToHeading', onJumpHeading);
 	});
 	// We type the editor instance loosely: the dynamic import returns a
 	// fully-generic class whose schema params would force a noisy chain of

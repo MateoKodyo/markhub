@@ -6,6 +6,7 @@
 	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import OutlinePanel from '$lib/components/OutlinePanel.svelte';
 	import InputDialog from '$lib/components/InputDialog.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
@@ -463,6 +464,10 @@
 			onCopyPath={copyActiveFilePath}
 		/>
 		</main>
+
+		{#if uiStateStore.outlineOpen && activeFileStore.activeFile}
+			<OutlinePanel />
+		{/if}
 	</div>
 </div>
 
