@@ -396,17 +396,14 @@
 				<p>{loadError}</p>
 			</div>
 		{:else if activeFileStore.activeFile}
-			<header class="content-header">
-				<div class="breadcrumb">
+			<TabBar>
+				{#snippet trailing()}
 					{#if vaultsStore.isActiveVaultReadonly}
 						<span class="badge-readonly" aria-label="Lecture seule">
 							<Lock size={11} aria-hidden="true" focusable="false" />
 							<span>Lecture seule</span>
 						</span>
 					{/if}
-				</div>
-
-				<div class="header-controls">
 					<div
 						class="mode-toggle"
 						role="group"
@@ -453,10 +450,8 @@
 							focusable="false"
 						/>
 					</button>
-				</div>
-			</header>
-
-			<TabBar />
+				{/snippet}
+			</TabBar>
 
 			<div class="content-body">
 				{#key editorKey}
@@ -622,24 +617,6 @@
 		overflow: hidden;
 	}
 
-	.content-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		padding: var(--space-2) var(--space-4);
-		border-bottom: 1px solid var(--color-border-subtle);
-		min-height: 44px;
-	}
-
-	.breadcrumb {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		min-width: 0;
-		overflow: hidden;
-	}
-
 	.badge-readonly {
 		display: inline-flex;
 		align-items: center;
@@ -652,13 +629,6 @@
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
 		border-radius: var(--radius-sm);
-	}
-
-	.header-controls {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		flex-shrink: 0;
 	}
 
 	/* === Preview / Source mode toggle ===

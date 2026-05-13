@@ -16,9 +16,20 @@
 	 * state for vault selection.
 	 */
 
+	import type { Snippet } from 'svelte';
 	import { X } from 'lucide-svelte';
 	import { activeFileStore, type Tab } from '$lib/stores/activeFile.svelte';
 	import { getFileName } from '$lib/utils/path';
+
+	type Props = {
+		/** Right-side slot rendered after the scrollable tab list — used
+		 *  by +page.svelte to drop the mode toggle + outline button on the
+		 *  same row as the tabs (no separate content-header). Snippet so
+		 *  the slot stays independent of the tab content. */
+		trailing?: Snippet;
+	};
+
+	let { trailing }: Props = $props();
 
 	const DRAG_MIME = 'application/x-markhub-tab';
 	let dragSourceId = $state<string | null>(null);
@@ -78,7 +89,7 @@
 	}
 </script>
 
-{#if activeFileStore.tabs.length > 0}
+{#if activeFileStore.tabs.length > 0 || trailing}
 	<div
 		class="tab-bar"
 		role="tablist"
@@ -122,6 +133,11 @@
 				</span>
 			</button>
 		{/each}
+		{#if trailing}
+			<div class="tab-bar-trailing" data-testid="tab-bar-trailing">
+				{@render trailing()}
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -224,5 +240,19 @@
 		background: var(--color-surface-hover);
 		color: var(--color-text-primary);
 		opacity: 1 !important;
+	}
+
+	.tab-bar-trailing {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2, 8px);
+		margin-left: auto;
+		padding: 0 6px;
+		flex: 0 0 auto;
+		/* Sticky-right so the controls stay visible when the tab list
+		   overflows and the user scrolls horizontally. */
+		position: sticky;
+		right: 0;
+		background: var(--color-bg);
 	}
 </style>
