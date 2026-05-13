@@ -5,35 +5,36 @@
 
 ## Date de mise à jour
 
-2026-05-14 (matin) — **PLAN-COMMAND-SYSTEM clôturé**. 8/8 steps livrés et smoke-validés. Branche `feat/command-system` mergée sur `main`. 13 commits ajoutés à `main` (12 features/fix + 1 closure).
+2026-05-14 (après-midi) — session collaborative continue depuis le matin. Bilan :
+
+- **PLAN-COMMAND-SYSTEM 8/8 ✅ MERGÉ + PUSHÉ** sur `origin/main`.
+- **Outline panel V1 ✅** — `Cmd+\\` + bouton `PanelRight` dans le header éditeur. Click sur un heading → scroll source-mode (réutilise jump-to-line) OU preview-mode (via BlockNote `editor.document` walk + `scrollIntoView`).
+- **Token estimate StatusBar ✅** — pill cycle words → chars → ~tokens (heuristique `chars / 4`, prefixed "~").
+- **PLAN-SETTINGS STEPS 6/7/8 livrés** (smoke pending) — Advanced section + 6 section deep-link commands + closure docs.
+- **Body typography fix résolu** — pattern "apply on commit" via remount BlockNote (commit `a8bbc41`). Clôture le BACKLOG du 12/05.
+- **Drag-drop dossier sidebar fixé** + 4 bugs BlockNote (slash menu /query persistant, "Liste à cocher" manquante, edit perdu au switch, checkbox visuelle sobre).
+- Tentative `backgroundColor` au resize → reverted, tracé en BACKLOG (WKWebView macOS).
 
 ## Branche courante
 
-`main` — **46 commits ahead de `origin/main`** (33 avant la nuit + 13 de PLAN-COMMAND-SYSTEM). Toujours pas pushée. Push à faire quand Matheo veut.
+`main` — **5 commits ahead de `origin/main`** depuis le dernier push (`47693f9`). Push à faire quand Matheo veut.
 
-Commits PLAN-COMMAND-SYSTEM (du plus récent au plus ancien) :
+Commits depuis le dernier push (du plus ancien au plus récent) :
 
 ```
-[closure]   chore(state): clôture PLAN-COMMAND-SYSTEM — handoff docs refresh
-9f5f88a     style(editor): sober checkbox + drop strikethrough on checked items
-b3069da     fix(editor): three BlockNote bugs flagged during the morning smoke
-63e22c7     fix(sidebar): make the vault-root drop zone discoverable
-fcda277     fix(sidebar): wire draggable + ondragstart on the folder row
-b9be2ce     fix(sidebar): allow drag-drop of folders, with anti-cycle + open-file tracking
-316ee61     feat(commands): mode indicator + prefix-based mode switching (STEP 7)
-d7075dc     refactor(commands): trim Cmd+K catalog after morning smoke
-c0f9901     chore(state): wrap up autonomous night — PLAN-COMMAND-SYSTEM STEPS 1-6
-f066f82     feat(commands): global search mode (Cmd+Shift+F)                          STEP 6
-d3b2f60     feat(commands): ripgrep-based search backend                              STEP 5
-9d48658     feat(commands): quick file switcher (Cmd+P)                               STEP 4
-004b6c0     feat(commands): command palette mode (Cmd+K)                              STEP 3
-7543c91     feat(commands): bootstrap command system — registry, keymap, palette shell  STEPS 1+2
+189098d feat(status-bar): rough token estimate in the count cycle
+0ab0098 feat(outline): toggleable TOC panel on the right (Cmd+\\)
+47693f9 feat(editor): icon-only mode toggle + Outline button next to it  ← dernier push
+fead47e docs(backlog): track the resize white-flash issue as deferred
+a8bbc41 feat(settings): body typography wiring via apply-on-commit remount
+58b33c5 feat(settings): advanced section + section deep-links (STEPS 6 + 7)
+[closure] chore(state): closure PLAN-SETTINGS — handoff docs refresh
 ```
 
-## Tests (état final, post-merge)
+## Tests (état final)
 
-- cargo : **115/115 ✅** (100 base + 15 search)
-- vitest : **335/335 ✅** (242 baseline + 93 nouveaux command-system)
+- cargo : **120/120 ✅** (115 + 5 nouveaux pour STEP 6 settings backend)
+- vitest : **350/350 ✅** (339 + 11 nouveaux pour outline + token)
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
@@ -42,67 +43,74 @@ d3b2f60     feat(commands): ripgrep-based search backend                        
 | Chantier | Statut |
 |---|---|
 | C1 — Migration Crepe → BlockNote | ✅ MERGÉ sur `main` (2026-05-11) |
-| PLAN-DESIGN-DEFAULTS (10 steps) | ✅ MERGÉ sur `main` (2026-05-12 nuit) |
-| PLAN-SETTINGS (8 steps) | 🟡 EN COURS — STEPS 1-5 ✅, STEP 6/7/8 restants |
+| PLAN-DESIGN-DEFAULTS (10 steps) | ✅ MERGÉ sur `main` (2026-05-12) |
+| **PLAN-SETTINGS (8 steps)** | **✅ 8/8 code livré, smoke audit pending** |
 | Folder-delete EPERM | ✅ FIXÉ + smoke OK |
 | Import de fichiers markdown | ✅ LIVRÉ 2026-05-13 |
-| **PLAN-COMMAND-SYSTEM (8 steps)** | **✅ MERGÉ sur `main` 2026-05-14** |
-| Drag-drop sidebar — dossier + visual root drop | ✅ FIXÉ 2026-05-14 (3 commits ad-hoc) |
+| PLAN-COMMAND-SYSTEM (8 steps) | ✅ MERGÉ + PUSHÉ sur `origin/main` (2026-05-14) |
+| Drag-drop sidebar — dossier + visual root drop | ✅ FIXÉ 2026-05-14 |
+| Outline panel V1 (sommaire toggleable) | ✅ LIVRÉ 2026-05-14 |
+| Token estimate StatusBar | ✅ LIVRÉ 2026-05-14 |
+| Body typography fix (PLAN-SETTINGS STEP 3 dette) | ✅ RÉSOLU 2026-05-14 (apply-on-commit) |
 | C2 — Toast / notifications | DÉBLOQUÉ — pas démarré |
 | C5 — Drag-drop OS depuis Finder | ⏳ PAS DÉMARRÉ |
-| Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — skippé |
-| Outline panel (sommaire) | PAS DÉMARRÉ — brief posé |
+| Outline V2 (rail Notion-style hover) | gelé — V1 jugé suffisant 2026-05-14 |
+| Onglets de fichiers (Phase 5c) | gelé |
 
-## Surface livrée par PLAN-COMMAND-SYSTEM (production en main)
+## Surface livrée en production (recap)
 
-**Trois raccourcis globaux** + le keymap registry :
+**Raccourcis globaux** :
+- `Cmd+K` — palette de commandes (9 visibles + 8 méta) + prefix switching `>` `@` `#`
+- `Cmd+P` — file switcher (fuzzy filename+path, MRU)
+- `Cmd+Shift+F` — search vault (ripgrep-backed)
+- `Cmd+\\` — toggle outline panel
+- `Cmd+S` — save (hidden, via autosave + manual flush)
+- `Cmd+,` — settings
 
-- **Cmd+K** → Command palette : 9 commandes visibles (file/vault/view/settings) + 2 méta (Go to File / Search in Vault). Fuzzy search, MRU persisté, match highlighting, badge mode indicator, prefix switching (`>` `@` `#`).
-- **Cmd+P** → File switcher : tous les .md du vault, fuzzy filename+path (boost filename), MRU persisté, exclusion du fichier ouvert.
-- **Cmd+Shift+F** → Search dans le vault : ripgrep-backed côté Rust (`grep-*` + `ignore` crates), debounce 200ms, results groupés par fichier, click → open + jumpToLine en source mode.
-- **Cmd+S** / **Cmd+,** → migrés au keymap registry (Cmd+S est `hidden` du palette, autosave couvre le reste).
+**Settings** : 6 sections (Apparence, Éditeur, Source, Fichiers, Comportement, Avancé). Body font-size + line-height appliqués via remount au close du modal.
 
-## Bugs ad-hoc fixés pendant la session matinale
+**Editor** : Preview / Source (icônes) + Outline (toggle). Drag-drop dossier dans la sidebar. Checkboxes sobre sans strikethrough.
 
-- **Drag-drop dossier** dans la sidebar : draggable+ondragstart manquaient sur le row dossier, anti-cycle ajouté (drop sur descendant), open-file follow-through (suivre le fichier ouvert si son parent bouge), visual cue 2px outline accent sur tree-wrap pour la zone racine.
-- **Slash menu** `/h2` → bloc inséré APRÈS au lieu de remplacer : `clearQuery()` avant `onItemClick()` vide le trigger range avant le swap.
-- **Liste à cocher absente** du menu Transform du side menu : ajoutée dans `TransformType` + `buildSubmenuItems`.
-- **Checkbox/edit perdu au switch fichier** : `activeFile.openFile()` cancellait au lieu de flush. Fix : flush systématique du pending save avant le switch.
-- **Checkbox visuelle** : sober custom 14px outlined → filled accent au check, strikethrough retiré.
+## Smoke pending (à faire par Matheo)
 
-## Dettes / dépendances ajoutées par PLAN-COMMAND-SYSTEM
+PLAN-SETTINGS STEP 6/7/8 :
+- Open config folder → ouvre bien Finder au bon path
+- Export : sauve un JSON valide
+- Import : charge un JSON valide ET rejette un malformed
+- Round-trip : export → modifier → import → state restauré
+- Version display : affiche bien `Markhub v0.1.0`
+- Cmd+K → "Settings: Editor" / etc. ouvre directement à la section
 
-- npm : `tinykeys@3.0.0`, `fuzzysort@3.1.0`
-- cargo : `ignore`, `grep-matcher`, `grep-regex`, `grep-searcher`, `regex` (+~2-3 MB)
-- localStorage keys : `markhub.commands.recent.v1`, `markhub.files.recent.v1`
+Body typography :
+- Open Settings → modifier fontSize ou lineHeight → préview live dans le modal
+- Fermer modal → l'éditeur applique les nouvelles valeurs (un flash de remount, acceptable)
+
+## Dettes / dépendances ajoutées par cette session
+
+- npm : `lucide-svelte` icons utilisés (déjà installée)
+- localStorage keys ajoutées : `markhub.ui.outlineOpen.v1`
 
 ## BACKLOG enrichi par cette session
 
-Voir `BACKLOG.md` section "PLAN-COMMAND-SYSTEM — follow-ups post-clôture" :
-1. **`askBeforeClosingUnsaved` redondant** — `openFile` flush inconditionnellement maintenant. À retravailler.
-2. **BlockNote line→block resolution** — `editor:jumpToLine` no-op en preview mode (Search hits).
-3. **Double scan vault tree** — Sidebar et vaultTreeStore walkent séparément.
-4. **`SearchOptions` UI** — toggles case/whole-word/regex à exposer (hardcodé pour l'instant).
+Voir `BACKLOG.md` :
+- **Flash blanc au resize** — WKWebView macOS, 2 tentatives reverted, à reprendre via objc
+- **Outline V2** (Notion-style hover rail) — pas urgent, V1 valide la valeur
+- **PLAN-COMMAND-SYSTEM follow-ups** (`askBeforeClosingUnsaved` redondant, line→block preview jump, double scan, SearchOptions UI)
 
 ## Fichiers à relire en début de prochaine session
 
 1. `STATE.md` (ce fichier — porte d'entrée)
 2. `CLAUDE.md` (méthodologie)
 3. `WORKPLAN.md` (plan global)
-4. **Dernières entrées de `JOURNAL.md`** (clôture nuit + matin 2026-05-13/14)
-5. `BACKLOG.md` (4 follow-ups + dettes existantes)
-6. `plan-110526/PLAN-SETTINGS.md` (STEP 6/7/8 restants — chantier suivant si reprise)
-7. `plan-110526/DESIGN-PRINCIPLES.md`
+4. **Dernière entrée de `JOURNAL.md`** (clôture session 2026-05-14)
+5. `BACKLOG.md` (dettes + items différés)
+6. `plan-110526/PLAN-SETTINGS.md` (tableau de progression — 8/8 code livré)
 
 ## Prochaine session
 
 Au choix :
-- **PLAN-SETTINGS STEP 6 (Avancé)** : Open config folder + Export/Import JSON + version display, ~1h. Clôture partielle de Settings v1.
-- **Body typography fix via BlockNote theming API** : dette de PLAN-SETTINGS, ~2-3h research + dev.
-- **PLAN-COMMAND-SYSTEM follow-ups** : repenser `askBeforeClosingUnsaved`, line→block jump, SearchOptions UI.
-- **C2 Toast** : système notifs, DÉBLOQUÉ depuis longtemps.
-- **C5 drag-drop OS depuis Finder** : si pertinent.
-
-## Push origin
-
-Reste à la main de Matheo (conformément à la mémoire `feedback_merge_authorization.md`). 46 commits ahead local. Quand le moment est bon : `git push origin main`.
+- **Smoke + signature PLAN-SETTINGS** (10-15 min) → fin officielle du chantier
+- **PLAN-COMMAND-SYSTEM follow-ups** (`askBeforeClosingUnsaved` cleanup, line→block, SearchOptions UI) — ~2h
+- **C2 Toast system** — chantier mature, ~2h
+- **Outline V2** (Notion rail) — ~3h
+- **Flash blanc resize** (objc CALayer) — ~1-2h research

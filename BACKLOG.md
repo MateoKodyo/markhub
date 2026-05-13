@@ -24,7 +24,7 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 - **UI shells déjà posés** dans la debug palette de STEP 2 (commandes désactivées avec badge "Soon"). Les retirer / les câbler en vrai dans un chantier dédié post-MVP.
 
 ### Settings v1 — wiring différé
-- **Appliquer `appearance.editorFontSize` + `editorLineHeight` au body de l'éditeur** — STEP 3 livre le store + le modal + le live preview dans le modal. Le wiring DANS BlockNote a été tenté en STEP 3+ et reverté le 2026-05-12 nuit (commit `b2c19d2`) : BlockNote applique son propre cascade sur `.bn-default-styles`, `.bn-block-outer` et `.bn-block-content[data-content-type=...]`, et nos overrides CSS + JS-DOM + MutationObserver ont fini par freezer l'éditeur. **Chemin propre = passer par l'API de theming / styling de BlockNote** (le fichier `editor-blocknote.css` utilise déjà ses variables `--bn-*` propres, c'est probablement la bonne porte). Ce qui MARCHE déjà live : theme, font family du chrome heading (via `--font-editor`), content width, autosave delay, spellcheck, mono font. Reste : body font-size + body line-height.
+- ~~**Appliquer `appearance.editorFontSize` + `editorLineHeight` au body de l'éditeur**~~ — **RÉSOLU 2026-05-14 (commit `a8bbc41`)** via le pattern "apply on commit" : à la fermeture du modal, `settingsStore.appliedRevision` est bumpé et l'`editorKey` du composant Editor inclut ce compteur → BlockNote remount et re-applique son cascade contre les CSS vars fraîches. Pas de combat live contre BlockNote.
 
 ### Phase 5
 - **Panneau de settings vault** — alternative au menu contextuel pour exposer rename / toggle mode / change color, plus extensible (futur : custom icon, ordering).

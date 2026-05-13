@@ -1551,3 +1551,99 @@ PLAN-COMMAND-SYSTEM est terminé. Pistes :
 - **Body typography fix via BlockNote theming API** (dette du PLAN-SETTINGS, ~2-3h)
 - **C2 Toast / C5 drag-drop entrée** / autre
 - Les 4 follow-ups PLAN-COMMAND-SYSTEM listés en BACKLOG
+
+
+# Session 2026-05-14 (après-midi, collaborative) — clôture PLAN-SETTINGS + outline + token estimate
+
+## Token estimate StatusBar (commit `189098d`)
+
+3-stage cycle dans la pill de comptage : mots → caractères → ~tokens. Formule officielle OpenAI rough estimate `chars / 4`, rounded up. Préfixé `~` pour signaler l'estimation. Formatage compact `~12,3k tokens` au-dessus de 1000. Zéro dep, zéro bundle. +4 tests countTokens.
+
+## Outline panel V1 (commits `0ab0098` + `47693f9`)
+
+Discussion stratégique avec Matheo : option A (panel toggleable simple) vs B (rail Notion-pur hover) vs C (hybrid). Matheo opte pour **A en V1** pour valider la valeur, V2 Notion-style si jugé pertinent plus tard.
+
+**Implémentation** :
+- `extractHeadings(content)` dans `utils/markdown.ts` : parse ATX, skip frontmatter (sans offset des line numbers), skip code fences ``` et ~~~. Retourne `{level, text, line, index}[]`.
+- `OutlinePanel.svelte` : 260px, à droite de l'éditeur. Indentation par level (1 stronger, 4-6 muted). Empty states "no active file" / "no headings". Flash accent stripe sur la row qu'on vient d'activer (1.5s).
+- `uiStateStore.outlineOpen` persisté `markhub.ui.outlineOpen.v1`, default closed.
+- Cmd+\\ dans APP_KEYMAP. Commande `view.toggleOutline` dans le catalog.
+- Click → dispatch `outline:jumpToHeading{line, index}`. Editor handle :
+  - Source mode : reuse `scrollToLineInSource` (refactor du jumpToLine existant).
+  - Preview mode : walk `editor.document` pour le Nth heading block, `scrollIntoView()` via querySelector `[data-id]`. Fallback : `setTextCursorPosition`. Si tout échoue : toggle source mode + jump après 50ms tick (fallback ultime).
+
+**Feedback Matheo post-smoke** : ajouter le bouton outline à côté du segmented preview/source. Décision design : segmented (mutex) + bouton standalone toggle. Tous en icônes Lucide :
+- Eye (preview)
+- Code2 (source)
+- PanelRight (outline, état actif via background pill-bg)
+Tooltips au hover, `aria-label`s, ⌘\\ hint dans le title.
+
+## Flash blanc resize fenêtre (BACKLOG, commit `fead47e`)
+
+Matheo flagge : au resize, des bandes blanches sur le bord bas/droit. Diagnostic : NSWindow vs WKWebView race. Tentatives :
+1. `tauri.conf.json` `"backgroundColor": "#0a0908"` — config valide selon le schema Tauri 2, mais effet visuel inchangé sur macOS + titleBarStyle: Overlay.
+2. Runtime `window.set_background_color(Some(Color(10, 9, 8, 255)))` dans `lib.rs:setup` — compile OK, effet identique.
+
+Conclusion : c'est le CALayer du WKWebView qui peint blanc pendant l'animation de resize, indépendamment du NSWindow. Faut probablement attaquer via objc côté Rust pour set le CALayer backgroundColor directement. Reverted, tracé en BACKLOG comme "non bloquant pour MVP".
+
+## PLAN-SETTINGS STEP 3 — dette résolue (commit `a8bbc41`)
+
+Body editor `font-size` + `line-height` étaient deferred depuis le 12/05 (3 reverts cumulés, dont une session qui freezeait l'éditeur via MutationObserver). Discussion avec Matheo : **changement de contrat**. Au lieu de viser une preview live dans l'éditeur (combat sans fin contre la cascade BlockNote), on adopte le pattern **apply on commit** :
+
+- `settingsStore.appliedRevision` — counter, bumpé au `close()` du modal.
+- `editorKey` dans `+page.svelte` inclut ce compteur → fermer le modal force le remount de BlockNote → BlockNote re-applique son cascade contre les CSS vars fraîches.
+- Nouvelles CSS vars `--editor-body-font-size` / `--editor-body-line-height` set sur `:root` dans le `$effect` réactif (lues live par le modal preview, prises en compte par l'éditeur au prochain remount).
+- `editor-blocknote.css` : `.preview .bn-editor { font-size: var(--editor-body-font-size, 15px); line-height: var(--editor-body-line-height, 1.6) }`. Specificity 0,2,0 > `.bn-default-styles` 0,1,0. Plus `.preview .bn-block-outer { line-height: ... }` pour le rythme inter-block.
+
+**Trade-off accepté** : un bref flash de remount au close du modal (sélection / scroll de l'éditeur perdus). Acceptable car l'utilisateur vient de fermer le modal — pas en train d'éditer.
+
+## PLAN-SETTINGS STEPS 6 + 7 (commit `58b33c5`)
+
+**STEP 6 — Section Advanced** :
+
+Backend Rust dans `commands/settings.rs` :
+- `app_version()` retourne `env!("CARGO_PKG_VERSION")` (compile-time).
+- `settings_config_folder_reveal(app)` résout `app_config_dir`, crée si manquant, `open` (macOS) sur le dossier.
+- `settings_export(target_path, settings)` réutilise `save_settings_to_path` (atomic write).
+- `settings_import(source_path)` strict : surface les erreurs JSON au lieu de fallback silencieux comme `load_settings_from_path`.
+- `dialog:allow-save` ajouté à `capabilities/default.json`.
+- 5 tests cargo : export round-trip, import round-trip, import-missing, import-malformed, version match.
+
+Front `SettingsAdvanced.svelte` : 3 sections (Configuration / Sauvegarde / À propos), buttons "Ouvrir" / "Exporter…" / "Importer…", inline status banner (success auto-clear 4s, error sticky), version badge `Markhub v0.1.0`. Dialog Tauri natif (`@tauri-apps/plugin-dialog`) pour save/open.
+
+**STEP 7 — Command palette integration** :
+
+Wiring principal déjà fait par PLAN-COMMAND-SYSTEM (`settings.open` + Cmd+, + gear icon StatusBar). Ajout : **6 section deep-link commands** dans le catalog (`settings.open.appearance`, `.editor`, `.source`, `.files`, `.behavior`, `.advanced`). Group "Settings", visibles. Power-users sur Cmd+K peuvent landing direct sur la bonne section.
+
+**STEP 8 — Closure** :
+
+Tableau PLAN-SETTINGS mis à jour : 8/8 ✅ (smoke audit pending pour 6/7/8). BACKLOG body typography entry barrée comme RÉSOLUE. STATE refresh complet.
+
+## Tests finaux
+
+- cargo : **120/120 ✅** (115 + 5 nouveaux pour STEP 6 settings)
+- vitest : **350/350 ✅**
+- svelte-check : **0 erreur / 0 warning ✅**
+
+## Plan de smoke matinal Matheo
+
+**Settings STEP 6/7/8** :
+1. Cmd+, → ouvre Settings → onglet Avancé → "Ouvrir" sur config folder ouvre Finder
+2. "Exporter…" → save dialog → écrit `markhub-settings.json` valide
+3. Modifier un setting (ex. font-size) → "Importer…" l'ancien fichier → revert au state pré-modif
+4. Importer un JSON cassé → erreur visible inline
+5. Version affiche `Markhub v0.1.0`
+6. Cmd+K → "Settings: Editor" ouvre directement à Éditeur
+
+**Body typography** :
+1. Cmd+, → Apparence → drag font-size slider → preview live dans le modal
+2. Fermer modal → l'éditeur reflow avec la nouvelle taille (flash de remount accepté)
+3. Reset → revert le slider à 16 → close → l'éditeur reflow à 16
+
+## Prochaine session
+
+PLAN-SETTINGS sera officiellement clos après le smoke matinal. Pistes ensuite :
+- PLAN-COMMAND-SYSTEM follow-ups en BACKLOG
+- C2 Toast system
+- Outline V2 (Notion-style rail) si valeur perçue suffisante
+- Flash blanc resize (objc) — non urgent
