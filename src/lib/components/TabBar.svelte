@@ -126,18 +126,22 @@
 {/if}
 
 <style>
+	/* Cursor-style compact tabs:
+	 *  - Single 28px row, transparent background.
+	 *  - Tabs are content-sized (flex: 0 0 auto + max-width 200px) and
+	 *    the bar scrolls horizontally when the row overflows.
+	 *  - Active tab gets a same-color-as-editor fill so it visually
+	 *    "joins" the canvas below. No segmented pill, no border-bottom. */
 	.tab-bar {
 		display: flex;
 		align-items: stretch;
-		min-height: 38px;
-		padding: 6px 8px 0;
-		gap: 2px;
+		min-height: 28px;
+		padding: 0 4px;
+		gap: 0;
 		background: var(--color-bg);
 		overflow-x: auto;
 		overflow-y: hidden;
 		flex-shrink: 0;
-		/* macOS scrollbar overlay style — invisible until hovered, doesn't
-		   eat layout space. */
 		scrollbar-width: thin;
 	}
 
@@ -145,28 +149,27 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		min-width: 70px;
-		max-width: 180px;
-		flex: 1 1 auto;
-		padding: 8px 8px 8px 12px;
+		max-width: 200px;
+		flex: 0 0 auto;
+		padding: 0 8px 0 10px;
 		border: 0;
-		border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+		border-radius: 0;
 		background: transparent;
-		color: var(--color-text-secondary);
+		color: var(--color-text-muted);
 		font-family: var(--font-ui);
-		font-size: var(--text-ui);
-		line-height: 1.2;
+		font-size: 12px;
+		line-height: 1;
 		cursor: pointer;
 		text-align: left;
 		min-width: 0;
+		position: relative;
 		transition:
 			background-color var(--duration-base, 160ms) var(--easing-standard, ease-out),
 			color var(--duration-base, 160ms) var(--easing-standard, ease-out);
 	}
 
 	.tab:hover {
-		background: var(--color-surface-hover);
-		color: var(--color-text-primary);
+		color: var(--color-text-body);
 	}
 
 	.tab.is-active {
@@ -178,8 +181,14 @@
 		opacity: 0.45;
 	}
 
-	.tab.is-drop-target {
-		box-shadow: inset 2px 0 0 0 var(--color-accent);
+	.tab.is-drop-target::before {
+		content: '';
+		position: absolute;
+		top: 4px;
+		bottom: 4px;
+		left: 0;
+		width: 2px;
+		background: var(--color-accent);
 	}
 
 	.tab-label {
@@ -195,12 +204,12 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 16px;
-		height: 16px;
+		width: 14px;
+		height: 14px;
 		flex: 0 0 auto;
 		border-radius: var(--radius-sm, 4px);
 		color: var(--color-text-muted);
-		opacity: 0.6;
+		opacity: 0;
 		transition:
 			background-color var(--duration-base, 160ms) var(--easing-standard, ease-out),
 			opacity var(--duration-base, 160ms) var(--easing-standard, ease-out);
@@ -208,11 +217,12 @@
 
 	.tab:hover .tab-close,
 	.tab.is-active .tab-close {
-		opacity: 1;
+		opacity: 0.7;
 	}
 
 	.tab-close:hover {
 		background: var(--color-surface-hover);
 		color: var(--color-text-primary);
+		opacity: 1 !important;
 	}
 </style>
