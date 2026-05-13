@@ -7,6 +7,7 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import OutlinePanel from '$lib/components/OutlinePanel.svelte';
+	import TabBar from '$lib/components/TabBar.svelte';
 	import InputDialog from '$lib/components/InputDialog.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
@@ -332,11 +333,11 @@
 		}
 	}
 
-	// Re-key on file switch so the BlockNote instance is fully reset.
+	// Re-key on tab switch so the BlockNote instance is fully reset.
+	// Tab id is unique per open even on the same (vault, path), so
+	// closing and re-opening a tab also triggers a clean remount.
 	const editorKey = $derived(
-		activeFileStore.activeFile
-			? `${activeFileStore.activeFile.vaultId}:${activeFileStore.activeFile.relativePath}`
-			: 'empty'
+		activeFileStore.activeTabId ?? 'empty'
 	);
 
 	/**
@@ -455,6 +456,8 @@
 					</button>
 				</div>
 			</header>
+
+			<TabBar />
 
 			<div class="content-body">
 				{#key editorKey}

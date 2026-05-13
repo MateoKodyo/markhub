@@ -10,6 +10,15 @@ export type ActiveFile = {
 	relativePath: string;
 };
 
+export type Tab = {
+	id: string;
+	vaultId: string;
+	relativePath: string;
+	content: string;
+	status: SaveStatus;
+	lastSavedAt: number | null;
+};
+
 /**
  * Fallback debounce — used until the user settings have been loaded from
  * disk. After hydration, the real value comes from
@@ -21,103 +30,224 @@ function autosaveDelayMs(): number {
 	return settingsStore.current?.editor?.autosaveDelayMs ?? DEFAULT_DEBOUNCE_MS;
 }
 
-class ActiveFileStore {
-	activeFile = $state<ActiveFile | null>(null);
-	content = $state<string>('');
-	status = $state<SaveStatus>('idle');
-	lastSavedAt = $state<number | null>(null);
+let nextTabId = 1;
+function generateTabId(): string {
+	return `tab-${nextTabId++}-${Date.now()}`;
+}
 
-	#saveTimer: ReturnType<typeof setTimeout> | null = null;
+/**
+ * Tab-aware file store — what used to be a single-file singleton is now an
+ * ordered list of open tabs with one active at a time. The historical API
+ * (`activeFile`, `content`, `status`, `lastSavedAt`, `openFile`,
+ * `updateContent`, `forceSave`, `close`) keeps its shape so existing
+ * consumers (Sidebar, Editor, +page, palette, StatusBar) compile without
+ * changes — the difference is that operations now flow through the active
+ * tab. New API on top: `tabs`, `activeTabId`, `activateTab`, `closeTab`,
+ * `closeActiveTab`, `reorderTabs`.
+ *
+ * Opening a file that's already in a tab activates that tab rather than
+ * creating a duplicate (universal convention; "always-new-tab" only makes
+ * sense when the file can carry independent state, which markdown can't).
+ */
+class TabsStore {
+	tabs = $state<Tab[]>([]);
+	activeTabId = $state<string | null>(null);
 
-	// Monotonic open-request counter. Each call to `openFile` claims a fresh ID;
-	// when the awaited fileRead resolves, the result is only applied if no newer
-	// call has been issued in the meantime. Without this, A→B→C rapid clicks
-	// could end up showing A or B when C's read happens to finish first.
+	#saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	// Per-open request guard so A→B→C rapid clicks always resolve on the
+	// latest target, not whichever fileRead happens to finish first.
 	#openRequestId = 0;
+
+	get activeTab(): Tab | null {
+		return this.tabs.find((t) => t.id === this.activeTabId) ?? null;
+	}
+
+	get activeFile(): ActiveFile | null {
+		const t = this.activeTab;
+		return t ? { vaultId: t.vaultId, relativePath: t.relativePath } : null;
+	}
+
+	get content(): string {
+		return this.activeTab?.content ?? '';
+	}
+
+	get status(): SaveStatus {
+		return this.activeTab?.status ?? 'idle';
+	}
+
+	get lastSavedAt(): number | null {
+		return this.activeTab?.lastSavedAt ?? null;
+	}
+
+	#findTab(vaultId: string, relativePath: string): Tab | null {
+		return (
+			this.tabs.find(
+				(t) => t.vaultId === vaultId && t.relativePath === relativePath
+			) ?? null
+		);
+	}
+
+	#updateTab(id: string, patch: Partial<Tab>): void {
+		this.tabs = this.tabs.map((t) => (t.id === id ? { ...t, ...patch } : t));
+	}
 
 	async openFile(vaultId: string, relativePath: string): Promise<void> {
 		const myRequestId = ++this.#openRequestId;
-		// Flush any pending autosave BEFORE switching files. Without this,
-		// the timer scheduled by `updateContent` is cancelled and the
-		// in-flight edit is silently lost. This bit the user with checkbox
-		// toggles in particular: the change fires onChange but the textual
-		// content stays similar enough that the loss isn't obvious until
-		// they come back to the file. Errors are logged but don't block
-		// the switch — better than freezing the UI on a disk-full state.
-		if (this.activeFile && this.status === 'modified') {
+
+		// Same-file dedupe — activate the existing tab rather than spawning
+		// a clone. Saves the user from accumulating identical tabs by
+		// re-clicking the sidebar.
+		const existing = this.#findTab(vaultId, relativePath);
+		if (existing) {
+			this.activeTabId = existing.id;
+			void vaultsStore.setLastOpenedFile({ vaultId, relativePath });
+			return;
+		}
+
+		// Flush any pending autosave on the CURRENTLY active tab before
+		// the switch — otherwise an in-flight edit on the previous tab
+		// would silently die when the timer is cancelled.
+		const previouslyActive = this.activeTab;
+		if (previouslyActive && previouslyActive.status === 'modified') {
 			try {
-				await this.#flushSave();
+				await this.#flushSave(previouslyActive.id);
 			} catch (e) {
-				console.warn('[activeFile] flush before switch failed', e);
+				console.warn('[activeFile] flush before tab switch failed', e);
 			}
 		}
-		this.#cancelPendingSave();
-		this.status = 'loading';
+		this.#cancelPendingSave(this.activeTabId);
+
+		// Atomic open: we don't insert the new tab nor flip activeTabId
+		// until fileRead resolves. This preserves the invariant that the
+		// editor never sees `activeFile` pointing at a tab whose content
+		// hasn't loaded — and the staleness guard handles A→B→C rapid
+		// clicks (only the latest myRequestId wins).
 		try {
 			const newContent = await api.fileRead(vaultId, relativePath);
-			// Stale: a newer openFile call has started since this one began.
-			if (myRequestId !== this.#openRequestId) return;
-			// Atomic update — activeFile and content move together, AFTER the read,
-			// so the {#key editorKey} in +page.svelte remounts Editor with the
-			// correct content already in place. Fixes the race where the editor
-			// captured stale content via untrack() at mount.
-			this.activeFile = { vaultId, relativePath };
-			this.content = newContent;
-			this.status = 'saved';
-			this.lastSavedAt = Date.now();
+			if (myRequestId !== this.#openRequestId) return; // stale, dropped
+			const newId = generateTabId();
+			const newTab: Tab = {
+				id: newId,
+				vaultId,
+				relativePath,
+				content: newContent,
+				status: 'saved',
+				lastSavedAt: Date.now()
+			};
+			this.tabs = [...this.tabs, newTab];
+			this.activeTabId = newId;
 			void vaultsStore.setLastOpenedFile({ vaultId, relativePath });
 		} catch (e) {
-			// Same staleness guard for errors: only the latest request controls UI.
 			if (myRequestId !== this.#openRequestId) return;
-			this.status = 'error';
 			throw e;
 		}
 	}
 
 	updateContent(newContent: string): void {
-		this.content = newContent;
-		// Readonly vaults silently swallow edits — no status change, no disk write.
+		const t = this.activeTab;
+		if (!t) return;
 		if (vaultsStore.isActiveVaultReadonly) return;
-
-		this.status = 'modified';
-		this.#cancelPendingSave();
-		this.#saveTimer = setTimeout(() => {
-			void this.#flushSave();
+		this.#updateTab(t.id, { content: newContent, status: 'modified' });
+		this.#cancelPendingSave(t.id);
+		const timer = setTimeout(() => {
+			void this.#flushSave(t.id);
 		}, autosaveDelayMs());
+		this.#saveTimers.set(t.id, timer);
 	}
 
 	async forceSave(): Promise<void> {
-		this.#cancelPendingSave();
-		await this.#flushSave();
+		const id = this.activeTabId;
+		if (!id) return;
+		this.#cancelPendingSave(id);
+		await this.#flushSave(id);
 	}
 
+	/**
+	 * Close-all helper — kept for callers that historically wanted to
+	 * "close the open file" (e.g. a vault being removed). Now closes
+	 * every tab whose vault matches; with no arg, every tab.
+	 */
 	close(): void {
-		this.#cancelPendingSave();
-		this.activeFile = null;
-		this.content = '';
-		this.status = 'idle';
+		for (const t of this.tabs) {
+			this.#cancelPendingSave(t.id);
+		}
+		this.tabs = [];
+		this.activeTabId = null;
 	}
 
-	#cancelPendingSave(): void {
-		if (this.#saveTimer !== null) {
-			clearTimeout(this.#saveTimer);
-			this.#saveTimer = null;
+	closeTab(id: string): void {
+		const idx = this.tabs.findIndex((t) => t.id === id);
+		if (idx < 0) return;
+		this.#cancelPendingSave(id);
+		const next = this.tabs.filter((t) => t.id !== id);
+		this.tabs = next;
+		// Pick a sensible neighbour to activate if we just closed the
+		// active tab — prefer the one to the left, fall back to the right.
+		if (this.activeTabId === id) {
+			if (next.length === 0) {
+				this.activeTabId = null;
+			} else {
+				const fallback = next[Math.max(0, idx - 1)] ?? next[0];
+				this.activeTabId = fallback.id;
+			}
 		}
 	}
 
-	async #flushSave(): Promise<void> {
-		if (!this.activeFile) return;
+	closeActiveTab(): void {
+		if (this.activeTabId) this.closeTab(this.activeTabId);
+	}
+
+	activateTab(id: string): void {
+		if (this.tabs.some((t) => t.id === id)) {
+			this.activeTabId = id;
+			const t = this.activeTab;
+			if (t) {
+				void vaultsStore.setLastOpenedFile({
+					vaultId: t.vaultId,
+					relativePath: t.relativePath
+				});
+			}
+		}
+	}
+
+	/** Activate the tab at the given 1-based index (used by Cmd+1..9). */
+	activateTabAtIndex(oneBasedIndex: number): void {
+		if (oneBasedIndex < 1) return;
+		const t = this.tabs[oneBasedIndex - 1];
+		if (t) this.activateTab(t.id);
+	}
+
+	/** Move the tab at `fromIdx` to `toIdx`. Indices are clamped. */
+	reorderTabs(fromIdx: number, toIdx: number): void {
+		if (fromIdx < 0 || fromIdx >= this.tabs.length) return;
+		const clampedTo = Math.max(0, Math.min(toIdx, this.tabs.length - 1));
+		if (fromIdx === clampedTo) return;
+		const next = this.tabs.slice();
+		const [moved] = next.splice(fromIdx, 1);
+		next.splice(clampedTo, 0, moved);
+		this.tabs = next;
+	}
+
+	#cancelPendingSave(id: string | null): void {
+		if (!id) return;
+		const timer = this.#saveTimers.get(id);
+		if (timer) {
+			clearTimeout(timer);
+			this.#saveTimers.delete(id);
+		}
+	}
+
+	async #flushSave(id: string): Promise<void> {
+		const t = this.tabs.find((x) => x.id === id);
+		if (!t) return;
 		if (vaultsStore.isActiveVaultReadonly) return;
-		this.status = 'saving';
+		this.#updateTab(id, { status: 'saving' });
 		try {
-			await api.fileWrite(this.activeFile.vaultId, this.activeFile.relativePath, this.content);
-			this.status = 'saved';
-			this.lastSavedAt = Date.now();
+			await api.fileWrite(t.vaultId, t.relativePath, t.content);
+			this.#updateTab(id, { status: 'saved', lastSavedAt: Date.now() });
 		} catch (e) {
-			this.status = 'error';
-			// Surface the failure: the status pill flips to 'error' but
-			// it's tiny and easy to miss — a toast forces the eye to it.
-			// Sticky (duration 0) until the user dismisses or fixes.
+			this.#updateTab(id, { status: 'error' });
+			// Sticky toast — auto-dismiss is too quiet for a write failure.
 			toast.error('Sauvegarde échouée', {
 				details: String(e),
 				duration: 0
@@ -127,4 +257,4 @@ class ActiveFileStore {
 	}
 }
 
-export const activeFileStore = new ActiveFileStore();
+export const activeFileStore = new TabsStore();

@@ -27,9 +27,9 @@ describe('activeFileStore', () => {
 		vi.clearAllMocks();
 		vi.useFakeTimers();
 		flags.readonly = false;
-		activeFileStore.activeFile = null;
-		activeFileStore.content = '';
-		activeFileStore.status = 'idle';
+		// activeFile / content / status are now read-only derived views
+		// over the tab list. Reset by closing every tab.
+		activeFileStore.close();
 	});
 
 	afterEach(() => {
@@ -44,12 +44,15 @@ describe('activeFileStore', () => {
 	});
 
 	// ------ B4.2 — openFile transitions loading → saved ------
-	it('openFile() goes loading → saved and loads the content', async () => {
+	it('openFile() lands the new tab as saved + active once fileRead resolves', async () => {
 		vi.mocked(api.fileRead).mockResolvedValue('hello world');
 
+		// With the tab-aware refactor, the new tab is inserted atomically
+		// after fileRead resolves — no transient 'loading' status visible
+		// on the store. The previous state stays put until the read returns.
 		const promise = activeFileStore.openFile('v1', 'note.md');
-		// During the await, status should be 'loading'
-		expect(activeFileStore.status).toBe('loading');
+		expect(activeFileStore.status).toBe('idle');
+		expect(activeFileStore.activeFile).toBeNull();
 		await promise;
 		expect(activeFileStore.status).toBe('saved');
 		expect(activeFileStore.content).toBe('hello world');
@@ -133,10 +136,11 @@ describe('activeFileStore', () => {
 		// Yield once so the synchronous prelude of openFile runs.
 		await Promise.resolve();
 
-		expect(activeFileStore.status).toBe('loading');
-		// Atomic invariant: activeFile must NOT yet be set to the requested file.
+		// Atomic invariant: the new tab is not inserted until fileRead
+		// resolves. The store stays in its prior state (no active tab).
 		expect(activeFileStore.activeFile).toBeNull();
 		expect(activeFileStore.content).toBe('');
+		expect(activeFileStore.status).toBe('idle');
 
 		resolveRead('lazy body');
 		await promise;

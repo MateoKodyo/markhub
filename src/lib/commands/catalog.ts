@@ -144,6 +144,30 @@ export function registerAppCommands(): void {
 		handler: () => uiStateStore.toggleOutline()
 	});
 
+	// ----- Tabs -----
+	commandRegistry.register({
+		id: 'tab.close',
+		label: 'Close Tab',
+		group: 'Tabs',
+		shortcut: '⌘W',
+		when: () => activeFileStore.activeTabId !== null,
+		handler: () => activeFileStore.closeActiveTab()
+	});
+	// Cmd+1..9 → activate tab at that 1-based index. Registered as nine
+	// hidden commands so the keymap can resolve each shortcut separately;
+	// they don't clutter Cmd+K (Cmd+1 in a list would be noise).
+	for (let i = 1; i <= 9; i++) {
+		commandRegistry.register({
+			id: `tab.goto.${i}`,
+			label: `Go to Tab ${i}`,
+			group: 'Tabs',
+			shortcut: `⌘${i}`,
+			hidden: true,
+			when: () => activeFileStore.tabs.length >= i,
+			handler: () => activeFileStore.activateTabAtIndex(i)
+		});
+	}
+
 	// ----- Settings -----
 	commandRegistry.register({
 		id: 'settings.open',
@@ -233,7 +257,17 @@ export const APP_KEYMAP = {
 	'$mod+p': 'palette.openFile',
 	'$mod+Shift+f': 'palette.openSearch',
 	'$mod+\\': 'view.toggleOutline',
-	'$mod+,': 'settings.open'
+	'$mod+,': 'settings.open',
+	'$mod+w': 'tab.close',
+	'$mod+1': 'tab.goto.1',
+	'$mod+2': 'tab.goto.2',
+	'$mod+3': 'tab.goto.3',
+	'$mod+4': 'tab.goto.4',
+	'$mod+5': 'tab.goto.5',
+	'$mod+6': 'tab.goto.6',
+	'$mod+7': 'tab.goto.7',
+	'$mod+8': 'tab.goto.8',
+	'$mod+9': 'tab.goto.9'
 } as const;
 
 /** Test-only / HMR helper: clear every catalog entry. */
@@ -249,6 +283,16 @@ export function unregisterAppCommands(): void {
 		'view.toggleTheme',
 		'view.toggleEditorMode',
 		'view.toggleOutline',
+		'tab.close',
+		'tab.goto.1',
+		'tab.goto.2',
+		'tab.goto.3',
+		'tab.goto.4',
+		'tab.goto.5',
+		'tab.goto.6',
+		'tab.goto.7',
+		'tab.goto.8',
+		'tab.goto.9',
 		'settings.open',
 		'settings.open.appearance',
 		'settings.open.editor',
