@@ -9,7 +9,7 @@
  * actual app surface; commits update them when they land.
  */
 
-[data-theme='solar'] {
+:root[data-theme='solar'] {
 	/* Canvas — cream parchment, slightly lifted raised surface. */
 	--color-bg-sidebar: #eee8d5; /* Solarized base2 — sidebar most recessed */
 	--color-bg: #fdf6e3; /* Solarized base3 — canvas */

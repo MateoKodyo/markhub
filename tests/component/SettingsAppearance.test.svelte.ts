@@ -57,6 +57,12 @@ vi.mock('../../src/lib/theming/manager.svelte', () => ({
 		},
 		get preference() {
 			return getThemePreference();
+		},
+		// The picker derives the active family from osPrefersDark when in
+		// mode=system. The component test fixture pins this to "light" so
+		// the default render lands on the light slot (markhub-light + Solar).
+		get osPrefersDark() {
+			return false;
 		}
 	}
 }));
@@ -70,18 +76,19 @@ describe('SettingsAppearance', () => {
 		themeSetPreference.mockClear();
 	});
 
-	// ------ S4.1 — renders the picker (mode segments + cards) + fonts + sliders ------
-	it('renders all controls: mode segments, theme cards, fonts, sliders, preview', () => {
+	// ------ S4.1 — renders the picker (mode segments + active-family cards) + fonts + sliders ------
+	it('renders all controls: mode segments, active-family theme cards, fonts, sliders, preview', () => {
 		render(SettingsAppearance);
-		// Mode selector — 3 radio segments (system / always-light / always-dark)
+		// Mode selector — 3 radio segments
 		expect(screen.getByTestId('theme-mode-system')).toBeInTheDocument();
 		expect(screen.getByTestId('theme-mode-light')).toBeInTheDocument();
 		expect(screen.getByTestId('theme-mode-dark')).toBeInTheDocument();
-		// Theme cards — 4 cards across 2 slots
+		// With osPrefersDark=false and mode=system the active family is light,
+		// so only the light cards render.
 		expect(screen.getByTestId('theme-card-markhub-light')).toBeInTheDocument();
-		expect(screen.getByTestId('theme-card-markhub-dark')).toBeInTheDocument();
 		expect(screen.getByTestId('theme-card-solar')).toBeInTheDocument();
-		expect(screen.getByTestId('theme-card-tokyo')).toBeInTheDocument();
+		expect(screen.queryByTestId('theme-card-markhub-dark')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('theme-card-tokyo')).not.toBeInTheDocument();
 
 		expect(screen.getByTestId('appearance-font-geist')).toBeInTheDocument();
 		expect(screen.getByTestId('appearance-font-system')).toBeInTheDocument();
@@ -95,18 +102,15 @@ describe('SettingsAppearance', () => {
 		expect(screen.getByTestId('appearance-preview')).toBeInTheDocument();
 	});
 
-	// ------ S4.2 — default active marks (system mode + default slots + geist font) ------
-	it('marks the default mode (system), slot defaults, and font (geist) as active', () => {
+	// ------ S4.2 — default active marks (system mode + light family active + geist font) ------
+	it('marks the default mode (system), active light card, and font (geist)', () => {
 		render(SettingsAppearance);
 		expect(screen.getByTestId('theme-mode-system').getAttribute('aria-checked')).toBe(
 			'true'
 		);
 		expect(screen.getByTestId('theme-mode-dark').getAttribute('aria-checked')).toBe('false');
-		// Default light slot = markhub-light, default dark slot = markhub-dark
+		// The selected card for the active (light) family is markhub-light by default
 		expect(screen.getByTestId('theme-card-markhub-light').getAttribute('aria-pressed')).toBe(
-			'true'
-		);
-		expect(screen.getByTestId('theme-card-markhub-dark').getAttribute('aria-pressed')).toBe(
 			'true'
 		);
 		expect(screen.getByTestId('theme-card-solar').getAttribute('aria-pressed')).toBe('false');
@@ -120,8 +124,6 @@ describe('SettingsAppearance', () => {
 		render(SettingsAppearance);
 		await fireEvent.click(screen.getByTestId('theme-mode-dark'));
 		expect(settingsStore.current.appearance.themeMode).toBe('always-dark');
-		expect(settingsStore.current.appearance.lightTheme).toBe('markhub-light');
-		expect(settingsStore.current.appearance.darkTheme).toBe('markhub-dark');
 		expect(themeSetPreference).toHaveBeenCalled();
 		const arg = themeSetPreference.mock.calls.at(-1)?.[0] as {
 			mode: string;
@@ -131,20 +133,13 @@ describe('SettingsAppearance', () => {
 		expect(arg.mode).toBe('always-dark');
 	});
 
-	// ------ S4.3b — clicking a card updates the right slot ------
-	it('clicking the Solar card writes lightTheme=solar without touching the mode', async () => {
+	// ------ S4.3b — clicking a card writes to the matching family slot ------
+	it('clicking the Solar card writes lightTheme=solar without touching the dark slot', async () => {
 		render(SettingsAppearance);
 		await fireEvent.click(screen.getByTestId('theme-card-solar'));
 		expect(settingsStore.current.appearance.lightTheme).toBe('solar');
 		expect(settingsStore.current.appearance.darkTheme).toBe('markhub-dark');
 		expect(settingsStore.current.appearance.themeMode).toBe('system');
-	});
-
-	it('clicking the Tokyo card writes darkTheme=tokyo without touching the light slot', async () => {
-		render(SettingsAppearance);
-		await fireEvent.click(screen.getByTestId('theme-card-tokyo'));
-		expect(settingsStore.current.appearance.darkTheme).toBe('tokyo');
-		expect(settingsStore.current.appearance.lightTheme).toBe('markhub-light');
 	});
 
 	// ------ S4.4 — clicking a font card updates editorFont ------

@@ -9,7 +9,7 @@
  * if anything reads wrong on the actual app surface.
  */
 
-[data-theme='tokyo'] {
+:root[data-theme='tokyo'] {
 	/* Canvas — Tokyo Night palette */
 	--color-bg-sidebar: #16161e; /* Deepest — sidebar */
 	--color-bg: #1a1b26; /* Midnight blue canvas */

@@ -7,7 +7,7 @@
  * raised hierarchy is preserved across themes.
  */
 
-[data-theme='markhub-light'] {
+:root[data-theme='markhub-light'] {
 	--color-bg-sidebar: #f1efe9;
 	--color-bg: #faf9f6;
 	--color-bg-raised: #ffffff;

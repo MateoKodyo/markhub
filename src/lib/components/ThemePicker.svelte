@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { Check, Monitor, Moon, Sun } from 'lucide-svelte';
 	import type { ComponentType, SvelteComponent } from 'svelte';
-	import { getThemesByFamily, type ThemeId } from '$lib/theming/catalog';
+	import {
+		getThemesByFamily,
+		type ThemeFamily,
+		type ThemeId,
+		type ThemeMeta
+	} from '$lib/theming/catalog';
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	import { themeManager } from '$lib/theming/manager.svelte';
 	import type { FollowMode } from '$lib/tauri/types';
 
 	type IconComponent = ComponentType<SvelteComponent>;
@@ -36,13 +42,24 @@
 	];
 
 	const current = $derived(settingsStore.current.appearance);
-	const lightThemes = $derived(getThemesByFamily('light'));
-	const darkThemes = $derived(getThemesByFamily('dark'));
 
-	// Dim the slot that the current mode "locks away" — still selectable so
-	// users can pre-configure both before swapping modes.
-	const lightDimmed = $derived(current.themeMode === 'always-dark');
-	const darkDimmed = $derived(current.themeMode === 'always-light');
+	// Active family — same logic as the runtime resolver, mirrored here so
+	// the picker only shows themes from the family that's actually painting
+	// the app right now.
+	const activeFamily = $derived<ThemeFamily>(
+		current.themeMode === 'always-light'
+			? 'light'
+			: current.themeMode === 'always-dark'
+				? 'dark'
+				: themeManager.osPrefersDark
+					? 'dark'
+					: 'light'
+	);
+
+	const familyThemes = $derived(getThemesByFamily(activeFamily));
+	const selectedId = $derived<ThemeId>(
+		activeFamily === 'light' ? current.lightTheme : current.darkTheme
+	);
 
 	function setMode(mode: FollowMode): void {
 		settingsStore.setTheme({
@@ -52,24 +69,26 @@
 		});
 	}
 
-	function selectLight(id: ThemeId): void {
-		settingsStore.setTheme({
-			mode: current.themeMode,
-			lightTheme: id,
-			darkTheme: current.darkTheme
-		});
-	}
-
-	function selectDark(id: ThemeId): void {
-		settingsStore.setTheme({
-			mode: current.themeMode,
-			lightTheme: current.lightTheme,
-			darkTheme: id
-		});
+	function selectTheme(meta: ThemeMeta): void {
+		// Write to the slot matching the theme's family. The other slot is
+		// preserved so the user's "other side" preference doesn't get lost.
+		if (meta.family === 'light') {
+			settingsStore.setTheme({
+				mode: current.themeMode,
+				lightTheme: meta.id,
+				darkTheme: current.darkTheme
+			});
+		} else {
+			settingsStore.setTheme({
+				mode: current.themeMode,
+				lightTheme: current.lightTheme,
+				darkTheme: meta.id
+			});
+		}
 	}
 </script>
 
-<!-- Mode selector — segmented control on top -->
+<!-- Mode selector — segmented control -->
 <div class="settings-row">
 	<div class="settings-row-info">
 		<span class="settings-row-label">Mode</span>
@@ -101,24 +120,32 @@
 	</div>
 </div>
 
-<!-- Light slot -->
-<div class="theme-slot" class:dimmed={lightDimmed}>
+<!-- Active family theme picker — single list, scoped to the family that's
+     currently painting the app. Changing mode changes which list shows. -->
+<div class="theme-slot">
 	<div class="theme-slot-header">
-		<span class="settings-row-label">Thème clair</span>
-		<span class="settings-row-desc"
-			>Utilisé quand l'apparence active est claire.</span
-		>
+		<span class="settings-row-label">
+			{activeFamily === 'light' ? 'Thème clair actif' : 'Thème sombre actif'}
+		</span>
+		<span class="settings-row-desc">
+			{#if current.themeMode === 'system'}
+				Le système est actuellement en {activeFamily === 'light' ? 'clair' : 'sombre'} —
+				ce thème est celui qui s'affiche. Bascule le mode pour configurer l'autre.
+			{:else}
+				Choisis le thème qui s'applique tant que tu restes dans ce mode.
+			{/if}
+		</span>
 	</div>
-	<div class="theme-grid" data-testid="theme-slot-light">
-		{#each lightThemes as meta (meta.id)}
-			{@const isSelected = current.lightTheme === meta.id}
+	<div class="theme-grid" data-testid={`theme-slot-${activeFamily}`}>
+		{#each familyThemes as meta (meta.id)}
+			{@const isSelected = selectedId === meta.id}
 			<button
 				type="button"
 				class="theme-card"
 				class:selected={isSelected}
 				data-theme={meta.id}
 				aria-pressed={isSelected}
-				onclick={() => selectLight(meta.id)}
+				onclick={() => selectTheme(meta)}
 				data-testid={`theme-card-${meta.id}`}
 			>
 				<div class="theme-card-preview">
@@ -127,49 +154,6 @@
 						Phrase avec <code class="preview-code">inline</code> et un
 						<span class="preview-link">lien</span>.
 					</div>
-					<div class="preview-cursor" aria-hidden="true"></div>
-				</div>
-				<div class="theme-card-footer">
-					<span class="theme-card-name">{meta.name}</span>
-					<span class="theme-card-accent">{meta.accentName}</span>
-				</div>
-				{#if isSelected}
-					<span class="theme-card-check" aria-hidden="true">
-						<Check size={12} />
-					</span>
-				{/if}
-			</button>
-		{/each}
-	</div>
-</div>
-
-<!-- Dark slot -->
-<div class="theme-slot" class:dimmed={darkDimmed}>
-	<div class="theme-slot-header">
-		<span class="settings-row-label">Thème sombre</span>
-		<span class="settings-row-desc"
-			>Utilisé quand l'apparence active est sombre.</span
-		>
-	</div>
-	<div class="theme-grid" data-testid="theme-slot-dark">
-		{#each darkThemes as meta (meta.id)}
-			{@const isSelected = current.darkTheme === meta.id}
-			<button
-				type="button"
-				class="theme-card"
-				class:selected={isSelected}
-				data-theme={meta.id}
-				aria-pressed={isSelected}
-				onclick={() => selectDark(meta.id)}
-				data-testid={`theme-card-${meta.id}`}
-			>
-				<div class="theme-card-preview">
-					<div class="preview-heading">Titre</div>
-					<div class="preview-para">
-						Phrase avec <code class="preview-code">inline</code> et un
-						<span class="preview-link">lien</span>.
-					</div>
-					<div class="preview-cursor" aria-hidden="true"></div>
 				</div>
 				<div class="theme-card-footer">
 					<span class="theme-card-name">{meta.name}</span>
@@ -195,11 +179,6 @@
 		flex-direction: column;
 		gap: 12px;
 		padding-top: 16px;
-		transition: opacity var(--duration-slow) var(--easing-standard);
-	}
-
-	.theme-slot.dimmed {
-		opacity: 0.55;
 	}
 
 	.theme-slot-header {
@@ -254,7 +233,7 @@
 		padding: 14px 16px 12px;
 		background: var(--color-bg);
 		border-bottom: 1px solid var(--color-border-subtle);
-		min-height: 92px;
+		min-height: 76px;
 	}
 
 	.preview-heading {
@@ -286,24 +265,6 @@
 		color: var(--color-accent);
 		text-decoration: underline;
 		text-underline-offset: 2px;
-	}
-
-	.preview-cursor {
-		width: 2px;
-		height: 12px;
-		background: var(--color-accent);
-		animation: theme-card-blink 1.1s steps(1) infinite;
-	}
-
-	@keyframes theme-card-blink {
-		0%,
-		49% {
-			opacity: 1;
-		}
-		50%,
-		100% {
-			opacity: 0;
-		}
 	}
 
 	.theme-card-footer {
