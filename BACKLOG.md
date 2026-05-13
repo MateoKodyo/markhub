@@ -4,6 +4,13 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### Drag-drop FROM Finder (chantier C5) — bloqué par incompatibilité Tauri ↔ HTML5 — 2026-05-14
+- Livré 2026-05-14 (commit `de10739`) avec `dragDropEnabled: true` dans tauri.conf.json + listener `tauri://drag-drop` côté `+page.svelte` qui hit-test la position contre la sidebar et dispatch `palette:action { action: 'importPaths' }`.
+- Régression découverte au smoke suivant : avec `dragDropEnabled: true`, Tauri intercepte les events au niveau OS et **casse les drag-drops HTML5 in-webview** (réordrer fichiers/dossiers dans la sidebar). Doc confirme : "Disabling it is required to use HTML5 drag and drop on the frontend on Windows" — comportement similaire sur macOS.
+- Décision : revert le listener (commit suivant), `dragDropEnabled: false` à nouveau. L'import-by-drag perdu, le bouton 📥 du header sidebar couvre déjà ce use case.
+- Path propre pour réactiver Finder + in-app simultanément : refactor le drag-drop sidebar en **pointer events** (`pointerdown/move/up` + `setPointerCapture`) au lieu de HTML5 drag/drop. Plus de conflit avec Tauri.
+- Le wrapper `Sidebar.handleImport(externalSources)` + le bridge `palette:action { importPaths }` sont laissés en place pour qu'un futur retour ne redo pas le wiring — il suffira de re-flip `dragDropEnabled: true` + ré-attacher le listener `tauri://drag-drop` après le refactor pointer events.
+
 ### Scroll-in-preview pour les jumps (BlockNote API instable) — 2026-05-14
 - `Cmd+Shift+F` search hits et clicks sur Outline panel : en mode **preview**, le scroll programmatique vers un block BlockNote est non-fiable. Tentatives :
   1. `container.querySelector('[data-id="..."]').scrollIntoView()` — `data-id` parfois absent / stale, queryselector retourne null.
