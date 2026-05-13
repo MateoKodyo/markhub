@@ -238,20 +238,6 @@
 		color: var(--color-text-primary);
 	}
 
-	/* 2px accent top border on the active tab — Warp / VS Code pattern.
-	   `box-shadow inset` instead of border so the tab's height stays
-	   unchanged and the accent sits flush against the row's top edge. */
-	.tab.is-active::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 2px;
-		background: var(--color-accent);
-		pointer-events: none;
-	}
-
 	.tab.is-drag-source {
 		opacity: 0.45;
 	}
