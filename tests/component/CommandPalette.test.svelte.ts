@@ -184,4 +184,23 @@ describe('CommandPalette', () => {
 		expect(footer.textContent ?? '').toMatch(/⏎/);
 		expect(footer.textContent ?? '').toMatch(/⎋/);
 	});
+
+	// ------ C2.15 — mode indicator reflects the current mode ------
+	it('renders the mode indicator and stamps the current mode', () => {
+		const { rerender } = render(CommandPalette, {
+			props: { ...baseProps(), mode: 'command' }
+		});
+		const indicator = screen.getByTestId('command-palette-mode-indicator');
+		expect(indicator.getAttribute('data-mode')).toBe('command');
+
+		rerender({ ...baseProps(), mode: 'file' });
+		expect(
+			screen.getByTestId('command-palette-mode-indicator').getAttribute('data-mode')
+		).toBe('file');
+
+		rerender({ ...baseProps(), mode: 'search' });
+		expect(
+			screen.getByTestId('command-palette-mode-indicator').getAttribute('data-mode')
+		).toBe('search');
+	});
 });

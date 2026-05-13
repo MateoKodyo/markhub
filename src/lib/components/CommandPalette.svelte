@@ -19,6 +19,9 @@
 	import type { Snippet } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import { ChevronRight, FileText, Search } from 'lucide-svelte';
+
+	type Mode = 'command' | 'file' | 'search';
 
 	type Props = {
 		/** Show/hide. Parent owns the boolean; we never self-close. */
@@ -31,6 +34,8 @@
 		query?: string;
 		/** Currently selected row. Bindable so the body can highlight it. */
 		selectedIndex?: number;
+		/** Current mode — drives the left-side indicator icon. */
+		mode?: Mode;
 		/** Fired on Escape, backdrop click, and any explicit close request. */
 		onClose: () => void;
 		/** Fired on every keystroke in the input (debounce is the caller's job). */
@@ -47,6 +52,7 @@
 		itemCount,
 		query = $bindable(''),
 		selectedIndex = $bindable(0),
+		mode = 'command',
 		onClose,
 		onQueryChange,
 		onActivate,
@@ -134,6 +140,20 @@
 			out:scale={{ duration: 140, start: 0.98, opacity: 0, easing: cubicOut }}
 		>
 			<header class="header">
+				<span
+					class="mode-indicator"
+					data-testid="command-palette-mode-indicator"
+					data-mode={mode}
+					aria-hidden="true"
+				>
+					{#if mode === 'file'}
+						<FileText size={14} strokeWidth={1.5} />
+					{:else if mode === 'search'}
+						<Search size={14} strokeWidth={1.5} />
+					{:else}
+						<ChevronRight size={14} strokeWidth={1.75} />
+					{/if}
+				</span>
 				<input
 					bind:this={inputEl}
 					type="text"
@@ -194,13 +214,33 @@
 	.header {
 		display: flex;
 		align-items: center;
+		gap: 8px;
+		padding-left: 14px;
 		border-bottom: 1px solid var(--color-border);
+	}
+
+	.mode-indicator {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		flex: 0 0 auto;
+		color: var(--color-text-muted);
+		transition: color var(--duration-base, 160ms) var(--easing-standard, ease-out);
+	}
+
+	/* Subtle accent hint on the indicator so the user reads the mode at
+	   a glance even before the placeholder text registers. */
+	.mode-indicator[data-mode='file'],
+	.mode-indicator[data-mode='search'] {
+		color: var(--color-accent);
 	}
 
 	.input {
 		flex: 1;
 		min-width: 0;
-		padding: 14px 16px;
+		padding: 14px 16px 14px 0;
 		background: transparent;
 		border: none;
 		outline: none;

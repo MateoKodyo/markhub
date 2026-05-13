@@ -21,6 +21,7 @@
 	import FileMode from '$lib/components/palette/FileMode.svelte';
 	import SearchMode from '$lib/components/palette/SearchMode.svelte';
 	import type { SearchActivation } from '$lib/components/palette/types';
+	import { detectModeSwitch } from '$lib/components/palette/modeSwitch';
 	import { commandRegistry, type Command } from '$lib/commands/registry.svelte';
 	import { recentCommandsStore } from '$lib/commands/recent.svelte';
 	import { rankCommands } from '$lib/commands/fuzzy';
@@ -215,6 +216,24 @@
 		};
 		window.addEventListener('app:toggleEditorMode', onToggle);
 		return () => window.removeEventListener('app:toggleEditorMode', onToggle);
+	});
+
+	// Mode switching via input prefix — pure logic in `detectModeSwitch`,
+	// effect just applies the result + handles side effects (refresh tree
+	// on switch to file mode).
+	$effect(() => {
+		const q = paletteStore.query;
+		if (!paletteStore.isOpen) return;
+		const next = detectModeSwitch(
+			paletteStore.mode,
+			q,
+			vaultsStore.activeVaultId !== null
+		);
+		if (!next) return;
+		paletteStore.mode = next.mode;
+		paletteStore.query = next.query;
+		paletteStore.selectedIndex = 0;
+		if (next.mode === 'file') void vaultTreeStore.refresh();
 	});
 	// --- end Command palette wiring ---------------------------------------
 
@@ -453,11 +472,12 @@
 	 'command' (Cmd+K) | 'file' (Cmd+P) | 'search' (Cmd+Shift+F, STEP 6). -->
 <CommandPalette
 	open={paletteStore.isOpen}
+	mode={paletteStore.mode}
 	placeholder={paletteStore.mode === 'file'
-		? 'Go to file…'
+		? 'Go to file…   (>) command   (#) search'
 		: paletteStore.mode === 'search'
-			? 'Search across vault…'
-			: 'Type a command…'}
+			? 'Search across vault…   (>) command   (@) file'
+			: 'Type a command…   (@) file   (#) search'}
 	itemCount={paletteStore.itemCount}
 	bind:query={paletteStore.query}
 	bind:selectedIndex={paletteStore.selectedIndex}
