@@ -1,27 +1,6 @@
 <script lang="ts">
-	import { Monitor, Moon, Sun } from 'lucide-svelte';
-	import type { ComponentType, SvelteComponent } from 'svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
-	import type { FollowMode } from '$lib/tauri/types';
-
-	type IconComponent = ComponentType<SvelteComponent>;
-
-	type ThemeOption = {
-		id: FollowMode;
-		/** Stable identifier used in `data-testid` — preserved across the v1→v2
-		 *  migration so existing Playwright selectors keep matching. */
-		testId: string;
-		label: string;
-		icon: IconComponent;
-	};
-
-	// STEP 1 keeps the legacy 3-button segmented control (Sombre / Clair / Système).
-	// STEP 4 of PLAN-THEMING will replace this with the two-slot picker.
-	const THEMES: readonly ThemeOption[] = [
-		{ id: 'always-dark', testId: 'dark', label: 'Sombre', icon: Moon as unknown as IconComponent },
-		{ id: 'always-light', testId: 'light', label: 'Clair', icon: Sun as unknown as IconComponent },
-		{ id: 'system', testId: 'system', label: 'Système', icon: Monitor as unknown as IconComponent }
-	];
+	import ThemePicker from './ThemePicker.svelte';
 
 	type FontOption = {
 		id: string;
@@ -63,14 +42,6 @@
 
 	const current = $derived(settingsStore.current.appearance);
 
-	function selectTheme(mode: FollowMode): void {
-		settingsStore.setTheme({
-			mode,
-			lightTheme: current.lightTheme,
-			darkTheme: current.darkTheme
-		});
-	}
-
 	function selectFont(id: string): void {
 		const next = settingsStore.current;
 		settingsStore.set({
@@ -105,40 +76,10 @@
 </script>
 
 <div class="settings-section">
-	<!-- Theme group -->
+	<!-- Theme group — mode selector + 2-slot picker with mini previews -->
 	<section class="settings-group" aria-labelledby="group-theme">
 		<h4 class="settings-group-label" id="group-theme">Thème</h4>
-
-		<div class="settings-row">
-			<div class="settings-row-info">
-				<span class="settings-row-label">Apparence générale</span>
-				<span class="settings-row-desc"
-					>Sombre, clair, ou suivre la préférence système.</span
-				>
-			</div>
-			<div
-				class="settings-segmented"
-				role="radiogroup"
-				aria-label="Sélectionner le thème"
-			>
-				{#each THEMES as theme (theme.id)}
-					{@const Icon = theme.icon}
-					{@const isActive = current.themeMode === theme.id}
-					<button
-						type="button"
-						class="settings-segment"
-						class:active={isActive}
-						role="radio"
-						aria-checked={isActive}
-						onclick={() => selectTheme(theme.id)}
-						data-testid={`appearance-theme-${theme.testId}`}
-					>
-						<Icon size={13} aria-hidden="true" focusable="false" />
-						<span>{theme.label}</span>
-					</button>
-				{/each}
-			</div>
-		</div>
+		<ThemePicker />
 	</section>
 
 	<!-- Typography group -->
