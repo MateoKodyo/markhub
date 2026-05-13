@@ -90,56 +90,58 @@
 </script>
 
 {#if activeFileStore.tabs.length > 0 || trailing}
-	<div
-		class="tab-bar"
-		role="tablist"
-		aria-label="Onglets ouverts"
-		data-testid="tab-bar"
-	>
-		{#each activeFileStore.tabs as t (t.id)}
-			{@const isActive = activeFileStore.activeTabId === t.id}
-			<button
-				type="button"
-				role="tab"
-				class="tab"
-				class:is-active={isActive}
-				class:is-drag-source={dragSourceId === t.id}
-				class:is-drop-target={dragOverId === t.id && dragSourceId !== t.id}
-				aria-selected={isActive}
-				title={t.relativePath}
-				data-testid="tab"
-				data-tab-id={t.id}
-				onclick={() => onTabClick(t.id)}
-				draggable="true"
-				ondragstart={(e) => onDragStart(e, t.id)}
-				ondragend={onDragEnd}
-				ondragover={(e) => onDragOver(e, t.id)}
-				ondragleave={() => onDragLeave(t.id)}
-				ondrop={(e) => onDrop(e, t.id)}
-			>
-				<FileText
-					size={12}
-					strokeWidth={1.5}
-					class="tab-icon"
-					aria-hidden="true"
-					focusable="false"
-				/>
-				<span class="tab-label">{labelFor(t)}</span>
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<!-- Keyboard close is wired globally via Cmd+W (closeActiveTab);
-				     this surface is mouse-only. -->
-				<span
-					class="tab-close"
-					role="button"
-					tabindex="-1"
-					aria-label="Fermer l'onglet"
-					data-testid="tab-close"
-					onclick={(e) => onCloseClick(e, t.id)}
+	<div class="tab-bar" data-testid="tab-bar">
+		<div
+			class="tab-bar-scroll"
+			role="tablist"
+			aria-label="Onglets ouverts"
+			data-testid="tab-bar-scroll"
+		>
+			{#each activeFileStore.tabs as t (t.id)}
+				{@const isActive = activeFileStore.activeTabId === t.id}
+				<button
+					type="button"
+					role="tab"
+					class="tab"
+					class:is-active={isActive}
+					class:is-drag-source={dragSourceId === t.id}
+					class:is-drop-target={dragOverId === t.id && dragSourceId !== t.id}
+					aria-selected={isActive}
+					title={t.relativePath}
+					data-testid="tab"
+					data-tab-id={t.id}
+					onclick={() => onTabClick(t.id)}
+					draggable="true"
+					ondragstart={(e) => onDragStart(e, t.id)}
+					ondragend={onDragEnd}
+					ondragover={(e) => onDragOver(e, t.id)}
+					ondragleave={() => onDragLeave(t.id)}
+					ondrop={(e) => onDrop(e, t.id)}
 				>
-					<X size={11} strokeWidth={1.5} aria-hidden="true" focusable="false" />
-				</span>
-			</button>
-		{/each}
+					<FileText
+						size={12}
+						strokeWidth={1.5}
+						class="tab-icon"
+						aria-hidden="true"
+						focusable="false"
+					/>
+					<span class="tab-label">{labelFor(t)}</span>
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- Keyboard close is wired globally via Cmd+W (closeActiveTab);
+					     this surface is mouse-only. -->
+					<span
+						class="tab-close"
+						role="button"
+						tabindex="-1"
+						aria-label="Fermer l'onglet"
+						data-testid="tab-close"
+						onclick={(e) => onCloseClick(e, t.id)}
+					>
+						<X size={11} strokeWidth={1.5} aria-hidden="true" focusable="false" />
+					</span>
+				</button>
+			{/each}
+		</div>
 		{#if trailing}
 			<div class="tab-bar-trailing" data-testid="tab-bar-trailing">
 				{@render trailing()}
@@ -155,22 +157,34 @@
 	 *    the bar scrolls horizontally when the row overflows.
 	 *  - Active tab gets a same-color-as-editor fill so it visually
 	 *    "joins" the canvas below. No segmented pill, no border-bottom. */
+	/* Two-zone layout: a scrollable list on the left and a static
+	 * trailing block (mode toggle + outline) on the right that lives
+	 * outside the overflow container, so tabs can never bleed past it
+	 * when the list overflows. */
 	.tab-bar {
 		display: flex;
 		align-items: stretch;
 		min-height: 28px;
-		padding: 0 4px;
-		gap: 0;
 		background: var(--color-bg);
+		flex-shrink: 0;
+		min-width: 0;
+	}
+
+	.tab-bar-scroll {
+		display: flex;
+		align-items: stretch;
+		gap: 0;
+		padding: 0 4px;
+		flex: 1 1 0;
+		min-width: 0;
 		overflow-x: auto;
 		overflow-y: hidden;
-		flex-shrink: 0;
-		/* Hide the scrollbar — the chrome was reading as noise against
-		   the clean tab strip. Wheel/trackpad scroll still works. */
+		/* Hide the scrollbar — chrome reads as noise on the clean strip.
+		   Wheel + trackpad scroll still works. */
 		scrollbar-width: none;
 	}
 
-	.tab-bar::-webkit-scrollbar {
+	.tab-bar-scroll::-webkit-scrollbar {
 		display: none;
 	}
 
@@ -270,18 +284,16 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2, 8px);
-		margin-left: auto;
 		padding: 0 6px;
 		flex: 0 0 auto;
-		/* Sticky-right so the controls stay visible when the tab list
-		   overflows and the user scrolls horizontally. */
-		position: sticky;
-		right: 0;
 		background: var(--color-bg);
+		position: relative;
 	}
 
-	/* 16px fade just before the trailing controls so scrolled-out tabs
-	   dissolve under the chrome instead of being chopped hard. */
+	/* 16px transparent → bg gradient leading edge so scrolled-out tabs
+	   dissolve into the chrome instead of being chopped hard. The
+	   trailing block lives OUTSIDE the scroll container now (two-zone
+	   layout), so this fade overlays the right end of the scroll list. */
 	.tab-bar-trailing::before {
 		content: '';
 		position: absolute;
@@ -289,11 +301,7 @@
 		bottom: 0;
 		left: -16px;
 		width: 16px;
-		background: linear-gradient(
-			to right,
-			transparent,
-			var(--color-bg)
-		);
+		background: linear-gradient(to right, transparent, var(--color-bg));
 		pointer-events: none;
 	}
 </style>
