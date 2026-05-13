@@ -511,12 +511,6 @@
 		</main>
 
 		{#if uiStateStore.outlineOpen && activeFileStore.activeFile}
-			<ResizeHandle
-				size={uiStateStore.outlineWidth}
-				direction="left"
-				ariaLabel="Redimensionner le sommaire"
-				onResize={(w) => uiStateStore.setOutlineWidth(w)}
-			/>
 			<OutlinePanel />
 		{/if}
 	</div>

@@ -18,6 +18,7 @@
 	import { extractHeadings } from '$lib/utils/markdown';
 	import { X } from 'lucide-svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
+	import ResizeHandle from './ResizeHandle.svelte';
 
 	const headings = $derived(extractHeadings(activeFileStore.content));
 
@@ -49,6 +50,14 @@
 	data-testid="outline-panel"
 	style="--outline-w: {uiStateStore.outlineWidth}px"
 >
+	<div class="outline-resize-slot">
+		<ResizeHandle
+			size={uiStateStore.outlineWidth}
+			direction="left"
+			ariaLabel="Redimensionner le sommaire"
+			onResize={(w) => uiStateStore.setOutlineWidth(w)}
+		/>
+	</div>
 	<header class="outline-header">
 		<span class="outline-title">Sommaire</span>
 		<button
@@ -105,6 +114,22 @@
 		border-left: 1px solid var(--color-border);
 		font-size: var(--text-ui);
 		color: var(--color-text-body);
+		/* Anchor for the absolutely-positioned resize handle on the left
+		   edge of the panel. */
+		position: relative;
+	}
+
+	/* The handle hangs on the panel's leading edge — a 4px sliver
+	   positioned via absolute so it stays out of the flex flow and
+	   can't be eaten by the main editor's stacking context. */
+	.outline-resize-slot {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: -2px;
+		width: 4px;
+		z-index: 10;
+		display: flex;
 	}
 
 	.outline-header {
