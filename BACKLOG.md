@@ -4,6 +4,20 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### PLAN-THEMING v2 — gelé après clôture v1 (2026-05-13)
+Catalog v1 est **closed** par décision design (4 thèmes curated, pas d'extension). Si users le demandent en réel après lancement, considérer dans cet ordre :
+- **Theme editor live** (sliders couleurs + preview en temps réel) — gros chantier UI + persistance JSON par thème.
+- **Import/export de thèmes** — JSON theme files chargés depuis le disque, scope `data-theme="user:<id>"`.
+- **Accent override par thème** — laisser l'utilisateur changer juste l'accent sans toucher le reste.
+- **Sepia / High contrast variants** — accessibility, prioritaire si users vision basse.
+- **Per-vault theme override** — un thème par vault (utile si vaults distincts par projet/contexte). Stockage : `VaultState.themeOverride: ThemeId | null`.
+
+### Theming v1 — petites dettes à reprendre si besoin
+- **Cycle StatusBar plus malin** (mentionné §STEP 5 du plan) : en mode Always, cycler les thèmes du family au lieu de basculer le mode. Pas critique tant que le picker est la voie principale.
+- **`vaultsStore.setTheme` dead code** : l'API Rust `Settings.theme` dans `config.json` (legacy) reste, mais plus aucun appel côté front. À nettoyer si on touche au legacy Settings.
+- **WCAG audit formel** : Solar et Tokyo en starting values. Refaire les contrastes au contrast-checker une fois les hex stabilisés.
+- **Playwright visual baselines** : pas posées en autonomie (smoke interactif requis). À ajouter après validation des 4 thèmes — fixture `_visual?theme=solar` et `_visual?theme=tokyo`.
+
 ### Drag-drop FROM Finder (chantier C5) — bloqué par incompatibilité Tauri ↔ HTML5 — 2026-05-14
 - Livré 2026-05-14 (commit `de10739`) avec `dragDropEnabled: true` dans tauri.conf.json + listener `tauri://drag-drop` côté `+page.svelte` qui hit-test la position contre la sidebar et dispatch `palette:action { action: 'importPaths' }`.
 - Régression découverte au smoke suivant : avec `dragDropEnabled: true`, Tauri intercepte les events au niveau OS et **casse les drag-drops HTML5 in-webview** (réordrer fichiers/dossiers dans la sidebar). Doc confirme : "Disabling it is required to use HTML5 drag and drop on the frontend on Windows" — comportement similaire sur macOS.

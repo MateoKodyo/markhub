@@ -140,17 +140,20 @@ The five working colors:
 
 Each theme defines a complete token set. Themes are not "just colors swapped" — they are coherent palettes with intentional mood.
 
-**Locked themes for MVP** (4 themes):
+**Locked catalog** (4 themes — PLAN-THEMING v1 closed 2026-05-13):
 
-1. **Markhub Light** — clean off-white background, slate text, blue accent. The default day theme.
-2. **Markhub Dark** — near-black background (e.g., `#0A0B0D`), light gray text, the same blue accent adjusted for dark contrast. The default night theme.
-3. **One additional dark theme** with a distinct mood (e.g., Tokyo Night–style: deep blue base, slightly more saturated)
-4. **One additional light theme** with a warmer mood (e.g., Solarized Light–style: cream base, warm accents)
+1. **Markhub Light** — warm parchment off-white, near-black text, indigo accent (`#2563EB`). The default day theme.
+2. **Markhub Dark** — warm near-black canvas (`#0A0908`), warm parchment text, blue accent (`#3B82F6`). The default night theme.
+3. **Solar** — cream parchment (`#FDF6E3`, Solarized base3), slate-blue text family (`#586E75` → `#93A1A1`), amber accent (`#B58900`). Light family alternative — literary/warm mood.
+4. **Tokyo** — deep midnight blue (`#1A1B26`, Tokyo Night), lavender-tinted white text (`#C0CAF5`), vivid violet accent (`#BB9AF7`). Dark family alternative — saturated late-night-coding mood.
+
+Catalog is **closed**: no fifth theme, no user-created themes, no import/export. Implementation lives in `src/styles/themes/<id>.css` scoped to `[data-theme="<id>"]`; metadata in `src/lib/theming/catalog.ts`.
 
 All four themes:
 - Pass WCAG AA contrast for body text
 - Have a defined accent color that survives the contrast test on its own surface
 - Render BlockNote, sidebar, status bar, modals consistently
+- Are reachable from Settings → Appearance via the two-slot picker (light slot + dark slot) with a Follow-system / Always-light / Always-dark mode selector above
 
 ### Forbidden in MVP themes
 
