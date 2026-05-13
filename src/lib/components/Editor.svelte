@@ -73,7 +73,9 @@
 
 	/** Scroll a specific BlockNote block (by its document index) into
 	 *  view. DOM lookup via `[data-id]` first, falls back to the editor's
-	 *  `setTextCursorPosition` (which scrolls naturally). */
+	 *  `setTextCursorPosition` (which scrolls naturally). Adds a short
+	 *  accent flash on the target so the user's eye lands where the
+	 *  scroll dropped them — matches the Outline panel flash pattern. */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function scrollToBlockInPreview(block: any): boolean {
 		if (!editorInstance || !container || !block) return false;
@@ -82,14 +84,31 @@
 		) as HTMLElement | null;
 		if (el) {
 			el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			flashElement(el);
 			return true;
 		}
 		try {
 			editorInstance.setTextCursorPosition?.(block, 'start');
+			// API path doesn't give us back a node — best-effort flash on
+			// whichever data-id is currently selected after the call.
+			const sel = container.querySelector(
+				`[data-id="${block.id}"]`
+			) as HTMLElement | null;
+			if (sel) flashElement(sel);
 			return true;
 		} catch {
 			return false;
 		}
+	}
+
+	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+	function flashElement(el: HTMLElement): void {
+		el.classList.add('is-search-flash');
+		if (flashTimer) clearTimeout(flashTimer);
+		flashTimer = setTimeout(() => {
+			el.classList.remove('is-search-flash');
+			flashTimer = null;
+		}, 1600);
 	}
 
 	/** Find the Nth `heading` block in BlockNote's document and scroll

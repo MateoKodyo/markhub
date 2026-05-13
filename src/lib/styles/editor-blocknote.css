@@ -32,6 +32,26 @@
 }
 
 /* ────────────────────────────────────────────────────────────
+ *  Search / outline flash — short accent wash on the block the
+ *  user just jumped to, so the eye lands where the scroll did.
+ *  Triggered by `flashElement` in Editor.svelte for any preview-mode
+ *  jump (search hit, outline click). 1.5s fade out, accent at 18%.
+ * ──────────────────────────────────────────────────────────── */
+.preview .is-search-flash {
+	animation: markhub-search-flash 1500ms var(--easing-standard, ease-out);
+	border-radius: var(--radius-sm, 4px);
+}
+
+@keyframes markhub-search-flash {
+	0% {
+		background: color-mix(in oklab, var(--color-accent) 18%, transparent);
+	}
+	100% {
+		background: transparent;
+	}
+}
+
+/* ────────────────────────────────────────────────────────────
  *  2. Editor container — typography baseline.
  * ──────────────────────────────────────────────────────────── */
 .preview .bn-editor {
