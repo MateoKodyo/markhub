@@ -165,7 +165,13 @@
 		overflow-x: auto;
 		overflow-y: hidden;
 		flex-shrink: 0;
-		scrollbar-width: thin;
+		/* Hide the scrollbar — the chrome was reading as noise against
+		   the clean tab strip. Wheel/trackpad scroll still works. */
+		scrollbar-width: none;
+	}
+
+	.tab-bar::-webkit-scrollbar {
+		display: none;
 	}
 
 	.tab {
@@ -272,5 +278,22 @@
 		position: sticky;
 		right: 0;
 		background: var(--color-bg);
+	}
+
+	/* 16px fade just before the trailing controls so scrolled-out tabs
+	   dissolve under the chrome instead of being chopped hard. */
+	.tab-bar-trailing::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: -16px;
+		width: 16px;
+		background: linear-gradient(
+			to right,
+			transparent,
+			var(--color-bg)
+		);
+		pointer-events: none;
 	}
 </style>
