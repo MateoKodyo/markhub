@@ -149,6 +149,31 @@
 	     to the extreme right. The save pill grows/shrinks with status, but
 	     never pushes the action icons inward. -->
 	<div class="zone right">
+		{#if relativePath}
+			<label class="content-width-slider" title="Largeur du texte (% de la zone éditeur)">
+				<input
+					type="range"
+					min="30"
+					max="100"
+					step="2"
+					value={settingsStore.current.appearance.editorContentWidth}
+					oninput={(e) =>
+						settingsStore.set({
+							...settingsStore.current,
+							appearance: {
+								...settingsStore.current.appearance,
+								editorContentWidth: +(e.currentTarget as HTMLInputElement).value
+							}
+						})}
+					aria-label="Largeur du contenu"
+					data-testid="content-width-slider"
+				/>
+				<span class="content-width-value">
+					{settingsStore.current.appearance.editorContentWidth}%
+				</span>
+			</label>
+		{/if}
+
 		{#if statusInfo.icon}
 			{@const StatusIcon = statusInfo.icon}
 			<span class="pill pill-status" data-status={status} data-testid="save-pill">
@@ -277,6 +302,61 @@
 		padding: 0;
 		width: var(--pill-height);
 		justify-content: center;
+	}
+
+	/* Compact content-width slider in the right zone. The native range
+	 * appearance is dropped for a tight horizontal track that matches
+	 * the rest of the status-bar pills' height and color tokens. */
+	.content-width-slider {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: var(--pill-height);
+		padding: 0 8px;
+		font-size: var(--text-caption);
+		color: var(--color-text-muted);
+		cursor: pointer;
+	}
+
+	.content-width-slider input[type='range'] {
+		appearance: none;
+		-webkit-appearance: none;
+		width: 80px;
+		height: 2px;
+		background: var(--color-border);
+		border-radius: 2px;
+		outline: none;
+		cursor: pointer;
+	}
+
+	.content-width-slider input[type='range']::-webkit-slider-thumb {
+		appearance: none;
+		-webkit-appearance: none;
+		width: 10px;
+		height: 10px;
+		background: var(--color-text-secondary);
+		border-radius: 50%;
+		cursor: pointer;
+		transition: background-color var(--duration-base) var(--easing-standard);
+	}
+
+	.content-width-slider:hover input[type='range']::-webkit-slider-thumb {
+		background: var(--color-accent);
+	}
+
+	.content-width-slider input[type='range']::-moz-range-thumb {
+		width: 10px;
+		height: 10px;
+		background: var(--color-text-secondary);
+		border: 0;
+		border-radius: 50%;
+		cursor: pointer;
+	}
+
+	.content-width-value {
+		min-width: 28px;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.pill-btn {

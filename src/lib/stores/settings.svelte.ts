@@ -54,12 +54,20 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
  * the TS side) and drop it on the floor. Forward-compatible.
  */
 export function mergeWithDefaults(partial: Partial<UserSettings>): UserSettings {
+	const appearance = {
+		...DEFAULT_USER_SETTINGS.appearance,
+		...(partial.appearance ?? {})
+	};
+	// Migrate legacy pixel-based editorContentWidth (pre-2026-05-14) →
+	// percent. Any value > 100 is treated as a leftover px and reset to
+	// the new default. Below 100 is kept as-is (already a percentage,
+	// or a sane percent that survived loading).
+	if (appearance.editorContentWidth > 100) {
+		appearance.editorContentWidth = DEFAULT_USER_SETTINGS.appearance.editorContentWidth;
+	}
 	return {
 		version: 1,
-		appearance: {
-			...DEFAULT_USER_SETTINGS.appearance,
-			...(partial.appearance ?? {})
-		},
+		appearance,
 		editor: { ...DEFAULT_USER_SETTINGS.editor, ...(partial.editor ?? {}) },
 		source: { ...DEFAULT_USER_SETTINGS.source, ...(partial.source ?? {}) },
 		files: { ...DEFAULT_USER_SETTINGS.files, ...(partial.files ?? {}) }

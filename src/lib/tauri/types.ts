@@ -50,6 +50,9 @@ export type AppearanceSettings = {
 	editorFont: string;
 	editorFontSize: number;
 	editorLineHeight: number;
+	/** Percentage of the editor area width (30–100). Was originally
+	 *  a px value before 2026-05-14; `mergeWithDefaults` migrates any
+	 *  loaded value > 100 to the new default. */
 	editorContentWidth: number;
 };
 
@@ -90,7 +93,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 		editorFont: 'geist',
 		editorFontSize: 16,
 		editorLineHeight: 1.6,
-		editorContentWidth: 720
+		editorContentWidth: 60
 	},
 	editor: {
 		autosaveDelayMs: 1500,

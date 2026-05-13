@@ -117,7 +117,10 @@
 		const a = settingsStore.current.appearance;
 		const root = document.documentElement.style;
 		root.setProperty('--font-editor', EDITOR_FAMILY_BY_ID[a.editorFont] ?? EDITOR_FAMILY_BY_ID.geist);
-		root.setProperty('--content-max-width', `${a.editorContentWidth}px`);
+		// editorContentWidth is now expressed in % of the editor area
+		// (was px before 2026-05-14). The CSS consumer `Editor .canvas`
+		// reads `--content-max-width` directly as a width value.
+		root.setProperty('--content-max-width', `${a.editorContentWidth}%`);
 	});
 
 	// --- Command palette wiring -------------------------------------------

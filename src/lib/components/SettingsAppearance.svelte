@@ -221,14 +221,14 @@
 				<input
 					id="setting-contentwidth"
 					type="range"
-					min="560"
-					max="1200"
-					step="20"
+					min="30"
+					max="100"
+					step="2"
 					value={current.editorContentWidth}
 					oninput={(e) => setContentWidth(+e.currentTarget.value)}
 					data-testid="appearance-slider-contentwidth"
 				/>
-				<span class="value">{current.editorContentWidth} px</span>
+				<span class="value">{current.editorContentWidth} %</span>
 			</div>
 		</div>
 	</section>
@@ -241,7 +241,7 @@
 			style:font-family={familyForId(current.editorFont)}
 			style:font-size="{current.editorFontSize}px"
 			style:line-height={current.editorLineHeight}
-			style:max-width="{current.editorContentWidth}px"
+			style:max-width="{current.editorContentWidth}%"
 			data-testid="appearance-preview"
 		>
 			L'éditeur Markdown moderne pour développeurs. Aperçu en temps réel des
