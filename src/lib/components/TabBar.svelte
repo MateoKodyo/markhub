@@ -151,21 +151,24 @@
 {/if}
 
 <style>
-	/* Cursor-style compact tabs:
-	 *  - Single 28px row, transparent background.
-	 *  - Tabs are content-sized (flex: 0 0 auto + max-width 200px) and
-	 *    the bar scrolls horizontally when the row overflows.
-	 *  - Active tab gets a same-color-as-editor fill so it visually
-	 *    "joins" the canvas below. No segmented pill, no border-bottom. */
-	/* Two-zone layout: a scrollable list on the left and a static
-	 * trailing block (mode toggle + outline) on the right that lives
-	 * outside the overflow container, so tabs can never bleed past it
-	 * when the list overflows. */
+	/* Tabs UX takes cues from Cursor + Warp:
+	 *  - 32px row, low-contrast bg-sidebar surface for the bar itself
+	 *    so the active tab can pop visually against it.
+	 *  - Active tab fills with bg (editor canvas color) so the tab
+	 *    "joins" the canvas below + carries a 2px accent top border
+	 *    (Warp pattern) for unambiguous "this is current".
+	 *  - Inactive tabs stay quiet (transparent + muted text); hover
+	 *    bumps to a faint surface fill.
+	 *  - Min-width 120px so the labels breathe; max 220px caps tabs
+	 *    long enough to read full filenames without flooding the bar.
+	 *  - Two-zone layout: scrollable list on the left, static trailing
+	 *    block (mode toggle + outline button) on the right that lives
+	 *    outside the overflow container — tabs can never bleed past. */
 	.tab-bar {
 		display: flex;
 		align-items: stretch;
-		min-height: 28px;
-		background: var(--color-bg);
+		min-height: 32px;
+		background: var(--color-bg-sidebar);
 		flex-shrink: 0;
 		min-width: 0;
 	}
@@ -191,33 +194,62 @@
 	.tab {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		max-width: 200px;
+		gap: 7px;
+		min-width: 120px;
+		max-width: 220px;
 		flex: 0 0 auto;
-		padding: 0 8px 0 10px;
+		padding: 0 10px 0 12px;
 		border: 0;
 		border-radius: 0;
 		background: transparent;
 		color: var(--color-text-muted);
 		font-family: var(--font-ui);
-		font-size: 12px;
+		font-size: 13px;
 		line-height: 1;
 		cursor: pointer;
 		text-align: left;
-		min-width: 0;
 		position: relative;
 		transition:
 			background-color var(--duration-base, 160ms) var(--easing-standard, ease-out),
 			color var(--duration-base, 160ms) var(--easing-standard, ease-out);
 	}
 
+	/* Subtle vertical divider between adjacent tabs — drops on hover
+	   neighbours and on the active tab itself for cleanliness. */
+	.tab + .tab::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 8px;
+		bottom: 8px;
+		width: 1px;
+		background: var(--color-border-subtle, var(--color-border));
+		opacity: 0.5;
+		pointer-events: none;
+	}
+
 	.tab:hover {
+		background: color-mix(in oklab, var(--color-bg) 60%, transparent);
 		color: var(--color-text-body);
 	}
 
 	.tab.is-active {
-		background: var(--color-bg-raised);
+		background: var(--color-bg);
 		color: var(--color-text-primary);
+	}
+
+	/* 2px accent top border on the active tab — Warp / VS Code pattern.
+	   `box-shadow inset` instead of border so the tab's height stays
+	   unchanged and the accent sits flush against the row's top edge. */
+	.tab.is-active::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--color-accent);
+		pointer-events: none;
 	}
 
 	.tab.is-drag-source {
@@ -227,7 +259,7 @@
 	.tab :global(.tab-icon) {
 		flex: 0 0 auto;
 		color: var(--color-text-muted);
-		opacity: 0.75;
+		opacity: 0.7;
 	}
 
 	.tab.is-active :global(.tab-icon) {
@@ -243,6 +275,7 @@
 		left: 0;
 		width: 2px;
 		background: var(--color-accent);
+		opacity: 1;
 	}
 
 	.tab-label {
