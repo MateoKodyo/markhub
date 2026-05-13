@@ -76,6 +76,16 @@ class SettingsStore {
 	/** Currently active section in the modal's left-rail navigation. */
 	activeSection = $state<SettingsSection>('appearance');
 
+	/**
+	 * Incremented each time the modal closes. Consumers (e.g. the
+	 * `{#key editorKey}` block around <Editor>) include this in their
+	 * key so the editor remounts and BlockNote re-applies its style
+	 * cascade against the freshly-updated CSS vars. Live-tweaking
+	 * inside BlockNote is a known cascade-fight (see BACKLOG); the
+	 * remount-on-commit pattern dodges it entirely.
+	 */
+	appliedRevision = $state(0);
+
 	#initialized = false;
 	#persistTimer: ReturnType<typeof setTimeout> | null = null;
 	#pending: UserSettings | null = null;
@@ -95,6 +105,10 @@ class SettingsStore {
 
 	close(): void {
 		this.isOpen = false;
+		// Bump so the editor remounts and picks up the new appearance
+		// values from the CSS vars. Cheap (one int) and idempotent — if
+		// nothing actually changed, the remount is a no-op visually.
+		this.appliedRevision++;
 	}
 
 	/**
