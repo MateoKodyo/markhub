@@ -40,15 +40,6 @@ function dispatchEditorModeToggle(): void {
 	window.dispatchEvent(new CustomEvent('app:toggleEditorMode'));
 }
 
-function cycleVault(direction: 1 | -1): void {
-	const ids = vaultsStore.vaults.map((v) => v.id);
-	if (ids.length < 2) return;
-	const current = vaultsStore.activeVaultId;
-	const idx = current ? ids.indexOf(current) : -1;
-	const next = ids[(idx + direction + ids.length) % ids.length];
-	vaultsStore.selectVault(next);
-}
-
 export function registerAppCommands(): void {
 	// ----- File -----
 	commandRegistry.register({
@@ -80,6 +71,10 @@ export function registerAppCommands(): void {
 		label: 'Save File',
 		group: 'File',
 		shortcut: '⌘S',
+		// Hidden from the palette: autosave covers the common case, and
+		// users who really want to flush manually already have Cmd+S.
+		// Keeping it in the registry so the keymap can resolve it.
+		hidden: true,
 		when: () => activeFileStore.activeFile !== null,
 		handler: () => {
 			void activeFileStore.forceSave();
@@ -114,22 +109,6 @@ export function registerAppCommands(): void {
 				console.warn('[command] addVaultFromPicker failed', e);
 			}
 		}
-	});
-
-	commandRegistry.register({
-		id: 'vault.next',
-		label: 'Next Vault',
-		group: 'Vault',
-		when: () => vaultsStore.vaults.length > 1,
-		handler: () => cycleVault(1)
-	});
-
-	commandRegistry.register({
-		id: 'vault.previous',
-		label: 'Previous Vault',
-		group: 'Vault',
-		when: () => vaultsStore.vaults.length > 1,
-		handler: () => cycleVault(-1)
 	});
 
 	// ----- View -----
@@ -172,6 +151,9 @@ export function registerAppCommands(): void {
 		label: 'Open Command Palette',
 		group: 'View',
 		shortcut: '⌘K',
+		// Hidden — listing "Open Command Palette" inside the palette is
+		// meta-circular. The keymap still resolves it via Cmd+K.
+		hidden: true,
 		handler: () => paletteStore.open('command')
 	});
 
@@ -220,8 +202,6 @@ export function unregisterAppCommands(): void {
 		'file.save',
 		'file.reveal',
 		'vault.add',
-		'vault.next',
-		'vault.previous',
 		'view.toggleSidebar',
 		'view.toggleTheme',
 		'view.toggleEditorMode',

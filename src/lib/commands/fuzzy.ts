@@ -26,7 +26,7 @@ export function rankCommands(
 	query: string,
 	recentIds: string[]
 ): RankedCommand[] {
-	const visible = commands.filter((c) => !c.when || c.when());
+	const visible = commands.filter((c) => !c.hidden && (!c.when || c.when()));
 
 	if (!query.trim()) {
 		const byId = new Map(visible.map((c) => [c.id, c]));

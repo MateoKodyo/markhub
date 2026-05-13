@@ -75,4 +75,15 @@ describe('rankCommands', () => {
 		const out = rankCommands(cmds, '', ['b', 'a']);
 		expect(out.map((r) => r.command.id)).toEqual(['a']);
 	});
+
+	it('drops hidden commands (still in registry, just not surfaced)', () => {
+		const cmds: Command[] = [
+			cmd('a', 'Visible'),
+			{ ...cmd('b', 'Hidden'), hidden: true }
+		];
+		const out = rankCommands(cmds, '', []);
+		expect(out.map((r) => r.command.id)).toEqual(['a']);
+		const queried = rankCommands(cmds, 'hid', []);
+		expect(queried).toEqual([]);
+	});
 });

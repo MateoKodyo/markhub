@@ -27,6 +27,11 @@ export interface Command {
 	handler: () => void | Promise<void>;
 	/** Optional visibility guard. False => the command is unavailable. */
 	when?: () => boolean;
+	/** Hide from the palette UI but keep the command callable (so a
+	 *  keyboard shortcut can fire it). Use for shortcuts that don't make
+	 *  sense to surface as a row, e.g. "Open Command Palette" while the
+	 *  palette is already open, or implicit ones like Save File. */
+	hidden?: boolean;
 }
 
 class CommandRegistry {

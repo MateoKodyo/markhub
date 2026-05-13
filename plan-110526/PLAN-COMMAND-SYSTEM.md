@@ -107,10 +107,10 @@ For Cmd+Shift+F, content search runs in the Rust backend via the `grep` and `ign
 |------|--------|--------|-------------------|
 | 1. Command registry + types | ✅ | `7543c91` | smoke 2026-05-13 (Cmd+S, click fix on rows) |
 | 2. Palette shell UI | ✅ | `7543c91` | smoke 2026-05-13 (Cmd+K debug, hover/click) |
-| 3. Command mode (Cmd+K) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
-| 4. File mode (Cmd+P) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
-| 5. Search mode backend (Tauri + ripgrep) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
-| 6. Search mode UI (Cmd+Shift+F) | 🟡 code livré | (commit suivant) | smoke pending — matin 2026-05-14 |
+| 3. Command mode (Cmd+K) | ✅ | `004b6c0` | smoke 2026-05-14 — catalog cleanup (hidden file.save / palette.open ; vault.next/previous retirées) |
+| 4. File mode (Cmd+P) | ✅ | `9d48658` | smoke 2026-05-14 |
+| 5. Search mode backend (Tauri + ripgrep) | ✅ | `d3b2f60` | smoke 2026-05-14 ("nickel") |
+| 6. Search mode UI (Cmd+Shift+F) | ✅ | `f066f82` | smoke 2026-05-14 ("nickel") |
 | 7. Polish + keyboard ergonomics | ⏳ | — | — |
 | 8. Closure | ⏳ | — | — |
 
