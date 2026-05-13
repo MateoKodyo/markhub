@@ -129,11 +129,10 @@
 	.tab-bar {
 		display: flex;
 		align-items: stretch;
-		min-height: 30px;
-		padding: 4px 8px 0;
+		min-height: 38px;
+		padding: 6px 8px 0;
 		gap: 2px;
 		background: var(--color-bg);
-		border-bottom: 1px solid var(--color-border);
 		overflow-x: auto;
 		overflow-y: hidden;
 		flex-shrink: 0;
@@ -149,7 +148,7 @@
 		min-width: 70px;
 		max-width: 180px;
 		flex: 1 1 auto;
-		padding: 4px 8px 4px 12px;
+		padding: 8px 8px 8px 12px;
 		border: 0;
 		border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
 		background: transparent;

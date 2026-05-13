@@ -398,7 +398,6 @@
 		{:else if activeFileStore.activeFile}
 			<header class="content-header">
 				<div class="breadcrumb">
-					<span class="caption">{activeFileStore.activeFile.relativePath}</span>
 					{#if vaultsStore.isActiveVaultReadonly}
 						<span class="badge-readonly" aria-label="Lecture seule">
 							<Lock size={11} aria-hidden="true" focusable="false" />
@@ -639,15 +638,6 @@
 		gap: var(--space-3);
 		min-width: 0;
 		overflow: hidden;
-	}
-
-	.breadcrumb .caption {
-		font-family: var(--font-mono);
-		font-size: var(--text-caption);
-		color: var(--color-text-secondary);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	.badge-readonly {
