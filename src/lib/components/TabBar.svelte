@@ -17,7 +17,7 @@
 	 */
 
 	import type { Snippet } from 'svelte';
-	import { X } from 'lucide-svelte';
+	import { FileText, X } from 'lucide-svelte';
 	import { activeFileStore, type Tab } from '$lib/stores/activeFile.svelte';
 	import { getFileName } from '$lib/utils/path';
 
@@ -117,6 +117,13 @@
 				ondragleave={() => onDragLeave(t.id)}
 				ondrop={(e) => onDrop(e, t.id)}
 			>
+				<FileText
+					size={12}
+					strokeWidth={1.5}
+					class="tab-icon"
+					aria-hidden="true"
+					focusable="false"
+				/>
 				<span class="tab-label">{labelFor(t)}</span>
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- Keyboard close is wired globally via Cmd+W (closeActiveTab);
@@ -195,6 +202,17 @@
 
 	.tab.is-drag-source {
 		opacity: 0.45;
+	}
+
+	.tab :global(.tab-icon) {
+		flex: 0 0 auto;
+		color: var(--color-text-muted);
+		opacity: 0.75;
+	}
+
+	.tab.is-active :global(.tab-icon) {
+		color: var(--color-text-primary);
+		opacity: 1;
 	}
 
 	.tab.is-drop-target::before {
