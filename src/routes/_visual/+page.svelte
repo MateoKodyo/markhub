@@ -159,17 +159,15 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 				: 'appearance';
 			settingsStore.open(startSection);
 		}
-		// Light-mode visual tests pass `?theme=light` (or `?theme=markhub-light`).
-		// We set the attribute directly here (no themeManager.init required)
-		// since these fixtures don't boot the full app shell. The legacy
-		// `light` / `dark` shortcuts are preserved so existing Playwright URLs
-		// keep working — they map to the markhub-* catalog ids.
+		// Theme URL param — accepts any catalog id (markhub-light, markhub-dark,
+		// solar, tokyo, ...) and the legacy 'light' / 'dark' shortcuts so
+		// existing Playwright URLs keep working. We set the attribute directly
+		// (no themeManager.init required) since these fixtures don't boot the
+		// full app shell.
 		const t = params.get('theme');
-		if (t === 'light' || t === 'markhub-light') {
-			document.documentElement.setAttribute('data-theme', 'markhub-light');
-		} else {
-			document.documentElement.setAttribute('data-theme', 'markhub-dark');
-		}
+		const themeAttr =
+			t === 'light' ? 'markhub-light' : t === 'dark' || !t ? 'markhub-dark' : t;
+		document.documentElement.setAttribute('data-theme', themeAttr);
 		ready = true;
 	});
 </script>

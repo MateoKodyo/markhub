@@ -9,10 +9,10 @@ import {
 } from '../../src/lib/theming/catalog';
 
 describe('theming catalog', () => {
-	// ------ TC.1 — STEP 1 ships exactly the 2 default themes ------
-	it('exposes the 2 default themes (markhub-light + markhub-dark)', () => {
+	// ------ TC.1 — catalog growth tracking ------
+	it('exposes all catalog themes (STEP 2 adds Solar to the 2 defaults)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
-		expect(ids).toEqual(['markhub-dark', 'markhub-light']);
+		expect(ids).toEqual(['markhub-dark', 'markhub-light', 'solar']);
 	});
 
 	// ------ TC.2 — every theme entry carries the full metadata shape ------
@@ -50,7 +50,8 @@ describe('theming catalog', () => {
 		const dark = getThemesByFamily('dark');
 		expect(light.every((t) => t.family === 'light')).toBe(true);
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
-		expect(light.length).toBeGreaterThan(0);
+		// STEP 2 puts both Markhub Light + Solar in the light family.
+		expect(light.map((t) => t.id).sort()).toEqual(['markhub-light', 'solar']);
 		expect(dark.length).toBeGreaterThan(0);
 	});
 
@@ -58,8 +59,8 @@ describe('theming catalog', () => {
 	it('isThemeId returns true for catalog ids, false otherwise', () => {
 		expect(isThemeId('markhub-light')).toBe(true);
 		expect(isThemeId('markhub-dark')).toBe(true);
-		expect(isThemeId('solar')).toBe(false); // not in STEP 1
-		expect(isThemeId('tokyo')).toBe(false); // not in STEP 1
+		expect(isThemeId('solar')).toBe(true); // added in STEP 2
+		expect(isThemeId('tokyo')).toBe(false); // STEP 3 adds Tokyo
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);
 		expect(isThemeId('nonsense')).toBe(false);

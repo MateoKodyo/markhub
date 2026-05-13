@@ -185,7 +185,7 @@ BlockNote has its own CSS variable namespace (e.g., `--bn-colors-editor-backgrou
 | Step | Status | Commit | Matheo validation |
 |------|--------|--------|-------------------|
 | 1. Theming infrastructure (manager + catalog + migration) | ✅ | (à venir) | 2026-05-13 |
-| 2. Solar theme | ⏳ | — | — |
+| 2. Solar theme | ✅ | (à venir) | smoke pending |
 | 3. Tokyo theme | ⏳ | — | — |
 | 4. Theme picker UI (Settings → Appearance) | ⏳ | — | — |
 | 5. OS-follow mechanism + transitions | ⏳ | — | — |

@@ -10,7 +10,7 @@
  * that attribute on `<html>` — this module just describes WHAT exists.
  */
 
-export type ThemeId = 'markhub-light' | 'markhub-dark';
+export type ThemeId = 'markhub-light' | 'markhub-dark' | 'solar';
 
 export type ThemeFamily = 'light' | 'dark';
 
@@ -40,6 +40,13 @@ export const THEMES: readonly ThemeMeta[] = [
 		family: 'dark',
 		description: 'Warm near-black canvas, IDE-friendly density.',
 		accentName: 'Blue'
+	},
+	{
+		id: 'solar',
+		name: 'Solar',
+		family: 'light',
+		description: 'Cream parchment with a warm amber accent.',
+		accentName: 'Amber'
 	}
 ] as const;
 
