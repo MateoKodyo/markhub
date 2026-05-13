@@ -407,6 +407,15 @@
 	}
 
 	function onSlashSelect(item: DefaultSuggestionItem) {
+		// BlockNote's `insertOrUpdateBlockForSlashMenu` only swaps the
+		// current block when its content is exactly "/". If the user
+		// typed "/h2" before picking, the content is "/h2" and BlockNote
+		// inserts a NEW block AFTER the current one — leaving "/h2"
+		// behind. Clearing the query first removes the "/<query>" range,
+		// which empties the block and lets the swap path run cleanly.
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const ext = (editorInstance as any)?.getExtension?.('suggestionMenu');
+		ext?.clearQuery?.();
 		item.onItemClick();
 	}
 
