@@ -71,34 +71,37 @@
 		);
 	}
 
-	/** Scroll a specific BlockNote block (by its document index) into
-	 *  view. DOM lookup via `[data-id]` first, falls back to the editor's
-	 *  `setTextCursorPosition` (which scrolls naturally). Adds a short
-	 *  accent flash on the target so the user's eye lands where the
-	 *  scroll dropped them — matches the Outline panel flash pattern. */
+	/** Scroll a specific BlockNote block into view. BlockNote's
+	 *  `setTextCursorPosition` triggers ProseMirror's own scrollIntoView
+	 *  on the next transaction — that's the reliable path, more robust
+	 *  than a manual DOM query (which has bitten us on data-id stamping
+	 *  and on stale node refs during HMR). DOM lookup still happens but
+	 *  only for the accent flash.
+	 *
+	 *  We re-query for the data-id AFTER a microtask so the post-cursor
+	 *  reflow has settled — flashing the freshly-positioned node.
+	 */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function scrollToBlockInPreview(block: any): boolean {
-		if (!editorInstance || !container || !block) return false;
-		const el = container.querySelector(
-			`[data-id="${block.id}"]`
-		) as HTMLElement | null;
-		if (el) {
-			el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			flashElement(el);
-			return true;
-		}
+		if (!editorInstance || !block) return false;
 		try {
+			editorInstance.focus?.();
 			editorInstance.setTextCursorPosition?.(block, 'start');
-			// API path doesn't give us back a node — best-effort flash on
-			// whichever data-id is currently selected after the call.
-			const sel = container.querySelector(
-				`[data-id="${block.id}"]`
-			) as HTMLElement | null;
-			if (sel) flashElement(sel);
-			return true;
 		} catch {
 			return false;
 		}
+		// Post-transaction flash. Use rAF + querySelector so we read the
+		// DOM AFTER ProseMirror's scroll lands. Falls back silently if
+		// the data-id isn't on the element (older BlockNote builds).
+		if (container) {
+			requestAnimationFrame(() => {
+				const el = container?.querySelector(
+					`[data-id="${block.id}"]`
+				) as HTMLElement | null;
+				if (el) flashElement(el);
+			});
+		}
+		return true;
 	}
 
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
