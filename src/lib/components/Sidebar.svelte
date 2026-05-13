@@ -133,9 +133,11 @@
 	async function handleAddVault() {
 		topLevelError = null;
 		try {
-			await vaultsStore.addVaultFromPicker();
+			const v = await vaultsStore.addVaultFromPicker();
+			if (v) toast.success('Vault ajouté', { details: v.name });
 		} catch (e) {
 			topLevelError = `Ajout vault impossible : ${String(e)}`;
+			toast.error('Ajout vault impossible', { details: String(e) });
 		}
 	}
 
@@ -279,8 +281,15 @@
 				inputOpen = false;
 				return;
 			}
-			await vaultsStore.updateVault(vault.id, { name: newName });
-			inputOpen = false;
+			try {
+				await vaultsStore.updateVault(vault.id, { name: newName });
+				toast.success('Vault renommé', { details: newName });
+			} catch (e) {
+				toast.error('Renommage impossible', { details: String(e) });
+				throw e;
+			} finally {
+				inputOpen = false;
+			}
 		};
 		inputOpen = true;
 	}
@@ -712,7 +721,9 @@
 				: `${rawValue}.md`;
 		const parent = getParentPath(entry.relativePath);
 		const newRel = parent ? joinPath(parent, newName) : newName;
-		// Throws on conflict — InlineInput catches and surfaces inline.
+		// Throws on conflict — InlineInput catches and surfaces inline,
+		// so the toast here only celebrates the success path; failures
+		// stay close to the input where the user sees them.
 		await fileRename(id, entry.relativePath, newRel);
 		renamingPath = null;
 		await refreshScan();
@@ -722,6 +733,9 @@
 		) {
 			void activeFileStore.openFile(id, newRel);
 		}
+		toast.success(entry.isDirectory ? 'Dossier renommé' : 'Fichier renommé', {
+			details: newName
+		});
 	}
 
 	function findEntryByPath(root: FileEntry, path: string): FileEntry | null {
@@ -745,14 +759,21 @@
 				folderPickerOpen = false;
 				return;
 			}
-			await fileRename(id, entry.relativePath, newRel);
-			folderPickerOpen = false;
-			await refreshScan();
-			if (
-				activeFileStore.activeFile?.vaultId === id &&
-				activeFileStore.activeFile?.relativePath === entry.relativePath
-			) {
-				void activeFileStore.openFile(id, newRel);
+			try {
+				await fileRename(id, entry.relativePath, newRel);
+				folderPickerOpen = false;
+				await refreshScan();
+				if (
+					activeFileStore.activeFile?.vaultId === id &&
+					activeFileStore.activeFile?.relativePath === entry.relativePath
+				) {
+					void activeFileStore.openFile(id, newRel);
+				}
+				const where = target ? target : 'la racine';
+				toast.success('Déplacé', { details: `vers ${where}` });
+			} catch (e) {
+				toast.error('Déplacement impossible', { details: String(e) });
+				throw e;
 			}
 		};
 		folderPickerOpen = true;

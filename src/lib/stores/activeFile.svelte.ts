@@ -1,5 +1,6 @@
 import * as api from '$lib/tauri/api';
 import { settingsStore } from './settings.svelte';
+import { toast } from './toast.svelte';
 import { vaultsStore } from './vaults.svelte';
 
 export type SaveStatus = 'idle' | 'loading' | 'modified' | 'saving' | 'saved' | 'error';
@@ -114,6 +115,13 @@ class ActiveFileStore {
 			this.lastSavedAt = Date.now();
 		} catch (e) {
 			this.status = 'error';
+			// Surface the failure: the status pill flips to 'error' but
+			// it's tiny and easy to miss — a toast forces the eye to it.
+			// Sticky (duration 0) until the user dismisses or fixes.
+			toast.error('Sauvegarde échouée', {
+				details: String(e),
+				duration: 0
+			});
 			throw e;
 		}
 	}
