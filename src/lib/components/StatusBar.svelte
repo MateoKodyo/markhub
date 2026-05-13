@@ -34,8 +34,25 @@
 		onCopyPath?: () => void;
 	} = $props();
 
-	let countMode = $state<'words' | 'characters'>('words');
+	let countMode = $state<'words' | 'characters' | 'tokens'>('words');
 	const stats = $derived(computeDocumentStats(content));
+
+	// Three-stage cycle: words → characters → tokens → words.
+	function cycleCount(): void {
+		countMode =
+			countMode === 'words' ? 'characters' : countMode === 'characters' ? 'tokens' : 'words';
+	}
+
+	// Compact 1k+ formatting for the token pill so a 50 000-token doc
+	// doesn't take the whole status bar. Below 1k stays exact.
+	function formatTokens(n: number): string {
+		if (n < 1000) return n.toLocaleString('fr-FR');
+		const k = n / 1000;
+		// One decimal for < 100k, drop it above.
+		return k < 100
+			? `${k.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`
+			: `${Math.round(k).toLocaleString('fr-FR')}k`;
+	}
 
 	const themeTitle = $derived.by(() => {
 		switch (themeStore.preference) {
@@ -112,14 +129,16 @@
 			<button
 				type="button"
 				class="pill pill-btn"
-				title="Cliquer pour basculer mots ↔ caractères"
-				onclick={() => (countMode = countMode === 'words' ? 'characters' : 'words')}
+				title="Cliquer : mots → caractères → tokens (estimation)"
+				onclick={cycleCount}
 				data-testid="counter-toggle"
 			>
 				{#if countMode === 'words'}
 					{stats.words.toLocaleString('fr-FR')} mots
-				{:else}
+				{:else if countMode === 'characters'}
 					{stats.characters.toLocaleString('fr-FR')} caractères
+				{:else}
+					~{formatTokens(stats.tokens)} tokens
 				{/if}
 			</button>
 			<span class="pill pill-muted">~{stats.readingMinutes} min</span>

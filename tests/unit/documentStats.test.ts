@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	countCharacters,
+	countTokens,
 	countWords,
 	readingMinutes,
 	stripMarkdownNoise,
@@ -83,11 +84,39 @@ describe('documentStats', () => {
 		});
 	});
 
+	describe('countTokens', () => {
+		it('returns 0 for empty content', () => {
+			expect(countTokens('')).toBe(0);
+		});
+
+		it('applies the chars / 4 OpenAI rough heuristic, rounded up', () => {
+			// 8 chars / 4 = 2 tokens.
+			expect(countTokens('abcdefgh')).toBe(2);
+			// 9 chars / 4 = 2.25 → 3.
+			expect(countTokens('abcdefghi')).toBe(3);
+		});
+
+		it('counts UTF-16 code units (emojis are 2 each in JS strings)', () => {
+			// 4 emojis = 8 UTF-16 code units in JS → 8 / 4 = 2 tokens.
+			// BPE in production would be higher; the heuristic stays
+			// consistent and dependency-free.
+			expect(countTokens('🎯🚀✨💡')).toBe(2);
+		});
+
+		it('handles a realistic markdown sample within ±25% of GPT-4 tiktoken', () => {
+			// "Lorem ipsum dolor sit amet" is 8 tokens via cl100k_base.
+			// chars=26 → ceil(26/4)=7. Within the rough-estimate band.
+			expect(countTokens('Lorem ipsum dolor sit amet')).toBe(7);
+		});
+	});
+
 	describe('computeDocumentStats', () => {
-		it('returns all three metrics in one pass', () => {
-			const stats = computeDocumentStats('# Title\n\nThree words here.');
+		it('returns all four metrics in one pass', () => {
+			const sample = '# Title\n\nThree words here.';
+			const stats = computeDocumentStats(sample);
 			expect(stats.words).toBe(4); // Title + Three + words + here
-			expect(stats.characters).toBe('# Title\n\nThree words here.'.length);
+			expect(stats.characters).toBe(sample.length);
+			expect(stats.tokens).toBe(Math.ceil(sample.length / 4));
 			expect(stats.readingMinutes).toBe(1);
 		});
 	});

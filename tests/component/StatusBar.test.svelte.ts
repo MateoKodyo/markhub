@@ -61,7 +61,7 @@ describe('StatusBar', () => {
 		expect(screen.getByText(/~\d+\s*min/)).toBeInTheDocument();
 	});
 
-	it('toggles between word count and character count on click', async () => {
+	it('cycles word → character → token counts on click', async () => {
 		render(StatusBar, {
 			vault: editVault,
 			relativePath: 'doc.md',
@@ -71,6 +71,9 @@ describe('StatusBar', () => {
 		expect(btn.textContent).toMatch(/mots/);
 		await fireEvent.click(btn);
 		expect(btn.textContent).toMatch(/caractères/);
+		await fireEvent.click(btn);
+		// Token estimate prefixed with "~" to flag the approximation.
+		expect(btn.textContent).toMatch(/~\S+\s*tokens/);
 		await fireEvent.click(btn);
 		expect(btn.textContent).toMatch(/mots/);
 	});

@@ -49,6 +49,18 @@ export function countCharacters(content: string): number {
 	return content.length;
 }
 
+/**
+ * Rough LLM token estimate — applies the official OpenAI "characters / 4"
+ * heuristic to the raw markdown. Holds up across prose and code (BPE
+ * tokenizers like cl100k_base average ~4 bytes/token in practice), and
+ * keeps the status bar dependency-free (no tiktoken wasm). Status bar
+ * prefixes the displayed value with `~` to flag the approximation.
+ */
+export function countTokens(content: string): number {
+	if (!content) return 0;
+	return Math.ceil(content.length / 4);
+}
+
 export function readingMinutes(words: number): number {
 	if (words <= 0) return 0;
 	return Math.max(1, Math.round(words / READING_WORDS_PER_MINUTE));
@@ -57,6 +69,7 @@ export function readingMinutes(words: number): number {
 export type DocumentStats = {
 	words: number;
 	characters: number;
+	tokens: number;
 	readingMinutes: number;
 };
 
@@ -65,6 +78,7 @@ export function computeDocumentStats(content: string): DocumentStats {
 	return {
 		words,
 		characters: countCharacters(content),
+		tokens: countTokens(content),
 		readingMinutes: readingMinutes(words)
 	};
 }
