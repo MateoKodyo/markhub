@@ -66,9 +66,12 @@ export type FilesSettings = {
 	confirmDelete: boolean;
 };
 
-export type BehaviorSettings = {
-	askBeforeClosingUnsaved: boolean;
-};
+/* `BehaviorSettings` retired 2026-05-14 — its only field
+ * (`askBeforeClosingUnsaved`) became redundant once `activeFile.openFile`
+ * started flushing pending saves unconditionally. The Rust side still
+ * carries the struct for forward-compat on existing settings.json
+ * files; serde ignores extra fields silently so loaded files keep
+ * working without it on the TS side. */
 
 export type UserSettings = {
 	version: 1;
@@ -76,7 +79,6 @@ export type UserSettings = {
 	editor: EditorSettings;
 	source: SourceSettings;
 	files: FilesSettings;
-	behavior: BehaviorSettings;
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -99,9 +101,6 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 	},
 	files: {
 		confirmDelete: true
-	},
-	behavior: {
-		askBeforeClosingUnsaved: true
 	}
 };
 

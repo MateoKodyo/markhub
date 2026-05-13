@@ -177,6 +177,5 @@ describe('settingsStore', () => {
 		expect(merged.editor).toEqual(DEFAULT_USER_SETTINGS.editor);
 		expect(merged.source).toEqual(DEFAULT_USER_SETTINGS.source);
 		expect(merged.files).toEqual(DEFAULT_USER_SETTINGS.files);
-		expect(merged.behavior).toEqual(DEFAULT_USER_SETTINGS.behavior);
 	});
 });

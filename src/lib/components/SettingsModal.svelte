@@ -2,7 +2,6 @@
 	import {
 		Code,
 		Folder,
-		MousePointer,
 		Palette,
 		Settings as SettingsIcon,
 		Wrench,
@@ -18,7 +17,6 @@
 	} from '$lib/stores/settings.svelte';
 	import SettingsAdvanced from './SettingsAdvanced.svelte';
 	import SettingsAppearance from './SettingsAppearance.svelte';
-	import SettingsBehavior from './SettingsBehavior.svelte';
 	import SettingsEditor from './SettingsEditor.svelte';
 	import SettingsFiles from './SettingsFiles.svelte';
 	import SettingsSource from './SettingsSource.svelte';
@@ -35,7 +33,6 @@
 		editor: { label: 'Éditeur', icon: SettingsIcon as unknown as IconComponent },
 		source: { label: 'Mode source', icon: Code as unknown as IconComponent },
 		files: { label: 'Fichiers', icon: Folder as unknown as IconComponent },
-		behavior: { label: 'Comportement', icon: MousePointer as unknown as IconComponent },
 		advanced: { label: 'Avancé', icon: Wrench as unknown as IconComponent }
 	};
 
@@ -142,8 +139,6 @@
 						<SettingsSource />
 					{:else if settingsStore.activeSection === 'files'}
 						<SettingsFiles />
-					{:else if settingsStore.activeSection === 'behavior'}
-						<SettingsBehavior />
 					{:else if settingsStore.activeSection === 'advanced'}
 						<SettingsAdvanced />
 					{/if}

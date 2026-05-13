@@ -181,12 +181,6 @@ export function registerAppCommands(): void {
 		handler: () => settingsStore.open('files')
 	});
 	commandRegistry.register({
-		id: 'settings.open.behavior',
-		label: 'Settings: Behavior',
-		group: 'Settings',
-		handler: () => settingsStore.open('behavior')
-	});
-	commandRegistry.register({
 		id: 'settings.open.advanced',
 		label: 'Settings: Advanced',
 		group: 'Settings',
@@ -260,7 +254,6 @@ export function unregisterAppCommands(): void {
 		'settings.open.editor',
 		'settings.open.source',
 		'settings.open.files',
-		'settings.open.behavior',
 		'settings.open.advanced',
 		'palette.open',
 		'palette.openFile',

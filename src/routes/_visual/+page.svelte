@@ -151,7 +151,6 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 			'editor',
 			'source',
 			'files',
-			'behavior',
 			'advanced'
 		];
 		if (fixture === 'settings-modal') {

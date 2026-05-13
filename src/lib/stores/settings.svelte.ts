@@ -33,7 +33,6 @@ export type SettingsSection =
 	| 'editor'
 	| 'source'
 	| 'files'
-	| 'behavior'
 	| 'advanced';
 
 export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
@@ -41,7 +40,6 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
 	'editor',
 	'source',
 	'files',
-	'behavior',
 	'advanced'
 ] as const;
 
@@ -50,6 +48,10 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
  * Rust always returns a complete struct, but a (future) corrupt-but-parseable
  * payload missing a section would otherwise leave the store with `undefined`
  * fields. This is the second line of defense after the Rust-side fallback.
+ *
+ * The Rust side may still send a `behavior` block on legacy configs — we
+ * accept it silently via `Partial<UserSettings>` (no field for behavior on
+ * the TS side) and drop it on the floor. Forward-compatible.
  */
 export function mergeWithDefaults(partial: Partial<UserSettings>): UserSettings {
 	return {
@@ -60,11 +62,7 @@ export function mergeWithDefaults(partial: Partial<UserSettings>): UserSettings 
 		},
 		editor: { ...DEFAULT_USER_SETTINGS.editor, ...(partial.editor ?? {}) },
 		source: { ...DEFAULT_USER_SETTINGS.source, ...(partial.source ?? {}) },
-		files: { ...DEFAULT_USER_SETTINGS.files, ...(partial.files ?? {}) },
-		behavior: {
-			...DEFAULT_USER_SETTINGS.behavior,
-			...(partial.behavior ?? {})
-		}
+		files: { ...DEFAULT_USER_SETTINGS.files, ...(partial.files ?? {}) }
 	};
 }
 

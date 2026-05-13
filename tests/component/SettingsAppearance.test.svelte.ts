@@ -16,7 +16,6 @@ vi.mock('../../src/lib/tauri/api', () => ({
 		editor: { autosaveDelayMs: 1500, spellCheck: true },
 		source: { monoFont: 'geist-mono' },
 		files: { confirmDelete: true },
-		behavior: { askBeforeClosingUnsaved: true }
 	}),
 	settingsWrite: vi.fn().mockResolvedValue(undefined)
 }));

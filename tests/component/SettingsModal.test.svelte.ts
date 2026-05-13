@@ -16,7 +16,6 @@ vi.mock('../../src/lib/tauri/api', () => ({
 		editor: { autosaveDelayMs: 1500, spellCheck: true },
 		source: { monoFont: 'geist-mono' },
 		files: { confirmDelete: true },
-		behavior: { askBeforeClosingUnsaved: true }
 	}),
 	settingsWrite: vi.fn().mockResolvedValue(undefined)
 }));
@@ -46,18 +45,18 @@ describe('SettingsModal', () => {
 	});
 
 	// ------ S3.2 — renders the dialog when open ------
-	it('renders the dialog with the 6 sections when open', async () => {
+	it('renders the dialog with all sections when open', async () => {
 		settingsStore.open();
 		render(SettingsModal);
 		expect(screen.getByTestId('settings-modal')).toBeInTheDocument();
 		expect(screen.getByTestId('settings-backdrop')).toBeInTheDocument();
-		// 6 sections present in the left rail.
+		// 5 sections present in the left rail (behavior was retired 2026-05-14).
 		expect(screen.getByTestId('settings-rail-appearance')).toBeInTheDocument();
 		expect(screen.getByTestId('settings-rail-editor')).toBeInTheDocument();
 		expect(screen.getByTestId('settings-rail-source')).toBeInTheDocument();
 		expect(screen.getByTestId('settings-rail-files')).toBeInTheDocument();
-		expect(screen.getByTestId('settings-rail-behavior')).toBeInTheDocument();
 		expect(screen.getByTestId('settings-rail-advanced')).toBeInTheDocument();
+		expect(screen.queryByTestId('settings-rail-behavior')).toBeNull();
 	});
 
 	// ------ S3.3 — Appearance is the default active section ------

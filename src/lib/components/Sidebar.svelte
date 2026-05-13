@@ -149,21 +149,8 @@
 	async function handleOpenFile(relativePath: string) {
 		const id = vaultsStore.activeVaultId;
 		if (!id) return;
-		// Respect the "ask before closing unsaved" setting: when the current
-		// file is in the 'modified' state (autosave debounce hasn't fired yet),
-		// flush it to disk before navigating away so the user never silently
-		// loses an in-flight edit.
-		if (
-			settingsStore.current.behavior.askBeforeClosingUnsaved &&
-			activeFileStore.status === 'modified'
-		) {
-			try {
-				await activeFileStore.forceSave();
-			} catch (e) {
-				topLevelError = `Échec de la sauvegarde avant changement de fichier : ${String(e)}`;
-				return;
-			}
-		}
+		// No flush guard here: `activeFile.openFile` itself flushes any
+		// pending autosave before loading the new file (see store).
 		void activeFileStore.openFile(id, relativePath);
 	}
 
