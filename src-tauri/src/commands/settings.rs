@@ -31,6 +31,61 @@ pub fn settings_write(app: AppHandle, settings: UserSettings) -> Result<(), Stri
     save_settings_to_path(&path, &settings)
 }
 
+/// Return the app version baked into the binary at compile time. Used by
+/// the Settings → Advanced section to display "Markhub vX.Y.Z".
+#[tauri::command]
+pub fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Reveal the user config directory in the OS file explorer (Finder on
+/// macOS). Creates the directory if it doesn't exist yet so the open
+/// call doesn't fail on a fresh install. Read-only operation.
+#[tauri::command]
+pub fn settings_config_folder_reveal(app: AppHandle) -> Result<(), String> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Cannot resolve app config dir: {e}"))?;
+    if !dir.exists() {
+        fs::create_dir_all(&dir)
+            .map_err(|e| format!("Failed to create config dir: {e}"))?;
+    }
+    let dir_str = dir
+        .to_str()
+        .ok_or_else(|| "Config dir path is not valid UTF-8".to_string())?;
+    std::process::Command::new("open")
+        .arg(dir_str)
+        .spawn()
+        .map_err(|e| format!("Failed to open config folder: {e}"))?;
+    Ok(())
+}
+
+/// Export the supplied settings to an arbitrary path on disk (user picks
+/// the destination via the native save dialog on the front-end). Reuses
+/// the atomic-write path so a partial write can never leave a truncated
+/// JSON behind.
+#[tauri::command]
+pub fn settings_export(target_path: String, settings: UserSettings) -> Result<(), String> {
+    let path = Path::new(&target_path);
+    save_settings_to_path(path, &settings)
+}
+
+/// Import settings from an arbitrary path. Strict: unlike
+/// `load_settings_from_path` (which silently falls back to defaults on a
+/// corrupt file), this surfaces errors so the user sees what failed.
+#[tauri::command]
+pub fn settings_import(source_path: String) -> Result<UserSettings, String> {
+    let path = Path::new(&source_path);
+    if !path.exists() {
+        return Err(format!("File not found: {source_path}"));
+    }
+    let raw = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {source_path}: {e}"))?;
+    serde_json::from_str::<UserSettings>(&raw)
+        .map_err(|e| format!("Invalid settings JSON: {e}"))
+}
+
 /// Load user settings from `path`.
 ///
 /// Resilience policy (intentional: settings should NEVER block the app):
@@ -221,6 +276,59 @@ mod tests {
         assert_eq!(s.source.mono_font, "geist-mono");
         assert!(s.files.confirm_delete);
         assert!(s.behavior.ask_before_closing_unsaved);
+    }
+
+    // ------ S6.1 — settings_export writes a valid JSON file ------
+    #[test]
+    fn export_writes_valid_settings_json() {
+        let (_g, path) = temp_settings_path();
+        let mut s = UserSettings::default();
+        s.appearance.editor_font_size = 19;
+        let path_str = path.to_str().unwrap().to_string();
+        super::settings_export(path_str.clone(), s.clone()).expect("export ok");
+        assert!(path.exists());
+        let loaded = load_settings_from_path(&path);
+        assert_eq!(loaded, s);
+    }
+
+    // ------ S6.2 — settings_import round-trips an exported file ------
+    #[test]
+    fn import_round_trips_an_exported_file() {
+        let (_g, path) = temp_settings_path();
+        let mut s = UserSettings::default();
+        s.editor.autosave_delay_ms = 2500;
+        s.source.mono_font = "jetbrains-mono".to_string();
+        save_settings_to_path(&path, &s).unwrap();
+        let imported = super::settings_import(path.to_str().unwrap().to_string())
+            .expect("import ok");
+        assert_eq!(imported, s);
+    }
+
+    // ------ S6.3 — settings_import rejects a non-existent file ------
+    #[test]
+    fn import_rejects_missing_file() {
+        let dir = TempDir::new().unwrap();
+        let missing = dir.path().join("not-here.json");
+        let err = super::settings_import(missing.to_str().unwrap().to_string())
+            .expect_err("must error on missing file");
+        assert!(err.contains("not found") || err.contains("File not found"));
+    }
+
+    // ------ S6.4 — settings_import surfaces JSON errors (strict mode) ------
+    #[test]
+    fn import_rejects_malformed_json() {
+        let (_g, path) = temp_settings_path();
+        fs::write(&path, "{ this is not settings json").unwrap();
+        let err = super::settings_import(path.to_str().unwrap().to_string())
+            .expect_err("must error on malformed JSON");
+        assert!(err.contains("Invalid settings JSON"));
+    }
+
+    // ------ S6.5 — app_version is the Cargo.toml package version ------
+    #[test]
+    fn app_version_matches_cargo_pkg() {
+        let v = super::app_version();
+        assert_eq!(v, env!("CARGO_PKG_VERSION"));
     }
 
     // ------ S1.8 — JSON keys are camelCase (frontend contract) ------

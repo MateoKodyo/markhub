@@ -39,6 +39,10 @@ pub fn run() {
             commands::files::url_open,
             commands::settings::settings_read,
             commands::settings::settings_write,
+            commands::settings::app_version,
+            commands::settings::settings_config_folder_reveal,
+            commands::settings::settings_export,
+            commands::settings::settings_import,
             commands::search::search_in_vault,
         ])
         .run(tauri::generate_context!())

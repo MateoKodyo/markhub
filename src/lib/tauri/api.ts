@@ -141,6 +141,25 @@ export const settingsRead = (): Promise<UserSettings> => invoke('settings_read')
 export const settingsWrite = (settings: UserSettings): Promise<void> =>
 	invoke('settings_write', { settings });
 
+/** Compile-time version baked into the Rust binary (matches Cargo.toml). */
+export const appVersion = (): Promise<string> => invoke('app_version');
+
+/** Open the on-disk config directory in Finder (creates it if missing). */
+export const settingsConfigFolderReveal = (): Promise<void> =>
+	invoke('settings_config_folder_reveal');
+
+/** Export the supplied settings to an arbitrary path (atomic write). */
+export const settingsExport = (
+	targetPath: string,
+	settings: UserSettings
+): Promise<void> => invoke('settings_export', { targetPath, settings });
+
+/** Import a settings JSON from an arbitrary path. Strict: surfaces parse
+ *  errors so the user sees what failed (unlike the regular load path,
+ *  which silently falls back to defaults on a corrupt file). */
+export const settingsImport = (sourcePath: string): Promise<UserSettings> =>
+	invoke('settings_import', { sourcePath });
+
 /**
  * Vault-wide content search backing Cmd+Shift+F. Walks the vault with
  * .gitignore + hidden-dir filters, scans .md / .markdown files only,

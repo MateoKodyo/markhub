@@ -153,6 +153,46 @@ export function registerAppCommands(): void {
 		handler: () => settingsStore.open()
 	});
 
+	// Section-specific deep-links for the Settings modal. Each one opens
+	// the modal already focused on the requested section — useful from
+	// Cmd+K when the user knows which knob they need ("editor", "advanced").
+	commandRegistry.register({
+		id: 'settings.open.appearance',
+		label: 'Settings: Appearance',
+		group: 'Settings',
+		handler: () => settingsStore.open('appearance')
+	});
+	commandRegistry.register({
+		id: 'settings.open.editor',
+		label: 'Settings: Editor',
+		group: 'Settings',
+		handler: () => settingsStore.open('editor')
+	});
+	commandRegistry.register({
+		id: 'settings.open.source',
+		label: 'Settings: Source Mode',
+		group: 'Settings',
+		handler: () => settingsStore.open('source')
+	});
+	commandRegistry.register({
+		id: 'settings.open.files',
+		label: 'Settings: Files',
+		group: 'Settings',
+		handler: () => settingsStore.open('files')
+	});
+	commandRegistry.register({
+		id: 'settings.open.behavior',
+		label: 'Settings: Behavior',
+		group: 'Settings',
+		handler: () => settingsStore.open('behavior')
+	});
+	commandRegistry.register({
+		id: 'settings.open.advanced',
+		label: 'Settings: Advanced',
+		group: 'Settings',
+		handler: () => settingsStore.open('advanced')
+	});
+
 	// ----- Palette modes (open the palette itself) -----
 	commandRegistry.register({
 		id: 'palette.open',
@@ -216,6 +256,12 @@ export function unregisterAppCommands(): void {
 		'view.toggleEditorMode',
 		'view.toggleOutline',
 		'settings.open',
+		'settings.open.appearance',
+		'settings.open.editor',
+		'settings.open.source',
+		'settings.open.files',
+		'settings.open.behavior',
+		'settings.open.advanced',
 		'palette.open',
 		'palette.openFile',
 		'palette.openSearch'

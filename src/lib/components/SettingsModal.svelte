@@ -16,6 +16,7 @@
 		settingsStore,
 		type SettingsSection
 	} from '$lib/stores/settings.svelte';
+	import SettingsAdvanced from './SettingsAdvanced.svelte';
 	import SettingsAppearance from './SettingsAppearance.svelte';
 	import SettingsBehavior from './SettingsBehavior.svelte';
 	import SettingsEditor from './SettingsEditor.svelte';
@@ -143,11 +144,8 @@
 						<SettingsFiles />
 					{:else if settingsStore.activeSection === 'behavior'}
 						<SettingsBehavior />
-					{:else}
-						<p class="placeholder">
-							Les contrôles de cette section seront ajoutés à l'étape
-							suivante.
-						</p>
+					{:else if settingsStore.activeSection === 'advanced'}
+						<SettingsAdvanced />
 					{/if}
 				</section>
 			</div>
@@ -293,9 +291,4 @@
 		margin-bottom: var(--space-4);
 	}
 
-	.placeholder {
-		color: var(--color-text-muted);
-		font-size: var(--text-ui);
-		line-height: var(--leading-relaxed, 1.5);
-	}
 </style>
