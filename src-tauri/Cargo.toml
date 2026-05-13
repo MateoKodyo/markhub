@@ -23,6 +23,14 @@ tauri = { version = "2.11.1", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 uuid = { version = "1", features = ["v4"] }
+# Cmd+Shift+F vault search — `ignore` walks the tree (respects .gitignore,
+# skips hidden), the `grep-*` crates do line-by-line regex matching tuned
+# by the user's options (case, whole-word, regex).
+ignore = "0.4"
+grep-matcher = "0.1"
+grep-regex = "0.1"
+grep-searcher = "0.1"
+regex = "1"
 
 [dev-dependencies]
 tempfile = "3"

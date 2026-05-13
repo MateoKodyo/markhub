@@ -3,7 +3,15 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import type { Config, FileEntry, UserSettings, Vault, VaultMode } from './types';
+import type {
+	Config,
+	FileEntry,
+	SearchMatch,
+	SearchOptions,
+	UserSettings,
+	Vault,
+	VaultMode
+} from './types';
 
 export const configLoad = (): Promise<Config> => invoke('config_load');
 
@@ -132,3 +140,16 @@ export const settingsRead = (): Promise<UserSettings> => invoke('settings_read')
  */
 export const settingsWrite = (settings: UserSettings): Promise<void> =>
 	invoke('settings_write', { settings });
+
+/**
+ * Vault-wide content search backing Cmd+Shift+F. Walks the vault with
+ * .gitignore + hidden-dir filters, scans .md / .markdown files only,
+ * caps the result at 200 files / 100 hits per file. Returns matches
+ * grouped by file. An empty query short-circuits to `[]`.
+ */
+export const searchInVault = (
+	vaultId: string,
+	query: string,
+	options: SearchOptions
+): Promise<SearchMatch[]> =>
+	invoke('search_in_vault', { vaultId, query, options });

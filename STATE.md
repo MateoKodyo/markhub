@@ -5,87 +5,37 @@
 
 ## Date de mise à jour
 
-2026-05-13 (nuit/matin) — fin de session marathon depuis le 2026-05-12. Bilan :
-
-- **Settings v1 STEPS 1-5 livrés** (5 sections sur 8). 10/12 réglages marchent en réel. STEP 6 (Avancé), 7 (Command palette integration), 8 (Closure) restent à faire.
-- **Folder-delete EPERM** : ✅ mergé + smoke OK.
-- **Polish StatusBar + Modal fade** : ✅ livré.
-- **Drag-drop vers Finder** : tenté avec `@crabnebula/tauri-plugin-drag` v2.1.1 → **plugin panique au démarrage** (bug RecvError dans le plugin Rust, pas notre code). **Reverté.**
-- **Import de fichiers** : ✅ livré comme alternative orchestrable au drag-drop. Bouton 📥 dans le header de la section Fichiers, sélection multi-fichiers via dialog natif Tauri, copie dans le vault avec gestion des collisions (suffixe ` copie`), deselect Finder-style en cliquant sur l'espace vide.
+2026-05-14 (matin) — **PLAN-COMMAND-SYSTEM clôturé**. 8/8 steps livrés et smoke-validés. Branche `feat/command-system` mergée sur `main`. 13 commits ajoutés à `main` (12 features/fix + 1 closure).
 
 ## Branche courante
 
-`main` — **33 commits ahead de `origin/main`** (jamais pushé depuis le merge BlockNote du 2026-05-11). Push à faire en fin de session.
+`main` — **46 commits ahead de `origin/main`** (33 avant la nuit + 13 de PLAN-COMMAND-SYSTEM). Toujours pas pushée. Push à faire quand Matheo veut.
 
-Récap des commits récents (depuis le précédent STATE) :
+Commits PLAN-COMMAND-SYSTEM (du plus récent au plus ancien) :
 
 ```
-6124575 fix(sidebar): clicking the empty file-list area clears the selection
-ae5fbd9 feat(sidebar): import external markdown files into the active vault
-81451d8 Revert "feat(sidebar): Cmd-drag a file out to the Desktop / Finder"
-80b082b feat(sidebar): Cmd-drag a file out to the Desktop / Finder         ← reverté
-e3b313e polish(settings): status-bar layout + modal entrance + path copy icon
-506d1ec docs(backlog): track deferred editor body typography wiring
-b2c19d2 revert(settings): defer editor body typography wiring to BACKLOG
-afe0ae1 fix(settings): wire appearance typography to the actual editor (live)  ← reverté
-4dcb51f chore(plan): fix STEP 5 commit hash in PLAN-SETTINGS table
-40feb30 feat(settings): source + files + behavior sections (+ StatusBar gear)
-7f09739 chore(plan): fix STEP 4 commit hash in PLAN-SETTINGS table
-d9dd033 feat(settings): editor section + wire autosave & spellcheck consumers
-13489ac refactor(settings): flatten appearance section to Markhub visual language
-39d2027 feat(settings): appearance section — themes + font + sliders + live preview
-286417a chore(state): mark settings STEP 1+2 + drag-drop C3 as user-validated
-66a349d chore(state): refresh handoff docs after settings STEP 1+2 + folder-delete
-59893c7 feat(settings): modal shell with section navigation
-c4db29f feat(settings): persistent settings store with Tauri backend
-2fadb5b fix(files): folder deletion uses remove_dir_all (fixes EPERM on macOS)
-659eba2 chore(state): refresh handoff docs post-audit (STATE + JOURNAL)
-[+ 13 commits design-defaults antérieurs]
+[closure]   chore(state): clôture PLAN-COMMAND-SYSTEM — handoff docs refresh
+9f5f88a     style(editor): sober checkbox + drop strikethrough on checked items
+b3069da     fix(editor): three BlockNote bugs flagged during the morning smoke
+63e22c7     fix(sidebar): make the vault-root drop zone discoverable
+fcda277     fix(sidebar): wire draggable + ondragstart on the folder row
+b9be2ce     fix(sidebar): allow drag-drop of folders, with anti-cycle + open-file tracking
+316ee61     feat(commands): mode indicator + prefix-based mode switching (STEP 7)
+d7075dc     refactor(commands): trim Cmd+K catalog after morning smoke
+c0f9901     chore(state): wrap up autonomous night — PLAN-COMMAND-SYSTEM STEPS 1-6
+f066f82     feat(commands): global search mode (Cmd+Shift+F)                          STEP 6
+d3b2f60     feat(commands): ripgrep-based search backend                              STEP 5
+9d48658     feat(commands): quick file switcher (Cmd+P)                               STEP 4
+004b6c0     feat(commands): command palette mode (Cmd+K)                              STEP 3
+7543c91     feat(commands): bootstrap command system — registry, keymap, palette shell  STEPS 1+2
 ```
 
-## Tests (état final, code stable post-revert)
+## Tests (état final, post-merge)
 
-- cargo : **100/100 ✅** (87 + 13 nouveaux pour `import_files`)
-- vitest : **242/242 ✅**
+- cargo : **115/115 ✅** (100 base + 15 search)
+- vitest : **335/335 ✅** (242 baseline + 93 nouveaux command-system)
 - svelte-check : **0 erreur / 0 warning ✅**
-- Playwright visual : **50/50 ✅**
-
-Aucun test ne touche le filesystem utilisateur réel.
-
-## État détaillé des 12 réglages Settings v1
-
-| Section | Réglage | Modal preview | App réel |
-|---|---|---|---|
-| **Apparence** | Thème | ✅ | ✅ live |
-| | Police éditeur | ✅ | ⚠️ headings live, **body ❌ (BACKLOG)** |
-| | Taille de police | ✅ | **❌ body (BACKLOG)** |
-| | Hauteur de ligne | ✅ | **❌ body (BACKLOG)** |
-| | Largeur de contenu | ✅ | ✅ live |
-| **Éditeur** | Délai autosave | n/a | ✅ live (smoke OK) |
-| | Correction orthographique | n/a | ✅ live (smoke OK) |
-| **Mode source** | Police monospace | ✅ | ✅ live (smoke OK) |
-| **Fichiers** | Confirm avant suppression | n/a | ✅ live (smoke OK) |
-| **Comportement** | Demander avant quitter unsaved | n/a | ✅ live (smoke OK) |
-| **StatusBar** | Icône engrenage | — | ✅ ouvre le modal |
-| **Cmd+,** | Raccourci global | — | ✅ ouvre le modal |
-
-## Bugs / dettes en cours
-
-### Body editor typography (Apparence — STEP 3 partiel)
-
-Le wiring de `appearance.editorFontSize` + `editorLineHeight` + `editorFont` au body de l'éditeur a été tenté en 4 escalades (CSS variable, CSS variable + specificity, CSS !important × N sélecteurs, JS-driven inline styles + MutationObserver) puis **reverté** (commit `b2c19d2`) après que la dernière approche ait freezé l'éditeur (MutationObserver bouclant). Cause racine : BlockNote applique son propre cascade sur `.bn-default-styles`, `.bn-block-outer` et `.bn-block-content[data-content-type=...]`.
-
-**Chemin propre identifié** : passer par l'API de theming BlockNote (le fichier `editor-blocknote.css` utilise déjà ses tokens `--bn-*` propres). Reste à faire, tracé dans `BACKLOG.md`.
-
-### Drag-drop OS vers Finder (C4 — déprio)
-
-Plugin `@crabnebula/tauri-plugin-drag` v2.1.1 a un bug : panic au démarrage avec "called Result::unwrap() on an Err value: RecvError" dans `commands.rs:162:15`. Reverté (`81451d8`).
-
-Alternatives identifiées si on veut reprendre :
-- `tauri-plugin-dragout` (alexqqqqqq777, 95 stars, dédié macOS) — pas testé.
-- Custom Rust avec NSPasteboard natif (~3-4h, robuste).
-
-**Décidé avec Matheo le 2026-05-13** : drag-drop OS pas vital pour Markhub (c'est pas le mécanisme principal). Le bouton **Import** couvre 90% du besoin. Drag-drop OS reste optionnel, à reprendre en session fraîche si nécessaire.
+- Aucun test désactivé.
 
 ## Chantiers
 
@@ -93,56 +43,66 @@ Alternatives identifiées si on veut reprendre :
 |---|---|
 | C1 — Migration Crepe → BlockNote | ✅ MERGÉ sur `main` (2026-05-11) |
 | PLAN-DESIGN-DEFAULTS (10 steps) | ✅ MERGÉ sur `main` (2026-05-12 nuit) |
-| **PLAN-SETTINGS (8 steps)** | **🟡 EN COURS — STEPS 1-5 ✅, STEP 6/7/8 restants** |
+| PLAN-SETTINGS (8 steps) | 🟡 EN COURS — STEPS 1-5 ✅, STEP 6/7/8 restants |
 | Folder-delete EPERM | ✅ FIXÉ + smoke OK |
-| **Import de fichiers markdown** | ✅ LIVRÉ 2026-05-13 |
+| Import de fichiers markdown | ✅ LIVRÉ 2026-05-13 |
+| **PLAN-COMMAND-SYSTEM (8 steps)** | **✅ MERGÉ sur `main` 2026-05-14** |
+| Drag-drop sidebar — dossier + visual root drop | ✅ FIXÉ 2026-05-14 (3 commits ad-hoc) |
 | C2 — Toast / notifications | DÉBLOQUÉ — pas démarré |
-| C3 — Drag-drop sidebar HTML5 → pointer events | 🟡 USER-VALIDATED OK 2026-05-12 matin — déprio'd |
-| C4 — Drag-drop OS vers Finder | ⛔ TENTÉ + REVERTÉ — plugin tiers buggué, déprio'd |
-| C5 — Drag-drop OS depuis Finder | ⏳ PAS DÉMARRÉ — `dragDropEnabled: false` bloque |
-| PLAN-COMMAND-SYSTEM (Cmd+K / Cmd+P / Shift+F) | ⏳ PAS DÉMARRÉ — plan rédigé, après Settings clôture |
-| Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — explicitement skippé |
+| C5 — Drag-drop OS depuis Finder | ⏳ PAS DÉMARRÉ |
+| Onglets de fichiers (Phase 5c) | PAS DÉMARRÉ — skippé |
 | Outline panel (sommaire) | PAS DÉMARRÉ — brief posé |
 
-## Smoke tests validés par Matheo le 2026-05-12 / 13
+## Surface livrée par PLAN-COMMAND-SYSTEM (production en main)
 
-- ✅ Folder-delete (bug du 10/05)
-- ✅ Drag-drop sidebar fichier → dossier
-- ✅ Settings modal — open via Cmd+, + via icône StatusBar, 6 sections, navigation, fermeture
-- ✅ Theme switch live
-- ✅ Mono font live (source mode + code blocks)
-- ✅ Content width slider live
-- ✅ Autosave delay slider live
-- ✅ Spellcheck toggle live (BlockNote + source mode)
-- ✅ Confirm-before-delete toggle
-- ✅ Ask-before-closing-unsaved toggle (force-save)
-- ✅ StatusBar reorder + copy icon + fade-in modal
-- ✅ Import multi-fichiers + deselect Finder-style
+**Trois raccourcis globaux** + le keymap registry :
 
-⚠️ Smoke à refaire si tests visuels post-push :
-- `npm run build` (jamais lancé pendant la session)
+- **Cmd+K** → Command palette : 9 commandes visibles (file/vault/view/settings) + 2 méta (Go to File / Search in Vault). Fuzzy search, MRU persisté, match highlighting, badge mode indicator, prefix switching (`>` `@` `#`).
+- **Cmd+P** → File switcher : tous les .md du vault, fuzzy filename+path (boost filename), MRU persisté, exclusion du fichier ouvert.
+- **Cmd+Shift+F** → Search dans le vault : ripgrep-backed côté Rust (`grep-*` + `ignore` crates), debounce 200ms, results groupés par fichier, click → open + jumpToLine en source mode.
+- **Cmd+S** / **Cmd+,** → migrés au keymap registry (Cmd+S est `hidden` du palette, autosave couvre le reste).
+
+## Bugs ad-hoc fixés pendant la session matinale
+
+- **Drag-drop dossier** dans la sidebar : draggable+ondragstart manquaient sur le row dossier, anti-cycle ajouté (drop sur descendant), open-file follow-through (suivre le fichier ouvert si son parent bouge), visual cue 2px outline accent sur tree-wrap pour la zone racine.
+- **Slash menu** `/h2` → bloc inséré APRÈS au lieu de remplacer : `clearQuery()` avant `onItemClick()` vide le trigger range avant le swap.
+- **Liste à cocher absente** du menu Transform du side menu : ajoutée dans `TransformType` + `buildSubmenuItems`.
+- **Checkbox/edit perdu au switch fichier** : `activeFile.openFile()` cancellait au lieu de flush. Fix : flush systématique du pending save avant le switch.
+- **Checkbox visuelle** : sober custom 14px outlined → filled accent au check, strikethrough retiré.
+
+## Dettes / dépendances ajoutées par PLAN-COMMAND-SYSTEM
+
+- npm : `tinykeys@3.0.0`, `fuzzysort@3.1.0`
+- cargo : `ignore`, `grep-matcher`, `grep-regex`, `grep-searcher`, `regex` (+~2-3 MB)
+- localStorage keys : `markhub.commands.recent.v1`, `markhub.files.recent.v1`
+
+## BACKLOG enrichi par cette session
+
+Voir `BACKLOG.md` section "PLAN-COMMAND-SYSTEM — follow-ups post-clôture" :
+1. **`askBeforeClosingUnsaved` redondant** — `openFile` flush inconditionnellement maintenant. À retravailler.
+2. **BlockNote line→block resolution** — `editor:jumpToLine` no-op en preview mode (Search hits).
+3. **Double scan vault tree** — Sidebar et vaultTreeStore walkent séparément.
+4. **`SearchOptions` UI** — toggles case/whole-word/regex à exposer (hardcodé pour l'instant).
 
 ## Fichiers à relire en début de prochaine session
 
 1. `STATE.md` (ce fichier — porte d'entrée)
 2. `CLAUDE.md` (méthodologie)
 3. `WORKPLAN.md` (plan global)
-4. `JOURNAL.md` (dernière entrée — clôture session marathon 2026-05-12/13)
-5. `plan-110526/PLAN-SETTINGS.md` (chantier ACTIF — table de progression à jour, STEP 6/7/8 restent)
-6. `plan-110526/DESIGN-PRINCIPLES.md`
-7. `plan-110526/PLAN-COMMAND-SYSTEM.md` (prochain chantier post-Settings)
-8. `BACKLOG.md` (dette editor body typography tracée)
+4. **Dernières entrées de `JOURNAL.md`** (clôture nuit + matin 2026-05-13/14)
+5. `BACKLOG.md` (4 follow-ups + dettes existantes)
+6. `plan-110526/PLAN-SETTINGS.md` (STEP 6/7/8 restants — chantier suivant si reprise)
+7. `plan-110526/DESIGN-PRINCIPLES.md`
 
-## Prochaine session — options
+## Prochaine session
 
-- **STEP 6 Settings (Avancé)** : Open config folder + Export/Import JSON + version display. ~1h. Petit, propre, clôture Settings v1 en partie.
-- **STEP 7 + 8 Settings** : intégration command palette + audit final. Dépend de PLAN-COMMAND-SYSTEM.
-- **PLAN-COMMAND-SYSTEM (Cmd+K / Cmd+P / Shift+F)** : 8 steps. Gros chantier mais débloque STEP 7.
-- **Body typography fix via BlockNote theming API** : régler la dette de STEP 3. ~2-3h research + dev.
-- **C5 drag-drop depuis Finder** : test `dragDropEnabled: true` + BlockNote → si OK, simple à câbler.
+Au choix :
+- **PLAN-SETTINGS STEP 6 (Avancé)** : Open config folder + Export/Import JSON + version display, ~1h. Clôture partielle de Settings v1.
+- **Body typography fix via BlockNote theming API** : dette de PLAN-SETTINGS, ~2-3h research + dev.
+- **PLAN-COMMAND-SYSTEM follow-ups** : repenser `askBeforeClosingUnsaved`, line→block jump, SearchOptions UI.
+- **C2 Toast** : système notifs, DÉBLOQUÉ depuis longtemps.
+- **C5 drag-drop OS depuis Finder** : si pertinent.
 
-Mémoire persistante mise à jour :
-- `feedback_communication_style.md` — Matheo veut des réponses conceptuelles, pas des dumps techniques
-- `feedback_branch_strategy.md` — commits directs sur main
-- `feedback_merge_authorization.md` — Claude peut merger/supprimer branches locales
-- `feedback_parallel_agent_worktrees.md` — éviter dispatch parallèle avec isolation worktree
+## Push origin
+
+Reste à la main de Matheo (conformément à la mémoire `feedback_merge_authorization.md`). 46 commits ahead local. Quand le moment est bon : `git push origin main`.

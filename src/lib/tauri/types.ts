@@ -116,3 +116,33 @@ export type Config = {
 	settings: Settings;
 	vaultStates: Record<string, VaultState>;
 };
+
+/* ----- Search (Cmd+Shift+F) ----- */
+
+export type SearchOptions = {
+	caseSensitive: boolean;
+	wholeWord: boolean;
+	regex: boolean;
+};
+
+/** A single line match inside a file. `matchStart` / `matchEnd` are byte
+ *  offsets within `lineContent` (UTF-8); the front-end converts to char
+ *  offsets when it highlights the match span. */
+export type SearchHit = {
+	lineNumber: number;
+	lineContent: string;
+	matchStart: number;
+	matchEnd: number;
+};
+
+/** All hits for a single file, grouped together. */
+export type SearchMatch = {
+	relativePath: string;
+	hits: SearchHit[];
+};
+
+export const DEFAULT_SEARCH_OPTIONS: SearchOptions = {
+	caseSensitive: false,
+	wholeWord: false,
+	regex: false
+};

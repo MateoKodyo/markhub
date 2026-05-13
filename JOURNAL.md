@@ -1325,3 +1325,229 @@ Au choix :
 - C2 Toast / C5 drag-drop entrée / autre
 
 State + push : **STATE.md + JOURNAL.md** updated puis `git push origin main` à la fin de cette session.
+
+
+# Session 2026-05-13 → 2026-05-14 (nuit, autonome) — PLAN-COMMAND-SYSTEM STEPS 1-6
+
+Branche : `feat/command-system`. 5 commits enchaînés en mode autonome après que Matheo soit allé dormir.
+
+## STEPS 1+2 (commit `7543c91`) — bootstrap registry + palette shell
+
+Lecture du STATE.md à la reprise : la session précédente avait déjà mis le code des STEPS 1+2 dans le working tree (non commité) — registry/keymap/seed + CommandPalette.svelte + debug palette wiring + tests. Plus un fix de dernière minute pour le bug "click rows" relevé par Matheo (rows interactives par hover + click, plus uniquement clavier).
+
+Commit unique de bootstrap couvrant les deux STEPS pour ne pas splitter le diff de `+page.svelte` (debug palette + lifting `sidebarCollapsed` → `uiStateStore` mélangés dans un seul fichier). 270 → 295 tests vitest, +28 nouveaux.
+
+## STEP 3 — Command mode réel (commit `004b6c0`)
+
+Remplace le debug palette par le vrai registry-driven Cmd+K :
+
+- `fuzzysort@3.1.0` (~5 KB) installé. Wrapper `fuzzy.ts:rankCommands(commands, query, recentIds)` qui ranke par score quand query non-vide, et par recent + registration order quand vide. Garde `when` actif des deux côtés (dont les recents pointant vers un cmd guardé out → drop).
+- `recent.svelte.ts` — MRU localStorage `markhub.commands.recent.v1`, cap 10, dedupe.
+- `catalog.ts` — 12 commands (file: new/newFolder/import/save/reveal ; vault: add/next/previous ; view: toggleSidebar/toggleTheme/toggleEditorMode ; settings: open). `when` guards solides (no vault → file ops hidden, no active file → save/reveal/toggleMode hidden, vaults.length<2 → next/previous hidden).
+- `APP_KEYMAP` — Cmd+S → file.save, Cmd+K → palette.open, Cmd+, → settings.open (Cmd+, migré du `onGlobalKeydown` inline du +page).
+- `CommandMode.svelte` — body de la palette en mode command, match highlighting via `<mark>` avec splitLabel(label, matchIndices).
+- `seedCommands.ts` supprimé (superseded).
+- **Fix infrastructure** : Node 25 ship un built-in `localStorage` partiel (no `clear`, no `length`) qui shadow l'impl jsdom. Ajout d'un polyfill `MemoryStorage` dans `tests/setup.ts` pour avoir un Storage complet et isolé.
+
+Tests : 295/295 ✅, +25 (registry+keymap déjà là, +9 recentStore, +7 fuzzy, +9 CommandMode).
+
+## STEP 4 — File mode Cmd+P (commit `9d48658`)
+
+- `vaultTree.svelte.ts` — store partagé qui re-scanne sur changement de `vaultsStore.activeVaultId` via un `$effect` dans +layout. Sidebar garde son scan local séparé pour l'instant — duplication assumée (factorisation = chantier follow-up).
+- `recentFiles.svelte.ts` — MRU de `{vaultId, relativePath}` sous `markhub.files.recent.v1`, cap 20, dedup par composite key.
+- `fuzzyFiles.ts:rankFiles(files, query, recentKeys, exclude)` — fuzzysort sur **deux** clés : `name` et `relativePath`, boost +1000 sur matches filename pour qu'ils battent les hits path-only. `exclude` set drop par composite key (utilisé pour exclure le fichier ouvert).
+- `palette.svelte.ts` — store lifté de +page (état isOpen/mode/query/selectedIndex/itemCount) pour que le catalog puisse driver l'open/close sans prop-drilling.
+- `FileMode.svelte` — body Cmd+P. Filename + path tail avec highlighting séparé sur les deux. Empty states distincts pour "no files at all" vs "no matches".
+- Cmd+P → `palette.openFile` qui fait `void vaultTreeStore.refresh()` puis `paletteStore.open('file')`.
+- **Décision test** : "excludes currently open file" gardé au niveau pure-function `rankFiles` (fuzzyFiles.test.ts). Mocker `activeFileStore.activeFile` au component test trippait sur le shape getter/setter de `$state` en Svelte 5 (close() crashe car assignment to getter-only after defineProperty).
+
+Tests : 318/318 ✅, +23 (recentFiles 9, fuzzyFiles 7, FileMode 7).
+
+## STEP 5 — Rust backend search (commit `d3b2f60`)
+
+- 4 crates Rust ajoutées : `ignore` + `grep-matcher` + `grep-regex` + `grep-searcher` + `regex`. Coût bundle estimé ~2-3 MB. Compile clean.
+- `commands/search.rs` :
+  - `SearchOptions { caseSensitive, wholeWord, regex }`
+  - `SearchHit { lineNumber, lineContent, matchStart, matchEnd }` (byte offsets UTF-8)
+  - `SearchMatch { relativePath, hits }`
+  - `search(vault, query, options)` testable pure (pas d'AppHandle).
+  - `search_in_vault` Tauri command via `vault_for` (rendue publique).
+- Walker : `WalkBuilder::standard_filters(true).require_git(false)` — respecte `.gitignore`/`.ignore` **même hors git repo** parce que Markhub vaults sont souvent des plain folders. Skip aussi hidden + git internals.
+- Caps : 100 hits/file, 200 files max. Une row par ligne matchée (premier match span de la ligne) — multiple matches sur une seule ligne collapse en un.
+- Literal mode escape les meta-chars regex via `regex::escape`. Smart-case off par défaut (insensitive opt-out).
+- Whole-word wrap `\b…\b`.
+- Bug fixé : `WalkBuilder` honore `.gitignore` seulement dans un git repo par défaut → `require_git(false)` ajouté.
+- Bug fixé dans le test fixture regex : `"abc"` ne matche pas `a.b` (faut un char between). Corrigé en `"axb"`.
+
+Front-end : `types.ts` ajoute `SearchOptions/SearchHit/SearchMatch/DEFAULT_SEARCH_OPTIONS`, `api.ts:searchInVault(vaultId, query, options)`.
+
+Tests : cargo 115/115 ✅, +15 (literal/regex/case/whole-word/walk/relative-paths/non-md skip/hidden skip/gitignore honor/invalid regex/missing dir/caps smoke).
+
+## STEP 6 — Search UI Cmd+Shift+F (commit `f066f82`)
+
+- `SearchMode.svelte` — body palette mode 'search'. Appelle `searchInVault` après debounce 200ms. `activeRequestId` counter pour que les réponses tardives ne contaminent pas les fraîches.
+- Results group by file : sticky header (path + count), une row par hit (line number + content avec match `<mark>`). Click → `onActivate({ relativePath, lineNumber })`.
+- Empty/loading/no-results states distincts.
+- `bind:flatTargets` expose la liste plate au parent pour que keyboard Enter sur le shell active la même row que le click.
+- `types.ts` partagé pour `SearchActivation` (hors `<script module>` côté Svelte).
+- `palette.openSearch` (⌘⇧F) dans catalog, `when: hasActiveVault`. APP_KEYMAP : `$mod+Shift+f`.
+- `+page.svelte:activateSearch` close + record MRU + openFile + dispatch `editor:jumpToLine`.
+- `Editor.svelte` écoute `editor:jumpToLine` : en source mode, compute byte offset de la ligne, focus textarea, setSelectionRange, scroll à ⅓ from top. **Preview mode (BlockNote) = no-op** — line→block resolution est BACKLOG.
+
+Tests : vitest 324/324 ✅, +6 SearchMode (empty/loading/results/click/no-results/stale-drop). Mock `api.searchInVault` via `vi.mock('$lib/tauri/api', …)`, fake timers pour avancer le debounce.
+
+## Décisions importantes prises en autonomie
+
+1. **Single bootstrap commit STEPS 1+2** au lieu de splitter — diff `+page.svelte` mélangeait debug palette + lifting `sidebarCollapsed`. Pragmatique, traçabilité préservée par le message de commit.
+2. **`paletteStore` lifté de +page** dès STEP 4 — sinon catalog ne peut pas driver l'open/close des palettes sans prop-drilling.
+3. **vaultTreeStore + Sidebar scannent en double** quand le vault change — accepté pour la nuit. Factorisation = chantier follow-up.
+4. **`require_git(false)` sur WalkBuilder** — `.gitignore`/`.ignore` honored hors git repo, car Markhub vaults sont souvent plain folders.
+5. **Editor jump-to-line preview-mode = no-op** — BlockNote line→block resolution non-trivial, tracé en BACKLOG.
+6. **Polyfill `localStorage` complet dans tests/setup.ts** — Node 25 ship un built-in partiel qui shadow jsdom.
+7. **Test "excludes open file" gardé en pure-function layer** — `vi.spyOn`/`defineProperty` sur `activeFileStore.activeFile` ($state Svelte 5) cassait le test suivant via `close()`.
+
+## Tests finaux
+
+- cargo : **115/115 ✅** (100 base + 15 search)
+- vitest : **324/324 ✅** (242 baseline + 82 nouveaux : 8 registry + 6 keymap + 14 palette shell + 9 recent + 7 fuzzy + 9 CommandMode + 9 recentFiles + 7 fuzzyFiles + 7 FileMode + 6 SearchMode)
+- svelte-check : **0 erreur / 0 warning ✅**
+- Aucun test désactivé pour faire passer un build.
+
+## STEP 7 + STEP 8 — pas démarrés (pour smoke matinal)
+
+STEP 7 (Polish + mode-switching: prefix `>` pour command, `?` pour help, mode indicator badge, etc.) et STEP 8 (Closure) attendent le smoke matinal et la validation de feel de Matheo. C'était le mandat de la nuit.
+
+## Plan de smoke pour le matin (Matheo)
+
+À tester dans l'ordre. App lancée via `npm run tauri dev`.
+
+### 1. Cmd+K — Command mode
+- [ ] Cmd+K ouvre la palette, focus auto sur l'input, placeholder "Type a command…"
+- [ ] Liste : toutes les commandes registry (file/vault/view/settings + palette ones)
+- [ ] Type "save" → 1 résultat "Save File" (matched chars highlightés en couleur accent + bold)
+- [ ] Type "togg" → "Toggle Sidebar" + "Toggle Theme" + "Toggle Preview / Source" (si fichier ouvert)
+- [ ] ↑↓ navigue, Enter active, Escape ferme, clic backdrop ferme
+- [ ] Activer "Toggle Theme" → thème change live
+- [ ] Hover sur une row → highlight suit la souris (hover-to-select)
+- [ ] Re-ouvrir Cmd+K → "Toggle Theme" en haut de la liste (MRU au top)
+
+### 2. Cmd+P — File mode
+- [ ] Sans vault actif : ouvre quand même mais montre "No files in this vault"
+- [ ] Avec vault actif : liste tous les .md (récursif), recent files au top
+- [ ] Type partie du filename → match boosté vs path-match
+- [ ] Le fichier ouvert n'apparaît pas dans la liste
+- [ ] Path tail (e.g. "notes/deep/") affiché en muted à droite du nom
+- [ ] Match chars highlightés en accent dans le nom ET dans le path
+- [ ] Enter ou click → fichier s'ouvre, palette se ferme
+- [ ] Re-ouvrir Cmd+P → fichier vient-d'ouvrir au top des recents
+
+### 3. Cmd+Shift+F — Search mode
+- [ ] Cmd+Shift+F ouvre en search mode, placeholder "Search across vault…"
+- [ ] Query vide → hint "Type to search across your vault"
+- [ ] Type 2 lettres rapidement → debounce, pas de flash de résultats partiels
+- [ ] Type "TODO" (ou un mot qui existe) → results groupés par fichier (path + count) + rows avec line number + content + match `<mark>` accent
+- [ ] Click sur un hit → palette ferme, fichier s'ouvre
+  - **En mode source** : textarea focus + ligne sélectionnée + scroll au tiers haut
+  - **En mode preview** : fichier ouvre mais pas de scroll (BACKLOG)
+- [ ] ↑↓ + Enter → idem (active la row sélectionnée)
+- [ ] Type un truc qui n'existe pas → "No matches for `query`"
+- [ ] Tape vite plusieurs queries → les réponses tardives ne contaminent pas (verifié par test `drops stale results`)
+
+### 4. Edge cases à vérifier (rapide)
+- [ ] Cmd+, ouvre Settings (passe par le keymap registry maintenant)
+- [ ] Cmd+S sauvegarde le fichier actif (status pill bouge en "Saved")
+- [ ] Changement de thème via "Toggle Theme" du Cmd+K persiste après reload
+- [ ] Drag-drop file → folder dans la sidebar marche encore (pas régressé)
+- [ ] Import file via 📥 dans la sidebar marche encore
+- [ ] La debug palette n'existe plus (Cmd+K affiche le vrai catalog, pas les rows "New file/Export as PDF Soon")
+
+### 5. Si quelque chose accroche
+- Tout le code est sur la branche `feat/command-system`, 5 commits depuis main : `7543c91` (1+2), `004b6c0` (3), `9d48658` (4), `d3b2f60` (5), `f066f82` (6).
+- Le revert d'un STEP isolé est possible (`git revert <hash>`) si feel pas bon, sans casser les autres.
+- BACKLOG entry à ajouter pour : "BlockNote line→block resolution pour jump-to-line en preview mode" (déjà signalé dans le commit STEP 6).
+
+## Prochaine session
+
+- STEP 7 — Polish + mode-switching (prefix `>` switch entre modes, mode indicator badge, ergonomics audit). ~1-2h.
+- STEP 8 — Closure (final wrap-up, push, merge sur main).
+- (en parallèle ou après) factoriser `vaultTreeStore`/Sidebar scan, BlockNote jump-to-line, body typography via API BlockNote.
+
+
+# Session 2026-05-14 (matin, collaborative) — clôture PLAN-COMMAND-SYSTEM + 4 fixes ad-hoc
+
+Matheo smoke les STEPS 1-6 livrés autonomement la veille. Tout passe ("le search est nickel"). Enchaîne STEP 7 + smoke + clôture + merge.
+
+## Catalog cleanup post-smoke (commit `d7075dc`)
+
+Smoke Cmd+K → 3 rows noise flaggés par Matheo :
+- **Save File** — autosave couvre, Cmd+S suffit en backup. Marqué `hidden: true`.
+- **Open Command Palette** — méta-circulaire (la palette est déjà ouverte). Marqué `hidden`.
+- **Next/Previous Vault** — niche, sidebar header suffit. Retirées.
+
+Nouveau champ sur le type `Command` : `hidden?: boolean`. `rankCommands` filtre. Keymap continue de résoudre les hidden (Cmd+S marche, Cmd+K marche). +1 test pour le comportement.
+
+## STEP 7 — Polish + mode-switching (commit `316ee61`)
+
+- **Mode indicator** Lucide à gauche de l'input (ChevronRight / FileText / Search). Tint accent sur file + search pour qu'on lise le mode au coup d'œil.
+- **Mode-switching par prefix** (VS Code convention) : `>` → command, `@` → file (tree refresh à l'entrée), `#` → search (no-op sans vault). Strip du prefix au switch. Si déjà dans le mode cible, le char reste dans la query.
+- Logique extraite en **fonction pure** `detectModeSwitch(currentMode, query, hasActiveVault)` → testable seule.
+- Placeholder enrichi avec les autres prefixes ("Type a command…   (@) file   (#) search").
+
+Smoke OK.
+
+## 4 fixes ad-hoc smokes matinaux
+
+### Drag-drop dossiers — 3 patches successifs
+
+1. **Fonction `handleDragStart` débridée** (commit `b9be2ce`) — j'ai retiré le guard `entry.isDirectory`. Mais le bouton DOM du dossier n'avait pas les attrs `draggable` / `ondragstart`. Le drag ne s'initiait toujours pas.
+2. **Wire des attrs sur le bouton dossier** (commit `fcda277`) — `draggable`, `ondragstart`, `ondragend` + class `is-drag-source`. Drag fonctionnel.
+3. **Anti-cycle dans `handleDropOnFolder`** (déjà dans `b9be2ce`) — refuse drop sur soi-même ou un descendant.
+4. **Open-file follow-through** (déjà dans `b9be2ce`) — si l'activeFile est dans le dossier déplacé, re-open au nouveau path. Sinon l'éditeur écrirait à l'ancien path au prochain autosave.
+5. **Root drop zone discoverable** (commit `63e22c7`) — un nested-folder vers la racine fonctionnait techniquement mais l'espace vide sous le tree est minuscule sur vault rempli, le user ne voyait pas où drop. Ajout d'un state `rootDropActive` + outline accent 2px + voile léger sur `.tree-wrap` quand dragover hors d'un row. Outline transparent au repos pour pas shifter le layout.
+
+### Bugs BlockNote post-smoke (commit `b3069da`)
+
+1. **Slash `/` reste dans le texte** après sélection. Cause : `insertOrUpdateBlockForSlashMenu` de BlockNote ne swap le bloc courant que si son contenu est exactement `/`. Tapé `/h2` → contenu `/h2` → BlockNote insère un nouveau bloc APRÈS, laissant `/h2` avant. Fix : call `suggestionMenu.clearQuery()` AVANT `item.onItemClick()` pour vider le trigger range.
+2. **"Liste à cocher" absente du menu Transform** (côté side menu). Just oublié. Ajout dans `TransformType` + `buildSubmenuItems` + le data-side-transform hidden testing button.
+3. **Checkbox toggle perdu au switch de fichier**. Diagnostic : `activeFile.openFile()` faisait `cancelPendingSave()` avant le `fileRead`. Toute modif non encore autosaved (timer 1500ms non firé) → silencieusement discardée. Pas spécifique au checkbox : valable pour TOUT edit. Sidebar.handleOpenFile faisait un flush si `askBeforeClosingUnsaved` était on, mais Cmd+P (palette) bypass et perd. Fix : `openFile` flush son pending save inconditionnellement. Effet de bord : le setting `askBeforeClosingUnsaved` devient redondant — tracé en BACKLOG.
+
+## Décisions importantes prises pendant la session
+
+1. **Cleanup catalog par feedback direct** au lieu de tracer en BACKLOG — Matheo a flaggué et fix immédiat (5 min de bénef UX).
+2. **Mode-switching par prefix** ajouté en STEP 7 — la spec ne mentionnait que `>`, étendu à `@` et `#` par symétrie.
+3. **Drag-drop dossier non-trivial** — 3 commits successifs pour atteindre le résultat smoké. Pattern : guard back, wire DOM, anti-cycle, follow-through file, visual cue zone. Tracer pour rappel : DOM ≠ logique.
+4. **Fix `openFile` flush** au lieu de toucher au setting `askBeforeClosingUnsaved` — moins de surface, plus de garantie. Le setting devient redondant → BACKLOG pour le retravailler.
+
+## Tests finaux (avant merge)
+
+- cargo : **115/115 ✅**
+- vitest : **335/335 ✅** (+10 sur la session : 9 modeSwitch + 1 mode indicator + 1 hidden command)
+- svelte-check : **0 erreur / 0 warning ✅**
+- Smoke utilisateur : OK sur les 4 axes (Cmd+K / Cmd+P / Cmd+Shift+F / drag-drop dossier + 3 bugs BlockNote)
+
+## Commits de la session (du plus ancien au plus récent)
+
+```
+d7075dc refactor(commands): trim Cmd+K catalog after morning smoke
+316ee61 feat(commands): mode indicator + prefix-based mode switching (STEP 7)
+b9be2ce fix(sidebar): allow drag-drop of folders, with anti-cycle + open-file tracking
+fcda277 fix(sidebar): wire draggable + ondragstart on the folder row
+63e22c7 fix(sidebar): make the vault-root drop zone discoverable
+b3069da fix(editor): three BlockNote bugs flagged during the morning smoke
+```
+
+Plus les 6 commits de la session nuit autonome (7543c91 → c0f9901).
+
+Total : **12 commits sur `feat/command-system`** depuis `main`.
+
+## Clôture PLAN-COMMAND-SYSTEM
+
+Tableau de progression : **8/8 ✅**. STEP 8 = ce commit de closure + le merge sur main.
+
+## Prochaine session
+
+PLAN-COMMAND-SYSTEM est terminé. Pistes :
+- **PLAN-SETTINGS STEP 6** (Avancé : open config folder + export/import JSON + version display, ~1h)
+- **Body typography fix via BlockNote theming API** (dette du PLAN-SETTINGS, ~2-3h)
+- **C2 Toast / C5 drag-drop entrée** / autre
+- Les 4 follow-ups PLAN-COMMAND-SYSTEM listés en BACKLOG

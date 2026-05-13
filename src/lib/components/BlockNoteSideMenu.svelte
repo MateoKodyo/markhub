@@ -41,6 +41,7 @@
 		| 'heading'
 		| 'bulletListItem'
 		| 'numberedListItem'
+		| 'checkListItem'
 		| 'quote'
 		| 'codeBlock';
 
@@ -141,6 +142,7 @@
 			{ label: 'Titre 3', onClick: () => transform('heading', { level: 3 }) },
 			{ label: 'Liste à puces', onClick: () => transform('bulletListItem') },
 			{ label: 'Liste numérotée', onClick: () => transform('numberedListItem') },
+			{ label: 'Liste à cocher', onClick: () => transform('checkListItem') },
 			{ label: 'Citation', onClick: () => transform('quote') },
 			{ label: 'Bloc de code', onClick: () => transform('codeBlock') }
 		];
@@ -230,6 +232,11 @@
 			type="button"
 			data-side-transform="numberedListItem"
 			onclick={() => transform('numberedListItem')}>Liste numérotée</button
+		>
+		<button
+			type="button"
+			data-side-transform="checkListItem"
+			onclick={() => transform('checkListItem')}>Liste à cocher</button
 		>
 		<button type="button" data-side-transform="quote" onclick={() => transform('quote')}
 			>Citation</button

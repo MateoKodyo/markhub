@@ -36,6 +36,20 @@ class ActiveFileStore {
 
 	async openFile(vaultId: string, relativePath: string): Promise<void> {
 		const myRequestId = ++this.#openRequestId;
+		// Flush any pending autosave BEFORE switching files. Without this,
+		// the timer scheduled by `updateContent` is cancelled and the
+		// in-flight edit is silently lost. This bit the user with checkbox
+		// toggles in particular: the change fires onChange but the textual
+		// content stays similar enough that the loss isn't obvious until
+		// they come back to the file. Errors are logged but don't block
+		// the switch — better than freezing the UI on a disk-full state.
+		if (this.activeFile && this.status === 'modified') {
+			try {
+				await this.#flushSave();
+			} catch (e) {
+				console.warn('[activeFile] flush before switch failed', e);
+			}
+		}
 		this.#cancelPendingSave();
 		this.status = 'loading';
 		try {

@@ -12,6 +12,20 @@
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
+	import { paletteStore } from '$lib/stores/palette.svelte';
+	import { recentFilesStore } from '$lib/stores/recentFiles.svelte';
+	import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
+	import CommandPalette from '$lib/components/CommandPalette.svelte';
+	import CommandMode from '$lib/components/palette/CommandMode.svelte';
+	import FileMode from '$lib/components/palette/FileMode.svelte';
+	import SearchMode from '$lib/components/palette/SearchMode.svelte';
+	import type { SearchActivation } from '$lib/components/palette/types';
+	import { detectModeSwitch } from '$lib/components/palette/modeSwitch';
+	import { commandRegistry, type Command } from '$lib/commands/registry.svelte';
+	import { recentCommandsStore } from '$lib/commands/recent.svelte';
+	import { rankCommands } from '$lib/commands/fuzzy';
+	import { rankFiles, type FilePaletteEntry } from '$lib/commands/fuzzyFiles';
 	import { joinPath } from '$lib/utils/path';
 	import * as api from '$lib/tauri/api';
 
@@ -19,7 +33,6 @@
 
 	let loadError = $state<string | null>(null);
 	let editorMode = $state<EditorMode>('preview');
-	let sidebarCollapsed = $state(false);
 
 	// EmptyState → pick directory → in-app modal flow.
 	let pendingAction = $state<PendingAction | null>(null);
@@ -100,6 +113,129 @@
 		root.setProperty('--font-editor', EDITOR_FAMILY_BY_ID[a.editorFont] ?? EDITOR_FAMILY_BY_ID.geist);
 		root.setProperty('--content-max-width', `${a.editorContentWidth}px`);
 	});
+
+	// --- Command palette wiring -------------------------------------------
+	// Palette state lives in `paletteStore` so the catalog can drive it
+	// (`palette.open`, `palette.openFile`) without reaching into +page.
+	// Activation paths live here because they need to record into the
+	// MRU stores and dispatch to the right handler (command vs. file).
+	function activateCommand(cmd: Command): void {
+		paletteStore.close();
+		recentCommandsStore.record(cmd.id);
+		void cmd.handler();
+	}
+
+	function activateFile(entry: FilePaletteEntry): void {
+		paletteStore.close();
+		recentFilesStore.record({
+			vaultId: entry.vaultId,
+			relativePath: entry.relativePath
+		});
+		void activeFileStore.openFile(entry.vaultId, entry.relativePath);
+	}
+
+	/** Click on a search hit: close, open the file, then dispatch a
+	 *  jump-to-line event for the editor to consume. Source mode scrolls
+	 *  the textarea to the row; preview mode (BlockNote) is a no-op for
+	 *  now — line→block resolution is BACKLOG. */
+	function activateSearch(target: SearchActivation): void {
+		const vaultId = vaultsStore.activeVaultId;
+		if (!vaultId) return;
+		paletteStore.close();
+		recentFilesStore.record({
+			vaultId,
+			relativePath: target.relativePath
+		});
+		void activeFileStore
+			.openFile(vaultId, target.relativePath)
+			.then(() => {
+				window.dispatchEvent(
+					new CustomEvent('editor:jumpToLine', {
+						detail: { lineNumber: target.lineNumber }
+					})
+				);
+			});
+	}
+
+	// Mirror each mode's ranking so keyboard Enter (which fires
+	// CommandPalette.onActivate(index)) resolves to the same row the body
+	// displays. Both shell + body use the same ranking inputs.
+	const paletteRankedCommands = $derived(
+		paletteStore.mode === 'command'
+			? rankCommands(
+					commandRegistry.getAll(),
+					paletteStore.query,
+					recentCommandsStore.getRecent()
+				)
+			: []
+	);
+
+	const paletteFileExclude = $derived.by(() => {
+		const set = new Set<string>();
+		const af = activeFileStore.activeFile;
+		if (af) set.add(`${af.vaultId}::${af.relativePath}`);
+		return set;
+	});
+
+	const paletteRankedFiles = $derived(
+		paletteStore.mode === 'file'
+			? rankFiles(
+					vaultTreeStore.files,
+					paletteStore.query,
+					recentFilesStore.getRecent(),
+					paletteFileExclude
+				)
+			: []
+	);
+
+	// Search mode exposes its flat list of (path, line) targets so the
+	// shell's Enter can resolve to the right one without re-running the
+	// search here. Empty until SearchMode mounts.
+	let paletteSearchTargets = $state<SearchActivation[]>([]);
+
+	function paletteActivateByIndex(index: number): void {
+		if (paletteStore.mode === 'command') {
+			const cmd = paletteRankedCommands[index]?.command;
+			if (cmd) activateCommand(cmd);
+		} else if (paletteStore.mode === 'file') {
+			const entry = paletteRankedFiles[index]?.entry;
+			if (entry) activateFile(entry);
+		} else if (paletteStore.mode === 'search') {
+			const target = paletteSearchTargets[index];
+			if (target) activateSearch(target);
+		}
+	}
+
+	// view.toggleEditorMode dispatches `app:toggleEditorMode`; listen and
+	// flip editorMode here (preview ↔ source). Only flips when an active
+	// file is open — the command guards itself via `when`.
+	$effect(() => {
+		const onToggle = () => {
+			if (!activeFileStore.activeFile) return;
+			editorMode = editorMode === 'preview' ? 'source' : 'preview';
+		};
+		window.addEventListener('app:toggleEditorMode', onToggle);
+		return () => window.removeEventListener('app:toggleEditorMode', onToggle);
+	});
+
+	// Mode switching via input prefix — pure logic in `detectModeSwitch`,
+	// effect just applies the result + handles side effects (refresh tree
+	// on switch to file mode).
+	$effect(() => {
+		const q = paletteStore.query;
+		if (!paletteStore.isOpen) return;
+		const next = detectModeSwitch(
+			paletteStore.mode,
+			q,
+			vaultsStore.activeVaultId !== null
+		);
+		if (!next) return;
+		paletteStore.mode = next.mode;
+		paletteStore.query = next.query;
+		paletteStore.selectedIndex = 0;
+		if (next.mode === 'file') void vaultTreeStore.refresh();
+	});
+	// --- end Command palette wiring ---------------------------------------
 
 	onMount(async () => {
 		try {
@@ -209,23 +345,7 @@
 		}
 	}
 
-	/**
-	 * Global Cmd+, (macOS) / Ctrl+, (Win/Linux) opens the Settings modal.
-	 * Mirrors the OS convention. PLAN-COMMAND-SYSTEM will later route this
-	 * through the central registry (and add Cmd+K → "Open Settings"); for
-	 * now the binding lives here so the modal is reachable from anywhere.
-	 */
-	function onGlobalKeydown(e: KeyboardEvent) {
-		const isComma = e.key === ',';
-		const isMeta = e.metaKey || e.ctrlKey;
-		if (isComma && isMeta) {
-			e.preventDefault();
-			settingsStore.open();
-		}
-	}
 </script>
-
-<svelte:window onkeydown={onGlobalKeydown} />
 
 <div class="app">
 	<!-- The window-chrome strip is a drag region, not an interactive
@@ -241,18 +361,18 @@
 		<button
 			type="button"
 			class="chrome-toggle"
-			class:is-active={!sidebarCollapsed}
-			onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
-			aria-label={sidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
-			aria-pressed={!sidebarCollapsed}
-			title={sidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
+			class:is-active={!uiStateStore.sidebarCollapsed}
+			onclick={() => uiStateStore.toggleSidebar()}
+			aria-label={uiStateStore.sidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
+			aria-pressed={!uiStateStore.sidebarCollapsed}
+			title={uiStateStore.sidebarCollapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
 		>
 			<PanelLeft size={16} strokeWidth={1.5} aria-hidden="true" focusable="false" />
 		</button>
 	</header>
 
 	<div class="app-body">
-		<Sidebar collapsed={sidebarCollapsed} />
+		<Sidebar collapsed={uiStateStore.sidebarCollapsed} />
 
 		<main class="content">
 		{#if loadError}
@@ -347,6 +467,47 @@
 </div>
 
 <SettingsModal />
+
+<!-- Command palette — owned by paletteStore. Body swaps on mode:
+	 'command' (Cmd+K) | 'file' (Cmd+P) | 'search' (Cmd+Shift+F, STEP 6). -->
+<CommandPalette
+	open={paletteStore.isOpen}
+	mode={paletteStore.mode}
+	placeholder={paletteStore.mode === 'file'
+		? 'Go to file…   (>) command   (#) search'
+		: paletteStore.mode === 'search'
+			? 'Search across vault…   (>) command   (@) file'
+			: 'Type a command…   (@) file   (#) search'}
+	itemCount={paletteStore.itemCount}
+	bind:query={paletteStore.query}
+	bind:selectedIndex={paletteStore.selectedIndex}
+	onClose={() => paletteStore.close()}
+	onActivate={paletteActivateByIndex}
+>
+	{#if paletteStore.mode === 'command'}
+		<CommandMode
+			query={paletteStore.query}
+			selectedIndex={paletteStore.selectedIndex}
+			bind:itemCount={paletteStore.itemCount}
+			onActivate={activateCommand}
+		/>
+	{:else if paletteStore.mode === 'file'}
+		<FileMode
+			query={paletteStore.query}
+			selectedIndex={paletteStore.selectedIndex}
+			bind:itemCount={paletteStore.itemCount}
+			onActivate={activateFile}
+		/>
+	{:else if paletteStore.mode === 'search'}
+		<SearchMode
+			query={paletteStore.query}
+			selectedIndex={paletteStore.selectedIndex}
+			bind:itemCount={paletteStore.itemCount}
+			bind:flatTargets={paletteSearchTargets}
+			onActivate={activateSearch}
+		/>
+	{/if}
+</CommandPalette>
 
 <style>
 	.app {
@@ -535,4 +696,5 @@
 		padding: var(--space-7);
 		color: var(--color-text-secondary);
 	}
+
 </style>

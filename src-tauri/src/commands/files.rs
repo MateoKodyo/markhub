@@ -400,7 +400,7 @@ fn scan_dir(absolute: &Path, relative: &str) -> Result<Vec<FileEntry>, String> {
 // Tauri command wrappers — look up vault from config, delegate.
 // ============================================================
 
-fn vault_for(app: &AppHandle, id: &str) -> Result<Vault, String> {
+pub fn vault_for(app: &AppHandle, id: &str) -> Result<Vault, String> {
     let cfg_path = config::resolve_config_path(app)?;
     let cfg = config::load_config_from_path(&cfg_path)?;
     cfg.vaults

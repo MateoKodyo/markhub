@@ -72,9 +72,13 @@
 	const DRAG_MIME = 'application/x-markhub-path';
 	let dragOverPath = $state<string | null>(null);
 	let dragSourcePath = $state<string | null>(null);
+	/** True while a drag is hovering the wrap *outside* a folder row —
+	 *  i.e. a candidate drop onto the vault root. Drives the .is-root-drop-target
+	 *  visual outline on .tree-wrap. */
+	let rootDropActive = $state(false);
 
 	function handleDragStart(e: DragEvent, entry: FileEntry) {
-		if (readonly || entry.isDirectory) {
+		if (readonly) {
 			e.preventDefault();
 			return;
 		}
@@ -87,6 +91,7 @@
 	function handleDragEnd() {
 		dragSourcePath = null;
 		dragOverPath = null;
+		rootDropActive = false;
 	}
 
 	function handleDragOverFolder(e: DragEvent, entry: FileEntry) {
@@ -97,6 +102,8 @@
 		e.preventDefault();
 		e.dataTransfer.dropEffect = 'move';
 		dragOverPath = entry.relativePath;
+		// Hovering a folder cancels the "root drop zone" hint.
+		rootDropActive = false;
 	}
 
 	function handleDragLeaveFolder(entry: FileEntry) {
@@ -111,20 +118,38 @@
 		const targetParent = target ? target.relativePath : '';
 		dragOverPath = null;
 		dragSourcePath = null;
+		rootDropActive = false;
 		// Don't re-emit if the source is already inside this directory.
 		const currentParent = sourcePath.includes('/')
 			? sourcePath.slice(0, sourcePath.lastIndexOf('/'))
 			: '';
 		if (currentParent === targetParent) return;
+		// Anti-cycle: a folder cannot be dropped onto itself or onto one
+		// of its own descendants (that would create a path loop).
+		if (targetParent === sourcePath) return;
+		if (targetParent.startsWith(sourcePath + '/')) return;
 		await onMoveFile(sourcePath, targetParent);
 	}
 
 	function handleRootDragOver(e: DragEvent) {
 		if (readonly) return;
 		if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
-		// Only mark as "root drop zone" if we're not over a folder row already.
 		e.preventDefault();
 		e.dataTransfer.dropEffect = 'move';
+		// "Root drop zone" lights up whenever the drag is hovering the wrap
+		// AND there's no folder row taking the hover (dragOverPath is what
+		// the folder onDragOver sets — we just complement it here).
+		rootDropActive = dragOverPath === null;
+	}
+
+	function handleRootDragLeave(e: DragEvent) {
+		// `relatedTarget` is the element entered next. If we're still inside
+		// the wrap (entered a child) keep the highlight; only clear when we
+		// truly leave the wrap.
+		const wrap = e.currentTarget as HTMLElement;
+		const next = e.relatedTarget as Node | null;
+		if (next && wrap.contains(next)) return;
+		rootDropActive = false;
 	}
 
 	// Filter the tree, keeping any directory whose name OR descendants match.
@@ -270,9 +295,11 @@
 
 <div
 	class="tree-wrap"
+	class:is-root-drop-target={rootDropActive}
 	oncontextmenu={onRootContextMenu}
 	onclick={onEmptyAreaClick}
 	ondragover={handleRootDragOver}
+	ondragleave={handleRootDragLeave}
 	ondrop={(e) => handleDropOnFolder(e, null)}
 	role="presentation"
 >
@@ -302,6 +329,7 @@
 		{@const isOpen = isExpanded(entry.relativePath)}
 		{@const isRenaming = renamingPath === entry.relativePath}
 		{@const isDropTarget = dragOverPath === entry.relativePath}
+		{@const isDragSource = dragSourcePath === entry.relativePath}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="directory"
@@ -309,6 +337,7 @@
 			class:is-expanded={isOpen}
 			class:is-selected={selectedPath === entry.relativePath}
 			class:is-drop-target={isDropTarget}
+			class:is-drag-source={isDragSource}
 		>
 			{#if isRenaming}
 				<div class="row inline-renaming" data-testid="inline-rename">
@@ -343,6 +372,9 @@
 					ondblclick={(e) => onEntryDoubleClick(e, entry)}
 					onkeydown={(e) => onEntryKeyDown(e, entry)}
 					oncontextmenu={(e) => onEntryContextMenu(e, entry)}
+					draggable={!readonly}
+					ondragstart={(e) => handleDragStart(e, entry)}
+					ondragend={handleDragEnd}
 					ondragover={(e) => handleDragOverFolder(e, entry)}
 					ondragleave={() => handleDragLeaveFolder(entry)}
 					ondrop={(e) => handleDropOnFolder(e, entry)}
@@ -433,6 +465,18 @@
 <style>
 	.tree-wrap {
 		min-height: 60px;
+		/* Hold a transparent outline so the lit-up state below doesn't shift
+		   the layout by 2px when it kicks in. */
+		outline: 2px solid transparent;
+		outline-offset: -2px;
+		border-radius: var(--radius-md, 6px);
+		transition: outline-color var(--duration-base, 160ms) var(--easing-standard, ease-out),
+			background-color var(--duration-base, 160ms) var(--easing-standard, ease-out);
+	}
+
+	.tree-wrap.is-root-drop-target {
+		outline-color: var(--color-accent);
+		background: color-mix(in oklab, var(--color-accent) 6%, transparent);
 	}
 
 	.tree {
