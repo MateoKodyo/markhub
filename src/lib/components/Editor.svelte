@@ -154,9 +154,11 @@
 	}
 
 	// Listen for jump-to-line events fired by Cmd+Shift+F search hits.
-	// Source mode focuses + selects + scrolls the line in the textarea.
-	// Preview mode walks BlockNote's document via `lineToBlockIndex`
-	// (markdown heuristic) and scrolls the matching block into view.
+	// Source mode scrolls the textarea + selects the line natively.
+	// Preview mode auto-switches to source and jumps there: the
+	// BlockNote-internal scroll path is too unreliable to count on
+	// (see BACKLOG). Source-mode jump is deterministic and the native
+	// blue selection serves as the "match here" visual cue.
 	$effect(() => {
 		const onJump = (e: Event) => {
 			const detail = (e as CustomEvent<{ lineNumber: number }>).detail;
@@ -164,10 +166,9 @@
 			if (mode === 'source') {
 				scrollToLineInSource(detail.lineNumber);
 			} else {
-				scrollToLineInPreview(detail.lineNumber);
-				// No fallback toggle here: the search palette already
-				// opened the file; an extra mode switch on a missed lookup
-				// surprises the user more than a silent no-op would.
+				window.dispatchEvent(new CustomEvent('app:toggleEditorMode'));
+				// Wait one tick for the source textarea to mount, then jump.
+				setTimeout(() => scrollToLineInSource(detail.lineNumber), 50);
 			}
 		};
 		window.addEventListener('editor:jumpToLine', onJump);

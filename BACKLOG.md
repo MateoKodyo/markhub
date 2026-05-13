@@ -4,6 +4,15 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### Scroll-in-preview pour les jumps (BlockNote API instable) — 2026-05-14
+- `Cmd+Shift+F` search hits et clicks sur Outline panel : en mode **preview**, le scroll programmatique vers un block BlockNote est non-fiable. Tentatives :
+  1. `container.querySelector('[data-id="..."]').scrollIntoView()` — `data-id` parfois absent / stale, queryselector retourne null.
+  2. `setIdAttribute: true` à la création de l'éditeur — pas d'effet visible sur la query.
+  3. `editor.setTextCursorPosition(block, 'start')` après `editor.focus()` — return success silencieux sans vraie scroll.
+- Workaround actuel (commit `bd02667` puis `…`) : en preview, on dispatch `app:toggleEditorMode` pour basculer en source mode puis on jump-to-line (textarea, déterministe). User surpris par le mode switch mais le scroll fonctionne et la selection native sert de cue visuel.
+- Path propre quand on aura du temps : se plonger dans la ProseMirror view API (`view.coordsAtPos` + scroll manuel sur le container parent) OU vérifier les DOM attribute names exacts via DevTools en runtime.
+- Le flash accent (commit `bdfd29f`) marche bien en source mode via la selection native ; en preview il était lié au scroll preview donc il ne s'affiche pas avec le workaround.
+
 ### Flash blanc au resize de la fenêtre (2026-05-14)
 - Quand on redimensionne la fenêtre Markhub, une bande blanche apparaît brièvement au bord bas et droit pendant que le WebView re-rend. Tentatives reverted :
   - `tauri.conf.json` → ajout de `"backgroundColor": "#0a0908"` au window config. Le schéma Tauri 2 accepte le format hex, mais sur macOS + `titleBarStyle: "Overlay"` le param semble ne pas atteindre le CALayer du WKWebView.
