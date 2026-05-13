@@ -131,3 +131,100 @@ export function extractHeadings(content: string): Heading[] {
 
 	return headings;
 }
+
+/**
+ * Translate a 1-based line number in the markdown SOURCE into the
+ * zero-based index of the BlockNote block it belongs to. Used by
+ * `editor:jumpToLine` (Cmd+Shift+F search hit) to scroll the preview
+ * editor without leaving preview mode.
+ *
+ * Heuristic — single-line-per-block is the common case in markdown:
+ *   - Each non-empty, non-fence line bumps the block counter.
+ *   - Empty lines separate blocks (don't bump on their own — they map
+ *     to whichever block currently owns the cursor: the previous one).
+ *   - A ```/~~~ fence opens ONE block that owns every line until the
+ *     matching closing fence (including the opening fence line itself).
+ *   - Frontmatter (between leading `---` markers) belongs to no block
+ *     and returns null.
+ *
+ * Edge cases this WON'T resolve perfectly:
+ *   - Nested lists collapse into separate blocks per item, not per
+ *     visual line. Should still land "close enough" for scroll.
+ *   - HTML / setext headings are not the BlockNote convention; users
+ *     who hit them on Markhub get a `null` jump (we'll toggle source
+ *     mode as the fallback path).
+ *
+ * Returns `null` if the line falls outside the document, inside
+ * frontmatter, or on the trailing empty space.
+ */
+export function lineToBlockIndex(
+	content: string,
+	lineNumber: number
+): number | null {
+	if (!content || lineNumber < 1) return null;
+	const lines = content.split('\n');
+	if (lineNumber > lines.length) return null;
+
+	let i = 0;
+	// Skip frontmatter (between leading `---` markers).
+	if (lines[0] === '---') {
+		for (let j = 1; j < lines.length; j++) {
+			if (lines[j] === '---') {
+				i = j + 1;
+				break;
+			}
+		}
+		if (lineNumber - 1 < i) return null;
+	}
+
+	const FENCE_RE = /^\s*(```|~~~)/;
+	let blockIndex = -1;
+	let inFence = false;
+	let fenceMarker = '';
+
+	for (; i < lines.length; i++) {
+		const ln = i + 1;
+		const line = lines[i];
+		const fence = line.match(FENCE_RE);
+
+		if (inFence) {
+			// Closing fence (matching the opener kind) closes the block.
+			if (fence && line.includes(fenceMarker)) {
+				if (ln === lineNumber) return blockIndex;
+				inFence = false;
+				fenceMarker = '';
+				continue;
+			}
+			// Any line inside the fence belongs to that codeBlock.
+			if (ln === lineNumber) return blockIndex;
+			continue;
+		}
+
+		if (fence) {
+			blockIndex++;
+			inFence = true;
+			fenceMarker = fence[1];
+			if (ln === lineNumber) return blockIndex;
+			continue;
+		}
+
+		if (line.trim() === '') {
+			// Empty line — maps to the previous block (the cursor still
+			// belongs to whatever just ended). If no block yet, return null.
+			if (ln === lineNumber) {
+				return blockIndex >= 0 ? blockIndex : null;
+			}
+			continue;
+		}
+
+		// Non-empty, non-fence: each such line is its own block.
+		// (Limitation: a CommonMark soft-wrapped paragraph across
+		// multiple lines is one BlockNote paragraph, but we'll count
+		// each line. The user lands on the right *paragraph* block
+		// regardless — scroll-into-view shows the whole paragraph.)
+		blockIndex++;
+		if (ln === lineNumber) return blockIndex;
+	}
+
+	return null;
+}

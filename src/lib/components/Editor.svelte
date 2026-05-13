@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { joinFrontmatter, splitFrontmatter } from '$lib/utils/markdown';
+	import {
+		joinFrontmatter,
+		lineToBlockIndex,
+		splitFrontmatter
+	} from '$lib/utils/markdown';
 	import { urlOpen } from '$lib/tauri/api';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	// CSS pulled in statically so Vite HMR reloads the stylesheets on every
@@ -67,57 +71,82 @@
 		);
 	}
 
+	/** Scroll a specific BlockNote block (by its document index) into
+	 *  view. DOM lookup via `[data-id]` first, falls back to the editor's
+	 *  `setTextCursorPosition` (which scrolls naturally). */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function scrollToBlockInPreview(block: any): boolean {
+		if (!editorInstance || !container || !block) return false;
+		const el = container.querySelector(
+			`[data-id="${block.id}"]`
+		) as HTMLElement | null;
+		if (el) {
+			el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			return true;
+		}
+		try {
+			editorInstance.setTextCursorPosition?.(block, 'start');
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	/** Find the Nth `heading` block in BlockNote's document and scroll
-	 *  its DOM element into view. Returns true on success, false if the
-	 *  block can't be located (caller can fall back to a mode switch). */
+	 *  it into view. Used by Outline-panel clicks (which pass the heading
+	 *  index, not a line number). */
 	function scrollToNthHeadingInPreview(headingIndex: number): boolean {
-		if (!editorInstance || !container) return false;
+		if (!editorInstance) return false;
 		try {
 			const doc = editorInstance.document;
 			if (!Array.isArray(doc)) return false;
 			let count = -1;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			let target: any = null;
 			for (const block of doc) {
 				if (block?.type === 'heading') {
 					count++;
 					if (count === headingIndex) {
-						target = block;
-						break;
+						return scrollToBlockInPreview(block);
 					}
 				}
 			}
-			if (!target) return false;
-			const el = container.querySelector(
-				`[data-id="${target.id}"]`
-			) as HTMLElement | null;
-			if (el) {
-				el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				return true;
-			}
-			// DOM lookup missed (BlockNote may not stamp `data-id` on every
-			// build). Fall back to the editor API, which scrolls naturally
-			// when it moves the cursor.
-			try {
-				editorInstance.setTextCursorPosition?.(target, 'start');
-				return true;
-			} catch {
-				return false;
-			}
+			return false;
+		} catch {
+			return false;
+		}
+	}
+
+	/** Resolve a 1-based source line number to its BlockNote block via
+	 *  the markdown heuristic, then scroll to it. Used by Cmd+Shift+F
+	 *  search hits in preview mode (previously a no-op). */
+	function scrollToLineInPreview(lineNumber: number): boolean {
+		if (!editorInstance) return false;
+		try {
+			const doc = editorInstance.document;
+			if (!Array.isArray(doc)) return false;
+			const idx = lineToBlockIndex(content, lineNumber);
+			if (idx === null || idx < 0 || idx >= doc.length) return false;
+			return scrollToBlockInPreview(doc[idx]);
 		} catch {
 			return false;
 		}
 	}
 
 	// Listen for jump-to-line events fired by Cmd+Shift+F search hits.
-	// Source mode focuses + selects + scrolls the corresponding line.
-	// Preview mode (BlockNote) is a no-op — mapping a source line to a
-	// BlockNote block is BACKLOG.
+	// Source mode focuses + selects + scrolls the line in the textarea.
+	// Preview mode walks BlockNote's document via `lineToBlockIndex`
+	// (markdown heuristic) and scrolls the matching block into view.
 	$effect(() => {
 		const onJump = (e: Event) => {
 			const detail = (e as CustomEvent<{ lineNumber: number }>).detail;
-			if (!detail || mode !== 'source') return;
-			scrollToLineInSource(detail.lineNumber);
+			if (!detail) return;
+			if (mode === 'source') {
+				scrollToLineInSource(detail.lineNumber);
+			} else {
+				scrollToLineInPreview(detail.lineNumber);
+				// No fallback toggle here: the search palette already
+				// opened the file; an extra mode switch on a missed lookup
+				// surprises the user more than a silent no-op would.
+			}
 		};
 		window.addEventListener('editor:jumpToLine', onJump);
 		return () => window.removeEventListener('editor:jumpToLine', onJump);
