@@ -159,10 +159,54 @@
 	color: var(--color-text-primary);
 }
 
-/* Task list checkboxes — BN ships native browser checkbox, we tint
- * with accent-color so checked state matches the design system. */
+/* Task list checkboxes — replace the loud native widget with a sober
+ * square that reads as part of the design system: 14px outlined square
+ * at rest, accent-filled with a thin white tick when checked. Matches
+ * Linear / Cursor's quiet treatment rather than the macOS blue bubble. */
 .preview .bn-block-content[data-content-type='checkListItem'] > div > input {
-	accent-color: var(--color-accent);
+	appearance: none;
+	-webkit-appearance: none;
+	width: 14px;
+	height: 14px;
+	margin-block: 0;
+	margin-left: 4px;
+	margin-right: 8px;
+	border: 1.5px solid var(--color-text-muted);
+	border-radius: 3px;
+	background: transparent;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	transition:
+		background-color var(--duration-base, 160ms) var(--easing-standard, ease-out),
+		border-color var(--duration-base, 160ms) var(--easing-standard, ease-out);
+}
+
+.preview .bn-block-content[data-content-type='checkListItem'] > div > input:hover {
+	border-color: var(--color-text-body);
+}
+
+.preview .bn-block-content[data-content-type='checkListItem'] > div > input:checked {
+	background: var(--color-accent);
+	border-color: var(--color-accent);
+}
+
+/* Checkmark drawn as a tiny SVG mask so it inherits color reliably. */
+.preview .bn-block-content[data-content-type='checkListItem'] > div > input:checked::after {
+	content: '';
+	width: 9px;
+	height: 9px;
+	background-color: #fff;
+	-webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='3.5,8.5 6.5,11.5 12.5,4.5'/></svg>") center / contain no-repeat;
+	mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='3.5,8.5 6.5,11.5 12.5,4.5'/></svg>") center / contain no-repeat;
+}
+
+/* Kill BlockNote's strikethrough on checked items — Matheo explicitly
+ * dislikes the "ticked off" look; the filled square is signal enough. */
+.preview .bn-block-content[data-content-type='checkListItem'][data-checked='true'] .bn-inline-content {
+	text-decoration: none;
 }
 
 /* Selected block outline — BN default is #64a0ff (sky blue), we want
