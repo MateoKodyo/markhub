@@ -7,6 +7,7 @@
 	import { recentFilesStore } from '$lib/stores/recentFiles.svelte';
 	import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
+	import ToastContainer from '$lib/components/ToastContainer.svelte';
 
 	let { children } = $props();
 
@@ -39,3 +40,5 @@
 </svelte:head>
 
 {@render children()}
+
+<ToastContainer />

@@ -15,6 +15,7 @@
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { paletteStore } from '$lib/stores/palette.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { recentFilesStore } from '$lib/stores/recentFiles.svelte';
 	import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
@@ -312,10 +313,13 @@
 		const v = vaultsStore.activeVault;
 		const f = activeFileStore.activeFile;
 		if (!v || !f) return;
+		const path = joinPath(v.path, f.relativePath);
 		try {
-			await navigator.clipboard.writeText(joinPath(v.path, f.relativePath));
+			await navigator.clipboard.writeText(path);
+			toast.success('Chemin copié', { details: path });
 		} catch (e) {
 			console.warn('[clipboard] copy failed', e);
+			toast.error('Copie impossible', { details: String(e) });
 		}
 	}
 

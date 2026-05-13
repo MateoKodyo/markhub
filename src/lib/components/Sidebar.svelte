@@ -10,6 +10,7 @@
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import {
 		vaultScan,
 		fileCreate,
@@ -201,14 +202,17 @@
 				await fileCreate(id, rel);
 				await refreshScan();
 				void activeFileStore.openFile(id, rel);
+				toast.success('Fichier créé', { details: name });
 			} else {
 				const rel = parentPath ? joinPath(parentPath, rawName) : rawName;
 				await folderCreate(id, rel);
 				await refreshScan();
+				toast.success('Dossier créé', { details: rawName });
 			}
 			creatingAt = null;
 		} catch (e) {
 			topLevelError = `Création impossible : ${String(e)}`;
+			toast.error('Création impossible', { details: String(e) });
 			creatingAt = null;
 		}
 	}
@@ -279,8 +283,13 @@
 		try {
 			const newMode: VaultMode = vault.mode === 'edit' ? 'readonly' : 'edit';
 			await vaultsStore.updateVault(vault.id, { mode: newMode });
+			toast.info(
+				newMode === 'readonly' ? 'Vault en lecture seule' : 'Vault en édition',
+				{ details: vault.name }
+			);
 		} catch (e) {
 			topLevelError = `Changement de mode impossible : ${String(e)}`;
+			toast.error('Changement de mode impossible', { details: String(e) });
 		}
 	}
 
@@ -290,15 +299,21 @@
 			'Le vault sera retiré de Markhub. Les fichiers sur disque ne sont pas supprimés.';
 		confirmHandler = async () => {
 			const wasActive = vaultsStore.activeVaultId === vault.id;
-			await vaultsStore.removeVault(vault.id);
-			confirmOpen = false;
-			if (
-				wasActive &&
-				activeFileStore.activeFile &&
-				activeFileStore.activeFile.vaultId === vault.id
-			) {
-				activeFileStore.close();
-				void vaultsStore.setLastOpenedFile(null);
+			try {
+				await vaultsStore.removeVault(vault.id);
+				confirmOpen = false;
+				if (
+					wasActive &&
+					activeFileStore.activeFile &&
+					activeFileStore.activeFile.vaultId === vault.id
+				) {
+					activeFileStore.close();
+					void vaultsStore.setLastOpenedFile(null);
+				}
+				toast.info('Vault retiré', { details: vault.name });
+			} catch (e) {
+				toast.error('Retrait du vault impossible', { details: String(e) });
+				throw e;
 			}
 		};
 		confirmOpen = true;
@@ -440,8 +455,10 @@
 			const newRel = await fileDuplicate(id, entry.relativePath);
 			await refreshScan();
 			void activeFileStore.openFile(id, newRel);
+			toast.success('Fichier dupliqué', { details: getFileName(newRel) });
 		} catch (e) {
 			topLevelError = `Duplication impossible : ${String(e)}`;
+			toast.error('Duplication impossible', { details: String(e) });
 		}
 	}
 
@@ -493,8 +510,13 @@
 			if (imported.length > 0) {
 				selectedEntry = { name: '', relativePath: imported[0], isDirectory: false };
 			}
+			const count = imported.length;
+			toast.success(
+				count === 1 ? 'Fichier importé' : `${count} fichiers importés`
+			);
 		} catch (e) {
 			topLevelError = `Import impossible : ${String(e)}`;
+			toast.error('Import impossible', { details: String(e) });
 		}
 	}
 
@@ -525,8 +547,11 @@
 					void activeFileStore.openFile(id, newOpenPath);
 				}
 			}
+			const where = targetParentPath ? targetParentPath : 'la racine';
+			toast.success('Déplacé', { details: `vers ${where}` });
 		} catch (e) {
 			topLevelError = `Déplacement impossible : ${String(e)}`;
+			toast.error('Déplacement impossible', { details: String(e) });
 		}
 	}
 
@@ -549,16 +574,20 @@
 				: entry.relativePath;
 		try {
 			await navigator.clipboard.writeText(value);
+			toast.success('Chemin copié', { details: value });
 		} catch (e) {
 			topLevelError = `Copie impossible : ${String(e)}`;
+			toast.error('Copie impossible', { details: String(e) });
 		}
 	}
 
 	async function copyVaultPath(vault: Vault) {
 		try {
 			await navigator.clipboard.writeText(vault.path);
+			toast.success('Chemin copié', { details: vault.path });
 		} catch (e) {
 			topLevelError = `Copie impossible : ${String(e)}`;
+			toast.error('Copie impossible', { details: String(e) });
 		}
 	}
 
@@ -587,19 +616,29 @@
 		confirmHandler = async () => {
 			const id = vaultsStore.activeVaultId;
 			if (!id) throw new Error('Aucun vault actif');
-			await folderDelete(id, entry.relativePath);
-			confirmOpen = false;
-			await refreshScan();
-			// Close any open file that lived under this folder.
-			const open = activeFileStore.activeFile;
-			if (
-				open &&
-				open.vaultId === id &&
-				(open.relativePath === entry.relativePath ||
-					open.relativePath.startsWith(`${entry.relativePath}/`))
-			) {
-				activeFileStore.close();
-				void vaultsStore.setLastOpenedFile(null);
+			try {
+				await folderDelete(id, entry.relativePath);
+				confirmOpen = false;
+				await refreshScan();
+				// Close any open file that lived under this folder.
+				const open = activeFileStore.activeFile;
+				if (
+					open &&
+					open.vaultId === id &&
+					(open.relativePath === entry.relativePath ||
+						open.relativePath.startsWith(`${entry.relativePath}/`))
+				) {
+					activeFileStore.close();
+					void vaultsStore.setLastOpenedFile(null);
+				}
+				const summary =
+					counts.files > 0 || counts.folders > 0
+						? `${entry.name} (${parts.join(' + ')})`
+						: entry.name;
+				toast.success('Dossier supprimé', { details: summary });
+			} catch (e) {
+				toast.error('Suppression impossible', { details: String(e) });
+				throw e;
 			}
 		};
 		// "Confirm before permanent deletion" setting: when off, skip the
@@ -691,15 +730,21 @@
 		confirmHandler = async () => {
 			const id = vaultsStore.activeVaultId;
 			if (!id) throw new Error('Aucun vault actif');
-			await fileDelete(id, entry.relativePath);
-			confirmOpen = false;
-			await refreshScan();
-			if (
-				activeFileStore.activeFile?.vaultId === id &&
-				activeFileStore.activeFile?.relativePath === entry.relativePath
-			) {
-				activeFileStore.close();
-				void vaultsStore.setLastOpenedFile(null);
+			try {
+				await fileDelete(id, entry.relativePath);
+				confirmOpen = false;
+				await refreshScan();
+				if (
+					activeFileStore.activeFile?.vaultId === id &&
+					activeFileStore.activeFile?.relativePath === entry.relativePath
+				) {
+					activeFileStore.close();
+					void vaultsStore.setLastOpenedFile(null);
+				}
+				toast.success('Fichier supprimé', { details: entry.name });
+			} catch (e) {
+				toast.error('Suppression impossible', { details: String(e) });
+				throw e;
 			}
 		};
 		// "Confirm before permanent deletion" setting: when off, skip the
