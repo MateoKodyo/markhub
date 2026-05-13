@@ -200,7 +200,7 @@
 		flex: 0 0 auto;
 		padding: 0 10px 0 12px;
 		border: 0;
-		border-radius: 0;
+		border-radius: 4px 4px 0 0;
 		background: transparent;
 		color: var(--color-text-muted);
 		font-family: var(--font-ui);
