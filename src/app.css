@@ -209,6 +209,12 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 	text-rendering: optimizeLegibility;
 	overflow: hidden;
+	/* PLAN-THEMING §STEP 5 — smooth the canvas across theme switches. Scoped
+	 * to html/body so the visual mass of the app eases between themes; small
+	 * elements snap (clearer, faster perceived response). */
+	transition:
+		background-color var(--duration-slow) var(--easing-standard),
+		color var(--duration-slow) var(--easing-standard);
 }
 
 /* Make `body` the flex root. SvelteKit's static adapter wraps the app in a

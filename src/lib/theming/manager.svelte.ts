@@ -40,10 +40,24 @@ export function resolveActiveTheme(
 	}
 }
 
-/** Write the theme id to `<html data-theme>`. No-op when document is absent. */
+/** localStorage key used by the pre-hydration script in `app.html`. */
+const THEME_CACHE_KEY = 'markhub.theme.cache';
+
+/**
+ * Write the theme id to `<html data-theme>` AND cache it in localStorage so
+ * the next cold start (the inline `app.html` script) can re-apply it before
+ * the first paint — no flash of the wrong theme.
+ */
 export function applyTheme(id: ThemeId): void {
 	if (typeof document === 'undefined') return;
 	document.documentElement.setAttribute('data-theme', id);
+	try {
+		localStorage.setItem(THEME_CACHE_KEY, id);
+	} catch (e) {
+		// localStorage may be unavailable in private browsing or restrictive
+		// WebView configs — falling through is fine, just no anti-flash hint.
+		void e;
+	}
 }
 
 class ThemeManager {

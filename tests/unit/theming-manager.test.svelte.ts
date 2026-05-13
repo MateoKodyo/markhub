@@ -111,6 +111,15 @@ describe('theming manager — applyTheme', () => {
 		applyTheme('markhub-light');
 		expect(document.documentElement.getAttribute('data-theme')).toBe('markhub-light');
 	});
+
+	// ------ TM.A2 — applyTheme caches the id to localStorage (anti-flash) ------
+	it('caches the applied theme to localStorage for the pre-hydration script', () => {
+		localStorage.removeItem('markhub.theme.cache');
+		applyTheme('solar');
+		expect(localStorage.getItem('markhub.theme.cache')).toBe('solar');
+		applyTheme('tokyo');
+		expect(localStorage.getItem('markhub.theme.cache')).toBe('tokyo');
+	});
 });
 
 describe('theming manager — singleton + OS subscription', () => {

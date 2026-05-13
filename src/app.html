@@ -4,6 +4,33 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			// PLAN-THEMING §STEP 5 — pre-hydration theme application.
+			// Runs synchronously before the first paint so the user never sees a
+			// flash of the wrong theme. Reads the last resolved theme from
+			// localStorage (written by themeManager on every change); falls back
+			// to the OS preference; final fallback is markhub-dark (Markhub's
+			// default identity).
+			(function () {
+				try {
+					var cached = localStorage.getItem('markhub.theme.cache');
+					var known = ['markhub-light', 'markhub-dark', 'solar', 'tokyo'];
+					if (cached && known.indexOf(cached) >= 0) {
+						document.documentElement.setAttribute('data-theme', cached);
+						return;
+					}
+				} catch (e) {
+					/* localStorage unavailable — ignore and fall through */
+				}
+				var prefersDark =
+					typeof window.matchMedia === 'function' &&
+					window.matchMedia('(prefers-color-scheme: dark)').matches;
+				document.documentElement.setAttribute(
+					'data-theme',
+					prefersDark ? 'markhub-dark' : 'markhub-light'
+				);
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
