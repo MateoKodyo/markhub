@@ -1,0 +1,68 @@
+/* Forest — kaki / olive dark theme, camouflage tones refined.
+ * Dark family alternative — replaces Tokyo (PLAN-THEMING iteration).
+ *
+ * Mood: mossy forest floor at dusk, with a sophisticated dark-khaki accent.
+ * Reads "outdoor heritage / Filson catalog" rather than "Army surplus".
+ * The canvas is olive-tinted near-black, never pure gray, never green-loud.
+ */
+
+:root[data-theme='forest'] {
+	/* Canvas — deep moss / forest floor, slight olive warmth */
+	--color-bg-sidebar: #161a14;
+	--color-bg: #1c211b;
+	--color-bg-raised: #252b22;
+
+	/* Surfaces — khaki-tinted veils */
+	--color-surface-veil: rgba(189, 183, 107, 0.04);
+	--color-surface-active: rgba(189, 183, 107, 0.1);
+	--color-surface-hover: rgba(189, 183, 107, 0.06);
+	--color-surface-strong: rgba(189, 183, 107, 0);
+
+	/* Borders — olive at low alpha */
+	--color-border-strong: rgba(189, 183, 107, 0.18);
+	--color-border: rgba(189, 183, 107, 0.1);
+	--color-border-subtle: rgba(189, 183, 107, 0.05);
+
+	/* Text — warm parchment + olive-gray scale */
+	--color-text-primary: #e8e5cf;
+	--color-text-body: #b5b29c;
+	--color-text-secondary: #8e8c76;
+	--color-text-muted: #6e6c58;
+	--color-text-disabled: #4d4b3e;
+
+	/* Interactive — olive pill */
+	--color-button-bg: #2f352a;
+	--color-button-text: #e8e5cf;
+	--color-button-bg-hover: #3a4034;
+
+	/* Accent — darkkhaki, classic without being army-loud */
+	--color-accent: #bdb76b;
+	--color-accent-hover: #ccc674;
+	--color-accent-text: #1c211b;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(189, 183, 107, 0.22);
+
+	/* Status — earth-toned, no neon */
+	--color-status-ok: #9caa55;
+	--color-status-warn: #d4a44a;
+	--color-status-error: #c2756e;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(194, 117, 110, 0.1);
+	--color-danger-border: rgba(194, 117, 110, 0.28);
+
+	--color-backdrop: rgba(0, 0, 0, 0.55);
+
+	/* Shadows */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.22);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.22);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.42), 0 2px 4px rgba(0, 0, 0, 0.25);
+
+	/* Ambient — moss glow top, deeper olive bottom */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(189, 183, 107, 0.05), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(122, 140, 90, 0.05), transparent 55%);
+}

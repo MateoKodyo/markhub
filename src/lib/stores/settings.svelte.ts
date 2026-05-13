@@ -25,6 +25,12 @@ import {
 	type ThemePreference,
 	type UserSettings
 } from '$lib/tauri/types';
+import {
+	DEFAULT_DARK_THEME,
+	DEFAULT_LIGHT_THEME,
+	getThemeMeta,
+	isThemeId
+} from '$lib/theming/catalog';
 import { themeManager } from '$lib/theming/manager.svelte';
 
 /** Persist debounce — collapses a slider drag's per-tick writes into one. */
@@ -106,6 +112,18 @@ function migrateAppearance(input: LegacyAppearance): AppearanceSettings {
 		// current one" via the OS, not a hard lock. They can lock from the
 		// picker afterwards if they want.
 		merged.themeMode = 'system';
+	}
+
+	// Validate slot ids against the current catalog. A previously-valid id
+	// can become orphaned when the catalog changes between releases (e.g.,
+	// `solar` → `cocoa`, `tokyo` → `forest`). Orphaned ids fall back to the
+	// family default; the picker will then show the default selection and
+	// the user can re-pick from the new catalog.
+	if (!isThemeId(merged.lightTheme) || getThemeMeta(merged.lightTheme).family !== 'light') {
+		merged.lightTheme = DEFAULT_LIGHT_THEME;
+	}
+	if (!isThemeId(merged.darkTheme) || getThemeMeta(merged.darkTheme).family !== 'dark') {
+		merged.darkTheme = DEFAULT_DARK_THEME;
 	}
 
 	return merged;

@@ -22,8 +22,8 @@
 
 @import './styles/themes/markhub-dark.css';
 @import './styles/themes/markhub-light.css';
-@import './styles/themes/solar.css';
-@import './styles/themes/tokyo.css';
+@import './styles/themes/cocoa.css';
+@import './styles/themes/forest.css';
 
 :root {
 	/* ============================================================

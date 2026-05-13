@@ -144,8 +144,8 @@ Each theme defines a complete token set. Themes are not "just colors swapped" �
 
 1. **Markhub Light** — warm parchment off-white, near-black text, indigo accent (`#2563EB`). The default day theme.
 2. **Markhub Dark** — warm near-black canvas (`#0A0908`), warm parchment text, blue accent (`#3B82F6`). The default night theme.
-3. **Solar** — cream parchment (`#FDF6E3`, Solarized base3), slate-blue text family (`#586E75` → `#93A1A1`), amber accent (`#B58900`). Light family alternative — literary/warm mood.
-4. **Tokyo** — deep midnight blue (`#1A1B26`, Tokyo Night), lavender-tinted white text (`#C0CAF5`), vivid violet accent (`#BB9AF7`). Dark family alternative — saturated late-night-coding mood.
+3. **Cocoa** — Anthropic-ivory parchment (`#F5F0DF`), deep cocoa text (`#2D2A26`), terracotta accent (`#C15F3C`). Light family alternative — elegant, warm-brown reading mood, Claude-inspired.
+4. **Forest** — mossy forest floor (`#1C211B`), warm parchment text (`#E8E5CF`), refined dark-khaki accent (`#BDB76B`). Dark family alternative — outdoor heritage / Filson-catalog mood, never Army-surplus.
 
 Catalog is **closed**: no fifth theme, no user-created themes, no import/export. Implementation lives in `src/styles/themes/<id>.css` scoped to `[data-theme="<id>"]`; metadata in `src/lib/theming/catalog.ts`.
 

@@ -60,7 +60,7 @@ vi.mock('../../src/lib/theming/manager.svelte', () => ({
 		},
 		// The picker derives the active family from osPrefersDark when in
 		// mode=system. The component test fixture pins this to "light" so
-		// the default render lands on the light slot (markhub-light + Solar).
+		// the default render lands on the light slot (markhub-light + Cocoa).
 		get osPrefersDark() {
 			return false;
 		}
@@ -86,9 +86,9 @@ describe('SettingsAppearance', () => {
 		// With osPrefersDark=false and mode=system the active family is light,
 		// so only the light cards render.
 		expect(screen.getByTestId('theme-card-markhub-light')).toBeInTheDocument();
-		expect(screen.getByTestId('theme-card-solar')).toBeInTheDocument();
+		expect(screen.getByTestId('theme-card-cocoa')).toBeInTheDocument();
 		expect(screen.queryByTestId('theme-card-markhub-dark')).not.toBeInTheDocument();
-		expect(screen.queryByTestId('theme-card-tokyo')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('theme-card-forest')).not.toBeInTheDocument();
 
 		expect(screen.getByTestId('appearance-font-geist')).toBeInTheDocument();
 		expect(screen.getByTestId('appearance-font-system')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('SettingsAppearance', () => {
 		expect(screen.getByTestId('theme-card-markhub-light').getAttribute('aria-pressed')).toBe(
 			'true'
 		);
-		expect(screen.getByTestId('theme-card-solar').getAttribute('aria-pressed')).toBe('false');
+		expect(screen.getByTestId('theme-card-cocoa').getAttribute('aria-pressed')).toBe('false');
 		expect(screen.getByTestId('appearance-font-geist').getAttribute('aria-checked')).toBe(
 			'true'
 		);
@@ -134,10 +134,10 @@ describe('SettingsAppearance', () => {
 	});
 
 	// ------ S4.3b — clicking a card writes to the matching family slot ------
-	it('clicking the Solar card writes lightTheme=solar without touching the dark slot', async () => {
+	it('clicking the Cocoa card writes lightTheme=cocoa without touching the dark slot', async () => {
 		render(SettingsAppearance);
-		await fireEvent.click(screen.getByTestId('theme-card-solar'));
-		expect(settingsStore.current.appearance.lightTheme).toBe('solar');
+		await fireEvent.click(screen.getByTestId('theme-card-cocoa'));
+		expect(settingsStore.current.appearance.lightTheme).toBe('cocoa');
 		expect(settingsStore.current.appearance.darkTheme).toBe('markhub-dark');
 		expect(settingsStore.current.appearance.themeMode).toBe('system');
 	});

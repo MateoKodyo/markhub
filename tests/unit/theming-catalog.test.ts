@@ -12,7 +12,7 @@ describe('theming catalog', () => {
 	// ------ TC.1 — catalog growth tracking ------
 	it('exposes the 4 curated themes (STEP 3 closes the catalog with Tokyo)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
-		expect(ids).toEqual(['markhub-dark', 'markhub-light', 'solar', 'tokyo']);
+		expect(ids).toEqual(['cocoa', 'forest', 'markhub-dark', 'markhub-light']);
 	});
 
 	// ------ TC.2 — every theme entry carries the full metadata shape ------
@@ -51,16 +51,16 @@ describe('theming catalog', () => {
 		expect(light.every((t) => t.family === 'light')).toBe(true);
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
 		// Both families ship 2 themes each after STEP 3.
-		expect(light.map((t) => t.id).sort()).toEqual(['markhub-light', 'solar']);
-		expect(dark.map((t) => t.id).sort()).toEqual(['markhub-dark', 'tokyo']);
+		expect(light.map((t) => t.id).sort()).toEqual(['cocoa', 'markhub-light']);
+		expect(dark.map((t) => t.id).sort()).toEqual(['forest', 'markhub-dark']);
 	});
 
 	// ------ TC.6 — isThemeId narrows arbitrary strings ------
 	it('isThemeId returns true for catalog ids, false otherwise', () => {
 		expect(isThemeId('markhub-light')).toBe(true);
 		expect(isThemeId('markhub-dark')).toBe(true);
-		expect(isThemeId('solar')).toBe(true); // added in STEP 2
-		expect(isThemeId('tokyo')).toBe(true); // added in STEP 3
+		expect(isThemeId('cocoa')).toBe(true); // added in STEP 2
+		expect(isThemeId('forest')).toBe(true); // added in STEP 3
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);
 		expect(isThemeId('nonsense')).toBe(false);

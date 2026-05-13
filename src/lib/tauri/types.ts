@@ -49,7 +49,7 @@ export type Settings = {
  */
 export type FollowMode = 'system' | 'always-light' | 'always-dark';
 
-export type ThemeId = 'markhub-light' | 'markhub-dark' | 'solar' | 'tokyo';
+export type ThemeId = 'markhub-light' | 'markhub-dark' | 'cocoa' | 'forest';
 
 export interface ThemePreference {
 	mode: FollowMode;
