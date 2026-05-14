@@ -2698,3 +2698,91 @@ Plus features atypique :
 * Merge `feat/frontmatter-ui-finish` → main.
 
 * Reprendre le BACKLOG : body font-size/line-height (4 essais reverted), drag-drop Finder, scroll-in-preview, flash blanc resize.
+
+---
+
+# Session 2026-05-14 (longue, après-midi → fin journée) — PLAN-THEMING merge, PLAN-EDITOR-POLISH démarré + pausé, PLAN-UI-PORT-PENCIL démarré + bloqué
+
+> Session marathon. Trois chantiers touchés : Theming v1 mergé + iteration thèmes (Cocoa/Forest), Editor Polish entamé puis pausé sur 2 bugs CSS cascade non résolus, Pencil setup tenté puis bloqué par cache de session Claude Code.
+
+## Branches
+
+- `main` — refresh complet + housekeeping commit `b116c01`. 1 commit ahead de origin/main, push à toi.
+- `feat/editor-polish` — WIP `cb9dbcf`. 1 commit ahead de main. **Ne pas merger** tant que les 2 bugs CSS ne sont pas résolus.
+
+## Livraison effective
+
+### 1. Theming v1 (suite + iteration)
+
+Validé en début de session : merge `feat/theming` sur main via les commits theming antérieurs (af998e5 → fc18d14). Puis iteration suite au feedback "je n'aime pas Solar/Tokyo" → swap pour **Cocoa** (warm browns, accent terracotta Claude-inspired) et **Forest** (kaki/olive, accent darkkhaki, mood Filson). Migration douce des settings.json orphelins via fallback dans `mergeWithDefaults`.
+
+Commit final theming : `930cd25 feat(theming): swap Solar/Tokyo for Cocoa (Claude-warm) and Forest (kaki)`.
+
+### 2. PLAN-FRONTMATTER-UI v1 — STEPS 4-8
+
+Déjà journalé en début de fichier. 5 commits sur feat/frontmatter-ui-finish, mergés en ff sur main, tags `7469dc8`. 505/505 vitest, 126/126 cargo, 0/0 svelte-check.
+
+### 3. PLAN-EDITOR-POLISH — démarré, **PAUSÉ**
+
+Branche `feat/editor-polish`. STEPS 1-3 du plan (CSS architecture audit + typography hierarchy + vertical rhythm Notion-aligned + checkbox refactor). Tout est dans un seul commit WIP `cb9dbcf`.
+
+**Ce qui marche** :
+- Restructure de `editor-blocknote.css` en 15 sections nommées
+- Heading scale via redéfinition de `--level` (la variable BN), letter-spacing + weight + line-height per level
+- Rythme vertical : H1 64/20, H2 48/16, H3 36/12, H4-H6 28/16, paragraph 0/14, list items 0/6
+- Checkbox 18×18 avec strikethrough Notion-style sur checked
+
+**Ce qui ne marche pas** (bloquant) :
+- **H1 rendered en serif** sur certains fichiers ouverts dans l'app
+- **Blockquote text reste en gris** (`--color-text-body`) au lieu de cream (`--color-text-primary`)
+
+Symptômes identiques : malgré des règles `!important` correctement écrites avec selectors à spécificité matchante, les overrides ne sont pas appliqués au rendering. **Diagnostic le plus probable** : Vite HMR n'a pas reload `editor-blocknote.css` pendant la session — les overrides récents n'ont jamais atteint le navigateur. À tester au retour : `rm -rf node_modules/.vite .svelte-kit && npm run tauri dev`. Si ça suffit pas → DevTools sur la fenêtre Tauri, inspect `<h1>` problématique.
+
+PAUSE NOTE détaillée en tête de `PLAN-POLISH-EDIT.md` avec 3 actions à exécuter au retour avant de toucher au CSS.
+
+### 4. PLAN-UI-PORT-PENCIL — démarré, **BLOQUÉ**
+
+Tentative de lancer STEP 1 du plan. Le plan était rédigé sur une assumption "Pencil = IDE extension avec MCP" qui s'est révélée fausse. Réalité :
+- **Pencil CLI** (`@pencil.dev/cli`, Homebrew, v0.2.6) — prompt-based AI agent, non authentifié
+- **Pencil Desktop app** (`/Applications/Pencil.app`) — c'est *elle* qui ship un MCP server bundled
+- Le user a enregistré ce MCP server au scope user dans Claude Code config. `claude mcp list` confirme `pencil: ✓ Connected`.
+
+**Blocage** : les tools du MCP Pencil ne sont **pas chargés dans la session Claude Code courante**. Claude Code charge les MCP servers au démarrage de session. Le serveur ajouté en cours de session reste invisible. ToolSearch query="pencil" renvoie 0 résultat.
+
+**Action requise au retour** : restart de la session Claude Code. Puis :
+1. `ToolSearch query="pencil"` pour découvrir les tools réellement exposés
+2. Adapter PLAN-UI-PENCIL.md (le plan parle de "IDE extension"/"MCP IDE" mais le MCP vient de la Desktop app séparée)
+3. Trancher emplacement `.pen` : plan dit `design/markhub.pen` à la racine, l'app a déjà créé `Pencil/markhub.pen` (frame 800×600 blanche, version "2.11", non committé)
+
+### 5. Housekeeping commit
+
+Tout ce qui s'était accumulé en working tree avant + pendant cette session a été committé en un commit `b116c01` : relocation des plans retirés (PLAN-BLOCKNOTE/MIGRATION/PLAN → `plan-110526/`), ajout des plans drafts (PLAN-REFACTOR, PLAN-UI-PAPER, PLAN-UI-PENCIL), refresh icons Tauri (incl. android + ios générés), gitignore `src-tauri/.svelte-kit`.
+
+## Tests
+
+- cargo : **126/126 ✅** (inchangé)
+- vitest : **505/505 ✅** (inchangé)
+- svelte-check : **0 / 0 ✅** (inchangé)
+- aucune modification de code de prod sur main aujourd'hui — seulement docs/plans/icons + un WIP isolé sur sa branche
+
+## Décisions hors lettre des plans
+
+- **Cocoa + Forest remplacent Solar + Tokyo** (PLAN-THEMING). Catalog v1 reste à 4 thèmes — juste 2 IDs renommés + palettes refaites pour matcher l'identité demandée (warm browns Claude / kaki Filson, pas Solarized / Tokyo Night).
+- **`feat/editor-polish` non mergé**. Le plan d'origine voulait une session continue jusqu'au merge ; on s'est arrêté en cours de STEP 3 avec 2 bugs non résolus. PAUSE NOTE en tête du plan pour la reprise.
+- **PLAN-UI-PENCIL.md à adapter** au retour. Plan parle "MCP IDE extension" — la réalité c'est "Pencil Desktop app + MCP server bundled". Les conséquences sur le workflow (paradigme prompt-based vs granular tool calls) sont notées pour comparaison Paper.
+
+## Frustrations (debriefing honnête)
+
+- J'ai passé trop de temps sur les 2 bugs CSS d'editor-polish sans changer d'angle assez vite. Le user a explicitement perdu confiance vers la fin (`"qu'est ce que tu fous"`, `"je deviens fou"`). Mes empilements de `!important` étaient symptomatiques d'un debugging sans diagnostic réel — j'aurais dû soit (a) accepter au 3e échec qu'il y avait un cache HMR au lieu d'écrire plus de CSS, soit (b) faire un audit complet du DOM rendu via Playwright pour voir ce qui s'appliquait vraiment. PAUSE NOTE documentée pour ne pas refaire l'erreur au retour.
+
+## Prochaine session
+
+**Checklist de démarrage** :
+
+1. Push origin/main (1 commit ahead).
+2. **Restart Claude Code** pour que les tools MCP Pencil chargent.
+3. Au retour : lire STATE.md → continuer avec PLAN-UI-PENCIL (priorité Matheo).
+4. `ToolSearch query="pencil"` → adapter le plan au tooling réel.
+5. Créer `feat/ui-port-pencil`, démarrer STEP 1 propre.
+
+**Si tu reprends `feat/editor-polish` à la place** : lire PAUSE NOTE en tête de PLAN-POLISH-EDIT.md, suivre les 3 actions diagnostiques avant de toucher au CSS.

@@ -5,41 +5,45 @@
 
 ## Date de mise à jour
 
-2026-05-13 (soir) — session frontmatter UI : STEPS 1+2+3 du PLAN-FRONTMATTER-UI livrés. Commit unique `aa93a83`. Retrait du champ `behavior` côté Rust (alignement avec retrait TS antérieur, fixe le warn `settings_write — missing field behavior` qui revenait à chaque persist).
+2026-05-14 (fin d'après-midi) — longue session : PLAN-THEMING v1 mergé, PLAN-FRONTMATTER-UI v1 mergé, **PLAN-EDITOR-POLISH démarré puis pausé** (2 bugs visuels non résolus), **PLAN-UI-PORT-PENCIL démarré puis bloqué** (MCP enregistré mais tools pas chargés dans la session courante — restart Claude Code requis).
 
 ## Branche courante
 
-`main` — **5 commits d'avance sur `origin/main`** (push à faire par Matheo).
+`main` — **1 commit d'avance sur `origin/main`** (housekeeping, push à faire par Matheo).
 
-Dernière séquence de commits :
+Dernière séquence de commits sur main :
 
 ```
-aa93a83 feat(frontmatter): UI block with collapsible read + structured edit modes
-430e8e2 style(tabs): 4px top-left/top-right radius on each tab
-d6cb591 style(tabs): drop the accent top border on the active tab
-2d66604 style(tabs): wider, more contrasted, Warp-style accent top border
-5a23542 feat(status-bar): content-width slider — percent of editor area
-f3f5c96 chore(state): refresh handoff docs after the 16-commit afternoon/evening
-078d849 fix(outline): route outline-panel jumps through source-mode scroll
-fa5b1b4 fix(panels): outline resize handle now lives on the panel's edge
-05d5420 refactor(sidebar): + icon next to "Vaults" header, drop the bottom button
-653bffc fix(panels): window-level pointer events + third resize (vaults / files)
+b116c01 chore: housekeeping — relocate retired plans, refresh app icons, drop retired notes
+7469dc8 chore(frontmatter): closure — PLAN-FRONTMATTER-UI v1 complete
+ff96807 feat(frontmatter): visual polish and Playwright baselines
+0a07bb8 feat(frontmatter): persist collapsed state to disk
+af51767 feat(frontmatter): typed controls — date, tags, toggle, number
+650fb68 feat(frontmatter): raw YAML edit mode
+930cd25 feat(theming): swap Solar/Tokyo for Cocoa (Claude-warm) and Forest (kaki)
+c3b7252 docs(theming): close PLAN-THEMING progress table
+cd636e0 fix(theming): theme selectors lost the cascade race against the :root fallback
+fc18d14 chore(theming): final audit and documentation update
 ```
 
-## Tests (état final)
+Plus en amont : 8 autres commits theming (af998e5..) — voir `git log`.
 
-- cargo : **120/120 ✅**
-- vitest : **464/464 ✅** (+57 depuis 407 — frontmatter parser/store/collapsed/component + STEP 3 edit)
+## Branches actives (non mergées)
+
+| Branche | Commits ahead de main | Statut |
+|---|---|---|
+| `feat/editor-polish` | 1 | ⏸ PAUSÉE (WIP `cb9dbcf`). Plan partiellement appliqué (STEPS 1-3), 2 bugs visuels non résolus côté CSS cascade. PAUSE NOTE détaillée en tête de `PLAN-POLISH-EDIT.md`. **Ne pas merger.** |
+
+## Tests (état actuel sur main)
+
+- cargo : **126/126 ✅**
+- vitest : **505/505 ✅**
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
 ## Working tree (non-committé)
 
-Housekeeping héritée d'avant la session, **non touchée par moi** :
-- `M JOURNAL.md` (à mettre à jour par Matheo)
-- `D MIGRATION-NOTES.md`, `D PLAN-BLOCKNOTE.md`, `D PLAN.md` (relocations vers `plan-110526/`)
-- `?? plan-110526/PLAN-BLOCKNOTE.md`, `?? features/PLAN-AI-AGENT.md`, `?? icon/`
-- `?? src-tauri/.svelte-kit/` (devrait être gitignoré — vérifier)
+- `?? Pencil/markhub.pen` — placeholder `.pen` créé via Pencil Desktop app (frame 800×600 blanche, version "2.11"). Pas committé pour ne pas figer un emplacement / structure encore en flux. Le plan dit `design/markhub.pen` à la racine ; l'app a créé `Pencil/markhub.pen`. À trancher au reboot de session.
 
 ## Chantiers
 
@@ -47,44 +51,60 @@ Housekeeping héritée d'avant la session, **non touchée par moi** :
 |---|---|
 | C1 — Migration Crepe → BlockNote | ✅ MERGÉ (2026-05-11) |
 | PLAN-DESIGN-DEFAULTS | ✅ MERGÉ (2026-05-12) |
-| PLAN-SETTINGS (8 steps) | ✅ MERGÉ 2026-05-14 (body typo BACKLOG) |
+| PLAN-SETTINGS (8 steps) | ✅ MERGÉ 2026-05-14 |
 | PLAN-COMMAND-SYSTEM (8 steps) | ✅ MERGÉ 2026-05-14 |
 | Onglets de fichiers (Phase 5c) | ✅ MERGÉ 2026-05-14 |
-| Cmd+F find-in-document | ✅ LIVRÉ 2026-05-14 |
-| Resize handles trio | ✅ LIVRÉ 2026-05-14 |
-| Content-width slider % StatusBar | ✅ LIVRÉ 2026-05-14 |
-| Tabs polish Warp/Cursor (4px radius, no top border) | ✅ LIVRÉ 2026-05-14 |
-| **PLAN-FRONTMATTER-UI STEP 1 (parser+store)** | **✅ LIVRÉ 2026-05-13** |
-| **PLAN-FRONTMATTER-UI STEP 2 (read mode)** | **✅ LIVRÉ 2026-05-13** |
-| **PLAN-FRONTMATTER-UI STEP 3 (structured edit)** | **✅ LIVRÉ 2026-05-13 — user-validé** |
-| PLAN-FRONTMATTER-UI STEP 4 (raw YAML edit) | ⏳ NEXT |
-| PLAN-FRONTMATTER-UI STEP 5 (typed controls: date/tags/toggle/number) | ⏳ |
-| PLAN-FRONTMATTER-UI STEP 6 (collapsed state — disque) | ⏳ (actuellement localStorage transient — module `frontmatterCollapsed.svelte.ts`) |
-| PLAN-FRONTMATTER-UI STEP 7 (visual polish + Playwright baselines) | ⏳ |
+| Cmd+F find-in-document, resize handles, content-width slider, tabs polish | ✅ LIVRÉS 2026-05-14 |
+| PLAN-FRONTMATTER-UI STEPS 1-3 (parser/store/read/edit-structured) | ✅ MERGÉ 2026-05-13 |
+| **PLAN-FRONTMATTER-UI STEPS 4-8 (raw YAML, typed controls, disk persist, polish + closure)** | **✅ MERGÉ 2026-05-14** |
+| **PLAN-THEMING v1 — 4 thèmes curated, picker à 2 slots, OS-follow, anti-flash** | **✅ MERGÉ 2026-05-13** |
+| **PLAN-THEMING iteration Cocoa + Forest (remplacent Solar/Tokyo)** | **✅ MERGÉ 2026-05-13** |
+| **PLAN-EDITOR-POLISH (16 steps)** | **⏸ PAUSÉ après STEPS 1-3 partiels — `feat/editor-polish` branch, 2 bugs CSS cascade (H1 serif + blockquote color)** |
+| **PLAN-UI-PORT-PENCIL (7 steps)** | **🚧 BLOQUÉ avant STEP 1 — MCP enregistré mais tools pas dans la session courante** |
+| PLAN-UI-PORT-PAPER (mirror plan Pencil) | ⏳ pas démarré (mirror du Pencil run, sera lancé après) |
 | Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG |
 | Drag-drop FROM Finder | ⛔ reverted, BACKLOG |
 | Outline V2 Notion rail | gelé |
 | Flash blanc resize | gelé |
 
-## Architecture du frontmatter UI (livré)
+## PLAN-EDITOR-POLISH — état précis (branche `feat/editor-polish`)
 
-`Editor.svelte` rend `<FrontmatterBlock>` au-dessus de BlockNote uniquement en preview (source mode garde la YAML inline dans le textarea). 3 états :
+**Ce qui marche** :
+- CSS architecture restructurée en 15 sections nommées (STEP 1)
+- Heading scale appliqué (STEP 2) : H1 2em, H2 1.5em, H3 1.1875em, H4 1em, H5 0.875em, H6 0.8125em avec letter-spacing + weight + line-height per level. Override propre via redéfinition de la variable `--level` de BlockNote.
+- Vertical rhythm Notion-aligned (STEP 3) : H1 64/20, H2 48/16, H3 36/12, H4-H6 28/16, paragraph 0/14, list items 0/6, blockquote/code/table 20/20.
+- Checkbox refactor : 18×18, radius 4, margin-right 10, checkmark 11, strikethrough sur checked + couleur muted.
+- Body line-height 1.55, list items 1.55.
+- Side-effect (agent fix) : `src/routes/+page.svelte` chrome split sidebar/canvas pour éliminer le seam dans le title-bar overlay.
 
-1. **Read** (default collapsed) — strip d'une ligne `▶ FRONTMATTER · N clé(s)`. Click sur la toggle → expansion → rows clé/valeur + pencil top-right.
-2. **Edit-structured** — pencil → mode édition. Chaque ligne = inputs key + value, `+ Ajouter un champ` bottom, `✕` par ligne. Commit débounced 200ms via `onChange(data)`. Cancel restaure le snapshot, Done flush le pending. **Round-trip type-preservant** : la valeur passe par `yaml.load(valueStr)` → `42` devient number, `true` boolean, `2026-05-13` Date.
-3. **Error** — banner rouge si le YAML ne parse pas, raw YAML affiché en monospace + bouton "Modifier le YAML brut" inerte jusqu'à STEP 4.
+**Ce qui ne marche PAS — bugs non résolus** :
+1. **H1 font-family** : reste rendu en **serif** sur certains fichiers (PLAN-FRONTMATTER-UI.md, PLAN-EDITOR-POLISH.md, etc.) malgré une règle `!important` correctement écrite sur `.preview .bn-editor h1`. **Hypothèse principale** : Vite ne reload pas `editor-blocknote.css` après edit dans cette session — le cache HMR a probablement bloqué les overrides récents.
+2. **Blockquote text color** : reste `--color-text-body` (gris) au lieu de `--color-text-primary` (cream) malgré règle `!important` sur tous les descendants. Même diagnostic suspecté.
 
-**Quiet-by-default** : pas d'état "Ajouter" affiché pour les fichiers sans frontmatter (écart conscient de la lettre du plan §2 — STEP 3+ pourra réintroduire via palette).
+**À faire au retour sur cette branche** :
+1. `rm -rf node_modules/.vite .svelte-kit` puis `npm run tauri dev` → si les 2 bugs disparaissent, c'était bien le cache HMR.
+2. Sinon : DevTools dans la fenêtre Tauri, inspect un `<h1>` problématique, regarder les rules computed et la cascade en direct. Cela révèlera la règle qui gagne.
+3. Sinon (worst case) : revert le commit WIP, isoler les changements par paquet (commit par STEP), smoke test pas à pas.
 
-**Persistance collapsed** : `localStorage['markhub.frontmatter.collapsed.v1']` = map keyed `vaultId::relativePath`. Module `src/lib/stores/frontmatterCollapsed.svelte.ts`. STEP 6 du plan déplacera ça en disque app config dir.
+## PLAN-UI-PORT-PENCIL — état précis
 
-**Valeurs complexes** (arrays / objects nested) : readonly dans le edit form avec tooltip "Éditer en mode brut (à venir)". STEP 4 livrera l'escape hatch.
+**Ce qui est en place** :
+- Pencil CLI installé via Homebrew (`/opt/homebrew/bin/pencil`, v0.2.6). **Non authentifié** (`pencil status` dit "Not authenticated"). Auth bloquée mais probablement contournable car on passe par le MCP de l'app desktop, pas par le CLI.
+- **Pencil Desktop app** installé (`/Applications/Pencil.app`). Son MCP server bundled à `/Applications/Pencil.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64`.
+- **MCP server enregistré au scope user dans Claude Code** : `claude mcp list` → `pencil: ... ✓ Connected`.
+- Un `Pencil/markhub.pen` minimal créé manuellement via l'app (frame 800×600 blanche, version "2.11"). Non committé.
 
-**Wire avec autosave** : `Editor.svelte::onFrontmatterChange` re-serialize via `serializeFrontmatter()`, récupère le body courant de BlockNote (`blocksToMarkdownLossy()`) ou fallback sur `body` $derived, puis appelle `onChange(joinFrontmatter(newYaml, body))` qui remonte au store + autosave. **BlockNote onChange a été corrigé** pour lire `frontmatter` $derived au callback-time (au lieu de `initialFrontmatter` capturé à mount) — sinon une édition body après une édition frontmatter clobbait celle-ci.
+**Ce qui bloque** :
+- **Les tools MCP Pencil ne sont pas chargés dans la session Claude Code courante**. Claude Code charge les MCP servers au démarrage ; un serveur ajouté en cours de session ne devient pas accessible avant un restart de session.
+- ToolSearch query="pencil" retourne "No matching deferred tools found" — confirmation.
 
-## Rust nettoyé
-
-`UserSettings.behavior` retiré (struct `BehaviorSettings` supprimée). Le champ était inerte côté TS depuis le retrait de la section Behavior en 2026-05-14, mais le payload côté Rust l'attendait toujours en sérialisation, déclenchant un warn `settings_write — missing field behavior` à chaque persist. Tests cargo cleanés (2 assertions retirées). 120/120 verts.
+**À faire au retour pour démarrer Pencil** :
+1. **Quitter et relancer la session Claude Code** (CLI ou IDE host).
+2. **Premier check** : `ToolSearch query="pencil"` doit lister les tools du MCP Pencil.
+3. **Adapter PLAN-UI-PENCIL.md** au modèle réel (MCP server du Desktop app, pas extension IDE comme le plan le décrit). Le plan a été rédigé sur des assumptions Pencil = extension IDE avec MCP — la réalité c'est Desktop app séparée + MCP bundled.
+4. Vérifier où placer le `.pen` : plan dit `design/markhub.pen`, app a créé `Pencil/markhub.pen`. Trancher.
+5. Créer la branche `feat/ui-port-pencil` from main.
+6. Lancer STEP 1 round-trip test via les tools MCP.
 
 ## Surface livrée en production (inchangée)
 
@@ -99,53 +119,36 @@ Housekeeping héritée d'avant la session, **non touchée par moi** :
 - `⌘1..9` active le N-ième tab
 - `⌘S` save manuel — `⌘,` settings
 
-**Layout 3 colonnes resizables** :
-- Sidebar gauche (180-480px) avec split vertical Vaults/Files (80-600px)
-- Main editor au milieu avec tabs Cursor-style intégrant le mode-toggle + outline button
-- Outline panel droite (200-480px) toggleable, handle sur son edge gauche
+**4 thèmes** (depuis PLAN-THEMING) : Markhub Light, Markhub Dark, Cocoa (warm browns), Forest (kaki). Picker à 2 slots dans Settings → Apparence.
 
-**StatusBar** : pill compteur (mots/caractères/tokens cycliques), reading time, slider content-width en %, save status, theme toggle, settings shortcut.
-
-## Pattern "auto-switch source" pour le scroll programmatique
-
-Inchangé. Find / search hits / outline click basculent en source mode quand l'utilisateur est en preview. BlockNote scroll programmatique BACKLOG'd.
+**Frontmatter custom UI** (depuis PLAN-FRONTMATTER-UI) : block au-dessus de BlockNote avec read collapsed + structured edit (controls typés date/tags/toggle/number) + raw YAML edit + collapsed state sur disque (`frontmatter-state.json`).
 
 ## BACKLOG (dettes ouvertes)
 
 Voir `BACKLOG.md` :
-- **Body editor font-size + line-height** (4e tentative reverted)
+- **Body editor font-size + line-height** (4 tentatives reverted)
 - **Scroll-in-preview pour jumps** (workaround source-mode partout)
 - **Drag-drop FROM Finder** (refactor pointer events nécessaire)
 - **Flash blanc resize** (objc CALayer)
 - **PLAN-COMMAND-SYSTEM follow-ups** : double-scan vault tree, SearchOptions UI
 - **Outline V2 Notion rail** (gelé)
-
-Idées identifiées en cours de session 2026-05-13 (frontmatter) :
-- "Add frontmatter" affordance via palette pour fichiers sans `---` (skipped par décision quiet-by-default, à reconsiderer après STEP 4-5)
-- Inline duplicate-key validation pendant l'édition (v2)
-- Field-level undo dans le edit mode (v2)
-- Migration localStorage → disque pour collapsed state (STEP 6 du plan)
+- **PLAN-EDITOR-POLISH STEPS 1-3** : 2 bugs CSS cascade à résoudre (`feat/editor-polish` branche)
+- **Pencil tools loading** : restart session Claude Code requis
 
 ## Fichiers à relire en début de prochaine session
 
-1. `STATE.md` (ce fichier — porte d'entrée)
-2. `CLAUDE.md`
-3. `WORKPLAN.md`
-4. `PLAN-FRONTMATTER-UI.md` (chantier actif — STEPS 4-8 à venir)
-5. `JOURNAL.md` (dernière entrée à compléter par Matheo)
-6. `BACKLOG.md`
+1. **`STATE.md`** (ce fichier — porte d'entrée)
+2. **`CLAUDE.md`**
+3. **`WORKPLAN.md`**
+4. **`PLAN-UI-PENCIL.md`** (chantier prioritaire — STEP 1 à démarrer après restart session)
+5. **`PLAN-POLISH-EDIT.md`** (à lire seulement si tu reprends `feat/editor-polish` — voir PAUSE NOTE en tête)
+6. **`JOURNAL.md`** (dernière entrée 2026-05-14 — session longue)
+7. **`BACKLOG.md`**
 
-## Prochaine session
+## Prochaine session — checklist de démarrage
 
-Toutes les pistes :
-- **PLAN-FRONTMATTER-UI STEP 4** — raw YAML edit mode (textarea monospace, validation live, switch depuis structured / depuis error banner) ~1-2h
-- **PLAN-FRONTMATTER-UI STEP 5** — typed controls : date picker, tag chips, toggle boolean, number input ~2-3h
-- **PLAN-FRONTMATTER-UI STEP 6** — collapsed state persistence sur disque (`frontmatter-state.json` app config dir) ~1h
-- **PLAN-FRONTMATTER-UI STEP 7** — visual polish + Playwright baselines ~2h
-- Tab right-click menu + middle-click close (~30min)
-- Pin tab (~1h)
-- Réordrer vaults (~30min)
-- Find-and-replace (~1h)
-- Body typography via BlockNote theming API (~2-3h research+dev)
-- Scroll preview via ProseMirror view.coordsAtPos (~1-2h)
-- Drag-drop FROM Finder via pointer events (~1-2h)
+1. **Push origin/main** (1 commit ahead).
+2. **Restart Claude Code** pour charger les tools MCP Pencil.
+3. `ToolSearch query="pencil"` → confirmer les tools dispos.
+4. Adapter PLAN-UI-PENCIL.md selon ce que le MCP expose réellement (lister les tools dans le plan).
+5. Démarrer STEP 1 du PLAN-UI-PENCIL — vraie scaffold de branche + round-trip MCP.
