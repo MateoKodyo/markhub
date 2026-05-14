@@ -1,7 +1,3 @@
----
-
----
-
 # Session autonome — 2026-05-09 15:30
 
 > Mission : Phase 3 corrections groupées (layout éditeur centré + frontmatter `<details>` + arbo récursive Warp-like) puis Phase 4 (outline panel si spec claire) puis Phase 5 (E2E + finitions).
@@ -2497,7 +2493,7 @@ Plus features atypique :
 
 * Find-and-replace (extension de Cmd+F)
 
----
+***
 
 # Session 2026-05-13 (soir, autonome) — PLAN-THEMING v1 complet (STEPS 1-6)
 
@@ -2510,59 +2506,84 @@ Plus features atypique :
 ## Livraison
 
 1. **STEP 1 — Infrastructure** (commit "introduce theme catalog, manager, and OS-aware switching infrastructure")
-   - Nouveau module `src/lib/theming/` : `catalog.ts` (THEMES + helpers) et `manager.svelte.ts` (singleton avec init/setPreference/cycleMode + listener matchMedia + applyTheme pur + resolveActiveTheme pur).
-   - Schéma settings v2 : `FollowMode`, `ThemeId`, `ThemePreference` (trio). `AppearanceSettings` passe à `{themeMode, lightTheme, darkTheme, ...}`. Migration `mergeWithDefaults` v1→v2 préserve l'intention de l'utilisateur (le legacy `theme` est strip + seed mode='system' avec slots par défaut).
-   - Rust `AppearanceSettings` étendu (defaults serde, legacy `theme: Option<String>` skip_if=None pour la rétrocompat des fichiers v1).
-   - `themeStore` supprimé. Consumers migrés vers `themeManager` (StatusBar cycle modes, `view.toggleTheme`, +page.svelte init flow, _visual route URL param).
+
+   * Nouveau module `src/lib/theming/` : `catalog.ts` (THEMES + helpers) et `manager.svelte.ts` (singleton avec init/setPreference/cycleMode + listener matchMedia + applyTheme pur + resolveActiveTheme pur).
+
+   * Schéma settings v2 : `FollowMode`, `ThemeId`, `ThemePreference` (trio). `AppearanceSettings` passe à `{themeMode, lightTheme, darkTheme, ...}`. Migration `mergeWithDefaults` v1→v2 préserve l'intention de l'utilisateur (le legacy `theme` est strip + seed mode='system' avec slots par défaut).
+
+   * Rust `AppearanceSettings` étendu (defaults serde, legacy `theme: Option<String>` skip_if=None pour la rétrocompat des fichiers v1).
+
+   * `themeStore` supprimé. Consumers migrés vers `themeManager` (StatusBar cycle modes, `view.toggleTheme`, +page.svelte init flow, _visual route URL param).
 
 2. **STEP 2 — Solar** (commit "add Solar theme (warm light)")
-   - `src/styles/themes/solar.css` : cream parchment `#FDF6E3` + slate-blue text `#586E75` + amber accent `#B58900`. Mood Solarized Light, distinct du Markhub Light neutre.
-   - _visual route accepte n'importe quel ThemeId en `?theme=...`.
+
+   * `src/styles/themes/solar.css` : cream parchment `#FDF6E3` + slate-blue text `#586E75` + amber accent `#B58900`. Mood Solarized Light, distinct du Markhub Light neutre.
+
+   * _visual route accepte n'importe quel ThemeId en `?theme=...`.
 
 3. **STEP 3 — Tokyo** (commit "add Tokyo theme (saturated dark)")
-   - `src/styles/themes/tokyo.css` : midnight blue `#1A1B26` + lavender text `#C0CAF5` + violet accent `#BB9AF7`. Mood Tokyo Night, distinct du Markhub Dark warm.
+
+   * `src/styles/themes/tokyo.css` : midnight blue `#1A1B26` + lavender text `#C0CAF5` + violet accent `#BB9AF7`. Mood Tokyo Night, distinct du Markhub Dark warm.
 
 4. **STEP 4 — Picker UI** (commit "theme picker with light/dark slots and mini-previews")
-   - Nouveau `ThemePicker.svelte` : mode segmented (Suivre système / Toujours clair / Toujours sombre) + 2 slots (clair/sombre) chacun avec ses cards à mini-preview markdown (Titre H1, paragraphe avec inline code + lien, curseur clignotant). Chaque card pose `data-theme="<id>"` sur elle-même pour render en contexte de son propre thème (les variables CSS cascadent localement).
-   - Slot "verrouillé" par le mode (always-light dim le slot sombre et inversement) — toujours selectable pour pré-configurer.
-   - SettingsAppearance épuré : la section Thème = `<ThemePicker />`.
+
+   * Nouveau `ThemePicker.svelte` : mode segmented (Suivre système / Toujours clair / Toujours sombre) + 2 slots (clair/sombre) chacun avec ses cards à mini-preview markdown (Titre H1, paragraphe avec inline code + lien, curseur clignotant). Chaque card pose `data-theme="<id>"` sur elle-même pour render en contexte de son propre thème (les variables CSS cascadent localement).
+
+   * Slot "verrouillé" par le mode (always-light dim le slot sombre et inversement) — toujours selectable pour pré-configurer.
+
+   * SettingsAppearance épuré : la section Thème = `<ThemePicker />`.
 
 5. **STEP 5 — Polish + anti-flash** (commit "polish OS-follow transitions and prevent cold-start flash")
-   - Script inline dans `app.html` qui pose `data-theme` AVANT first paint depuis `localStorage[markhub.theme.cache]` ou matchMedia fallback. `themeManager.applyTheme` cache l'id à chaque change.
-   - Transition 200ms sur `html, body { background-color, color }` — la canvas glisse entre thèmes au lieu de snap, les petits éléments restent instantanés.
+
+   * Script inline dans `app.html` qui pose `data-theme` AVANT first paint depuis `localStorage[markhub.theme.cache]` ou matchMedia fallback. `themeManager.applyTheme` cache l'id à chaque change.
+
+   * Transition 200ms sur `html, body { background-color, color }` — la canvas glisse entre thèmes au lieu de snap, les petits éléments restent instantanés.
 
 6. **STEP 6 — Audit + closure** (ce commit)
-   - `DESIGN-PRINCIPLES.md` §4 : placeholder "4 locked themes" remplacé par le catalog final (4 thèmes avec hex + accent, scope locked).
-   - `JOURNAL.md` : cette entrée.
-   - `BACKLOG.md` : items theming-v2 ajoutés.
+
+   * `DESIGN-PRINCIPLES.md` §4 : placeholder "4 locked themes" remplacé par le catalog final (4 thèmes avec hex + accent, scope locked).
+
+   * `JOURNAL.md` : cette entrée.
+
+   * `BACKLOG.md` : items theming-v2 ajoutés.
 
 ## Tests
 
-- cargo : **121/121 ✅** (+1 nouveau S1.9 : v1 désérialisation préserve la legacy field)
-- vitest : **486/486 ✅** (catalog 7, manager 15, settings 16, picker dans SettingsAppearance 12 ; -8 theme.test.svelte.ts supprimés)
-- svelte-check : **0 erreur / 0 warning ✅**
+* cargo : **121/121 ✅** (+1 nouveau S1.9 : v1 désérialisation préserve la legacy field)
+
+* vitest : **486/486 ✅** (catalog 7, manager 15, settings 16, picker dans SettingsAppearance 12 ; -8 theme.test.svelte.ts supprimés)
+
+* svelte-check : **0 erreur / 0 warning ✅**
 
 ## Décisions hors lettre du plan
 
-- **Cache localStorage anti-flash** (STEP 5) : ajouté à côté du fallback matchMedia mentionné par le plan, pour qu'un utilisateur en Solar ne flash pas en markhub-light au cold start.
-- **`vaultsStore.setTheme` legacy** : laissé en place (dead code côté front mais l'API Rust `Settings.theme` est encore là pour la rétrocompat de `config.json`). Hors scope.
-- **Cycle StatusBar** : passe par `cycleMode()` qui parcourt `system → always-light → always-dark`. Le plan §STEP 5 mentionne un cycle plus malin (parcourir les thèmes en mode Always) — pas implémenté.
+* **Cache localStorage anti-flash** (STEP 5) : ajouté à côté du fallback matchMedia mentionné par le plan, pour qu'un utilisateur en Solar ne flash pas en markhub-light au cold start.
+
+* `vaultsStore.setTheme`**&#x20;legacy** : laissé en place (dead code côté front mais l'API Rust `Settings.theme` est encore là pour la rétrocompat de `config.json`). Hors scope.
+
+* **Cycle StatusBar** : passe par `cycleMode()` qui parcourt `system → always-light → always-dark`. Le plan §STEP 5 mentionne un cycle plus malin (parcourir les thèmes en mode Always) — pas implémenté.
 
 ## Smoke test attendu de Matheo
 
 1. Boot l'app — pas de flash, le thème persisté apparaît immédiatement.
+
 2. Settings → Apparence → picker à 2 slots avec 4 cards. Click une card → bascule de slot. Click un mode → bascule de mode.
+
 3. OS toggle live (Réglages macOS → Apparence) en mode Système → l'app suit avec transition douce.
+
 4. Inspecter `~/Library/Application Support/com.kodyo.markhub/settings.json` : `"version": 2` + `themeMode`/`lightTheme`/`darkTheme`, pas de `theme` legacy.
+
 5. WCAG check : sur Solar et Tokyo, le body text doit être lisible (4.5:1 sur la canvas).
 
 ## Prochaine session
 
-- Smoke test interactif par Matheo + itérer sur les hex Solar/Tokyo si besoin (sont en starting values, pas en valeurs finales).
-- Si validé, merge `feat/theming` → `main`.
-- Reprendre PLAN-FRONTMATTER-UI STEPS 4-7 (raw YAML edit, typed controls, collapsed disk, polish + Playwright).
+* Smoke test interactif par Matheo + itérer sur les hex Solar/Tokyo si besoin (sont en starting values, pas en valeurs finales).
 
----
+* Si validé, merge `feat/theming` → `main`.
+
+* Reprendre PLAN-FRONTMATTER-UI STEPS 4-7 (raw YAML edit, typed controls, collapsed disk, polish + Playwright).
+
+***
 
 # Session 2026-05-14 (autonome) — PLAN-FRONTMATTER-UI STEPS 4-8 clôturés
 
@@ -2575,66 +2596,105 @@ Plus features atypique :
 ## Livraison
 
 1. **STEP 4 — Raw YAML edit mode** (`650fb68`)
-   - Troisième mode `edit-raw` sur FrontmatterBlock. Live parse on input ; Done/Mode structuré sont disabled tant que le YAML est invalide. Boutons d'entrée : depuis le banner d'erreur (maintenant fonctionnel) et depuis le header structured-edit ("YAML brut").
-   - Cancel revert via le snapshot pris à l'entrée d'un mode édition (cohérent entre structured ↔ raw).
-   - 7 tests R4.1-R4.7.
+
+   * Troisième mode `edit-raw` sur FrontmatterBlock. Live parse on input ; Done/Mode structuré sont disabled tant que le YAML est invalide. Boutons d'entrée : depuis le banner d'erreur (maintenant fonctionnel) et depuis le header structured-edit ("YAML brut").
+
+   * Cancel revert via le snapshot pris à l'entrée d'un mode édition (cohérent entre structured ↔ raw).
+
+   * 7 tests R4.1-R4.7.
 
 2. **STEP 5 — Typed controls** (`af51767`)
-   - `inferValueType(value)` exporté pour mapping per-key vers `string | number | date | datetime | boolean | tags | complex`.
-   - Read mode : dates formatées en français ("14 mai 2026"), tags rendus en chips, booléen "oui/non".
-   - Structured edit mode :
-     - `boolean` → toggle switch custom (CSS pur).
-     - `number` → `<input type="number">`.
-     - `date` / `datetime` → `<input type="date">` ou `datetime-local`.
-     - `tags` → chip row + input "Ajouter un tag" (Enter / virgule pour commit, Backspace pour retirer le dernier).
-     - `complex` (objets, arrays mixtes) → readonly + tooltip raw mode.
-   - 7 tests T5.1-T5.7. Les tag arrays ne sont plus 'complex' donc round-trip propre sans passer par raw mode.
+
+   * `inferValueType(value)` exporté pour mapping per-key vers `string | number | date | datetime | boolean | tags | complex`.
+
+   * Read mode : dates formatées en français ("14 mai 2026"), tags rendus en chips, booléen "oui/non".
+
+   * Structured edit mode :
+
+     * `boolean` → toggle switch custom (CSS pur).
+
+     * `number` → `<input type="number">`.
+
+     * `date` / `datetime` → `<input type="date">` ou `datetime-local`.
+
+     * `tags` → chip row + input "Ajouter un tag" (Enter / virgule pour commit, Backspace pour retirer le dernier).
+
+     * `complex` (objets, arrays mixtes) → readonly + tooltip raw mode.
+
+   * 7 tests T5.1-T5.7. Les tag arrays ne sont plus 'complex' donc round-trip propre sans passer par raw mode.
 
 3. **STEP 6 — Collapsed state sur disque** (`0a07bb8`)
-   - Nouveau fichier Rust `commands/frontmatter_state.rs` avec commands `frontmatter_state_read/write` (write atomic tmp+rename).
-   - `frontmatterCollapsed.svelte.ts` réécrit : hydrate via `init()` au boot (`+page.svelte::onMount`), persiste debounced 300ms.
-   - Migration localStorage → disque au premier `init()` post-upgrade : copie + retire la legacy key. Disque gagne sur conflit.
-   - 5 tests Rust + 10 tests TS (dont les nouveaux disk + migration).
+
+   * Nouveau fichier Rust `commands/frontmatter_state.rs` avec commands `frontmatter_state_read/write` (write atomic tmp+rename).
+
+   * `frontmatterCollapsed.svelte.ts` réécrit : hydrate via `init()` au boot (`+page.svelte::onMount`), persiste debounced 300ms.
+
+   * Migration localStorage → disque au premier `init()` post-upgrade : copie + retire la legacy key. Disque gagne sur conflit.
+
+   * 5 tests Rust + 10 tests TS (dont les nouveaux disk + migration).
 
 4. **STEP 7 — Visual polish + Playwright** (commit après celui-ci)
-   - Visual spec frontmatter réécrit : 6 baselines (collapsed, expanded, edit-structured, edit-raw, no-block, error). L'ancien spec testait encore le `<details>` pré-STEP-2 — obsolète, remplacé.
-   - Fixture `frontmatter` enrichie (string + tags + date + boolean + number + author) ; deux nouvelles fixtures `frontmatter-empty` et `frontmatter-error`.
-   - Helper `_helpers.ts::gotoFixture` accepte maintenant n'importe quel theme du catalog (markhub-*, cocoa, forest) avec backward-compat sur `'light'`/`'dark'`.
-   - Snapshots obsolètes retirés ; Playwright les régénérera au prochain run.
+
+   * Visual spec frontmatter réécrit : 6 baselines (collapsed, expanded, edit-structured, edit-raw, no-block, error). L'ancien spec testait encore le `<details>` pré-STEP-2 — obsolète, remplacé.
+
+   * Fixture `frontmatter` enrichie (string + tags + date + boolean + number + author) ; deux nouvelles fixtures `frontmatter-empty` et `frontmatter-error`.
+
+   * Helper `_helpers.ts::gotoFixture` accepte maintenant n'importe quel theme du catalog (markhub-*, cocoa, forest) avec backward-compat sur `'light'`/`'dark'`.
+
+   * Snapshots obsolètes retirés ; Playwright les régénérera au prochain run.
 
 5. **STEP 8 — Closure** (ce commit)
-   - PLAN-FRONTMATTER-UI.md tableau ✅.
-   - JOURNAL.md : cette entrée.
-   - BACKLOG.md : v2 candidates ajoutés.
+
+   * PLAN-FRONTMATTER-UI.md tableau ✅.
+
+   * JOURNAL.md : cette entrée.
+
+   * BACKLOG.md : v2 candidates ajoutés.
 
 ## Tests
 
-- cargo : **126/126 ✅** (+5 frontmatter_state tests)
-- vitest : **505/505 ✅** (+12 frontmatter component : R4.1-R4.7 + T5.1-T5.7 ; +6 frontmatterCollapsed disk/migration)
-- svelte-check : **0 erreur / 0 warning ✅**
-- Playwright : non lancé en autonomie (smoke interactif requis pour valider visuellement). Les specs sont en place ; un `npx playwright test --update-snapshots` régénère les baselines.
+* cargo : **126/126 ✅** (+5 frontmatter_state tests)
+
+* vitest : **505/505 ✅** (+12 frontmatter component : R4.1-R4.7 + T5.1-T5.7 ; +6 frontmatterCollapsed disk/migration)
+
+* svelte-check : **0 erreur / 0 warning ✅**
+
+* Playwright : non lancé en autonomie (smoke interactif requis pour valider visuellement). Les specs sont en place ; un `npx playwright test --update-snapshots` régénère les baselines.
 
 ## Décisions hors lettre du plan
 
-- **Empty state pas affiché quand data=null** : déjà documenté en `STATE.md` comme "quiet-by-default" écart conscient. Pas re-discuté. Le block n'est pas monté du tout dans Editor.svelte tant que data ET error sont null. Cohérent.
-- **Date input français vs ISO** : Le read mode formate en français (`14 mai 2026`). L'`<input type="date">` reste sur le format ISO du browser (le navigateur localise selon OS). Pas de conversion custom — le browser fait le boulot.
-- **Backspace sur tag-input vide** : retire le dernier chip (UX Linear/Notion/Apple Mail). Pas spec'é dans le plan, ajouté par cohérence avec les conventions chip-input. Reversible si tu n'aimes pas.
-- **`tags` accepté pour `[]` vide** : `inferValueType([])` retourne 'tags' (pas 'complex'). Permet de démarrer un nouveau champ tag depuis un array vide saisi en raw mode. Cohérent avec l'intention "futurs tags".
-- **Migration localStorage → disque silencieuse** : pas de toast, pas de log visible côté user. Le legacy localStorage est juste copié + supprimé. Si la migration échoue (rare : disque plein), la legacy localStorage reste intacte au prochain boot, on retry.
+* **Empty state pas affiché quand data=null** : déjà documenté en `STATE.md` comme "quiet-by-default" écart conscient. Pas re-discuté. Le block n'est pas monté du tout dans Editor.svelte tant que data ET error sont null. Cohérent.
+
+* **Date input français vs ISO** : Le read mode formate en français (`14 mai 2026`). L'`<input type="date">` reste sur le format ISO du browser (le navigateur localise selon OS). Pas de conversion custom — le browser fait le boulot.
+
+* **Backspace sur tag-input vide** : retire le dernier chip (UX Linear/Notion/Apple Mail). Pas spec'é dans le plan, ajouté par cohérence avec les conventions chip-input. Reversible si tu n'aimes pas.
+
+* `tags`**&#x20;accepté pour&#x20;**`[]`**&#x20;vide** : `inferValueType([])` retourne 'tags' (pas 'complex'). Permet de démarrer un nouveau champ tag depuis un array vide saisi en raw mode. Cohérent avec l'intention "futurs tags".
+
+* **Migration localStorage → disque silencieuse** : pas de toast, pas de log visible côté user. Le legacy localStorage est juste copié + supprimé. Si la migration échoue (rare : disque plein), la legacy localStorage reste intacte au prochain boot, on retry.
 
 ## Smoke test attendu de Matheo
 
 1. Boot l'app. Ouvre un fichier avec frontmatter — la nouvelle UI rend les bons controls par type :
-   - `published: true` → toggle (oui/non en lecture, switch en édition).
-   - `priority: 3` → input number en édition, "3" en lecture.
-   - `date: 2026-05-14` → "14 mai 2026" en lecture, date picker en édition.
-   - `tags: [demo, polish]` → chips en lecture et édition.
+
+   * `published: true` → toggle (oui/non en lecture, switch en édition).
+
+   * `priority: 3` → input number en édition, "3" en lecture.
+
+   * `date: 2026-05-14` → "14 mai 2026" en lecture, date picker en édition.
+
+   * `tags: [demo, polish]` → chips en lecture et édition.
+
 2. Click pencil → mode structuré. Click "YAML brut" → bascule en raw. Casse le YAML (mauvais indent) → bouton Done disabled + error rouge. Fix → Done réactif. Click Done → retour read mode avec les modifs persistées.
+
 3. Toggle collapsed sur un fichier, ferme l'app, rouvre → état persisté. Vérifie `~/Library/Application Support/com.kodyo.markhub/frontmatter-state.json` contient le map.
+
 4. Si tu avais des entrées dans `localStorage['markhub.frontmatter.collapsed.v1']` avant ce sprint, elles ont migré sur disque au premier boot (puis la legacy key est retirée).
 
 ## Prochaine session
 
-- Playwright `--update-snapshots` pour les baselines (et inspect visuel).
-- Merge `feat/frontmatter-ui-finish` → main.
-- Reprendre le BACKLOG : body font-size/line-height (4 essais reverted), drag-drop Finder, scroll-in-preview, flash blanc resize.
+* Playwright `--update-snapshots` pour les baselines (et inspect visuel).
+
+* Merge `feat/frontmatter-ui-finish` → main.
+
+* Reprendre le BACKLOG : body font-size/line-height (4 essais reverted), drag-drop Finder, scroll-in-preview, flash blanc resize.

@@ -5,39 +5,41 @@
 
 ## Date de mise à jour
 
-2026-05-14 (soir) — session marathon après-PLAN-SETTINGS + PLAN-COMMAND-SYSTEM. 16 commits enchaînés couvrant : revert body typography (4e échec), toast étoffé, retrait section Behavior, **onglets de fichiers Phase 5c**, **Cmd+F find-in-document**, **3 resize handles** (sidebar/outline/split vertical), polish UX tabs Cursor-style.
+2026-05-13 (soir) — session frontmatter UI : STEPS 1+2+3 du PLAN-FRONTMATTER-UI livrés. Commit unique `aa93a83`. Retrait du champ `behavior` côté Rust (alignement avec retrait TS antérieur, fixe le warn `settings_write — missing field behavior` qui revenait à chaque persist).
 
 ## Branche courante
 
-`main` — synced avec `origin/main` (push à jour).
+`main` — **5 commits d'avance sur `origin/main`** (push à faire par Matheo).
 
 Dernière séquence de commits :
 
 ```
+aa93a83 feat(frontmatter): UI block with collapsible read + structured edit modes
+430e8e2 style(tabs): 4px top-left/top-right radius on each tab
+d6cb591 style(tabs): drop the accent top border on the active tab
+2d66604 style(tabs): wider, more contrasted, Warp-style accent top border
+5a23542 feat(status-bar): content-width slider — percent of editor area
+f3f5c96 chore(state): refresh handoff docs after the 16-commit afternoon/evening
 078d849 fix(outline): route outline-panel jumps through source-mode scroll
 fa5b1b4 fix(panels): outline resize handle now lives on the panel's edge
 05d5420 refactor(sidebar): + icon next to "Vaults" header, drop the bottom button
 653bffc fix(panels): window-level pointer events + third resize (vaults / files)
-d7996e0 feat(panels): resize handles for the sidebar + outline columns
-43c8f91 feat(editor): in-document find bar (⌘F)
-9a3f1a3 fix(tabs): two-zone layout — trailing chrome can't be underflown
-679fe5e style(tabs): hide scrollbar + 16px fade before the trailing controls
-ad343d7 style(tabs): add file icon left of each tab name (Cursor parity)
-7ddd7a9 style(tabs): fold the editor chrome row into the tab bar
-bcee136 style(tabs): Cursor-style compact tab bar with horizontal scroll
-81ad262 style(tabs): polish — taller rows, drop breadcrumb path + bar border
-9305417 feat(tabs): editor file tabs (Phase 5c)
-80a420c refactor(settings): retire the redundant Behavior section
-5e3390b feat(toast): cover the remaining vault + rename + save flows (C2 v1.5)
-ca779fd revert(sidebar): disable drag-drop from Finder — restore in-app HTML5 drag
 ```
 
 ## Tests (état final)
 
 - cargo : **120/120 ✅**
-- vitest : **407/407 ✅**
+- vitest : **464/464 ✅** (+57 depuis 407 — frontmatter parser/store/collapsed/component + STEP 3 edit)
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
+
+## Working tree (non-committé)
+
+Housekeeping héritée d'avant la session, **non touchée par moi** :
+- `M JOURNAL.md` (à mettre à jour par Matheo)
+- `D MIGRATION-NOTES.md`, `D PLAN-BLOCKNOTE.md`, `D PLAN.md` (relocations vers `plan-110526/`)
+- `?? plan-110526/PLAN-BLOCKNOTE.md`, `?? features/PLAN-AI-AGENT.md`, `?? icon/`
+- `?? src-tauri/.svelte-kit/` (devrait être gitignoré — vérifier)
 
 ## Chantiers
 
@@ -45,31 +47,52 @@ ca779fd revert(sidebar): disable drag-drop from Finder — restore in-app HTML5 
 |---|---|
 | C1 — Migration Crepe → BlockNote | ✅ MERGÉ (2026-05-11) |
 | PLAN-DESIGN-DEFAULTS | ✅ MERGÉ (2026-05-12) |
-| PLAN-SETTINGS (8 steps) | ✅ MERGÉ 2026-05-14 (STEP 3 partielle, body typo BACKLOG) |
+| PLAN-SETTINGS (8 steps) | ✅ MERGÉ 2026-05-14 (body typo BACKLOG) |
 | PLAN-COMMAND-SYSTEM (8 steps) | ✅ MERGÉ 2026-05-14 |
-| Folder-delete EPERM | ✅ |
-| Import de fichiers markdown | ✅ |
-| Drag-drop sidebar (dossiers + root drop) | ✅ |
-| Outline panel V1 | ✅ |
-| Token estimate StatusBar | ✅ |
-| C2 — Toast system | ✅ (couverture complète write-side + save error) |
-| C3 — Drag-drop sidebar pointer events | ✅ user-validated |
-| C5 — Drag-drop FROM Finder | ⛔ reverted (Tauri/HTML5 incompat, BACKLOG) |
-| **Onglets de fichiers (Phase 5c)** | **✅ MERGÉ 2026-05-14 — JS-driven, Cursor-style** |
-| **Cmd+F find-in-document** | **✅ LIVRÉ 2026-05-14** |
-| **Resize handles trio (sidebar / outline / split vertical)** | **✅ LIVRÉ 2026-05-14** |
-| Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG (BlockNote theming API) |
-| Outline V2 Notion rail | gelé (V1 valide) |
-| Flash blanc resize | gelé (objc CALayer) |
-| Scroll preview natif (BlockNote line→block) | gelé (workaround source-mode partout) |
+| Onglets de fichiers (Phase 5c) | ✅ MERGÉ 2026-05-14 |
+| Cmd+F find-in-document | ✅ LIVRÉ 2026-05-14 |
+| Resize handles trio | ✅ LIVRÉ 2026-05-14 |
+| Content-width slider % StatusBar | ✅ LIVRÉ 2026-05-14 |
+| Tabs polish Warp/Cursor (4px radius, no top border) | ✅ LIVRÉ 2026-05-14 |
+| **PLAN-FRONTMATTER-UI STEP 1 (parser+store)** | **✅ LIVRÉ 2026-05-13** |
+| **PLAN-FRONTMATTER-UI STEP 2 (read mode)** | **✅ LIVRÉ 2026-05-13** |
+| **PLAN-FRONTMATTER-UI STEP 3 (structured edit)** | **✅ LIVRÉ 2026-05-13 — user-validé** |
+| PLAN-FRONTMATTER-UI STEP 4 (raw YAML edit) | ⏳ NEXT |
+| PLAN-FRONTMATTER-UI STEP 5 (typed controls: date/tags/toggle/number) | ⏳ |
+| PLAN-FRONTMATTER-UI STEP 6 (collapsed state — disque) | ⏳ (actuellement localStorage transient — module `frontmatterCollapsed.svelte.ts`) |
+| PLAN-FRONTMATTER-UI STEP 7 (visual polish + Playwright baselines) | ⏳ |
+| Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG |
+| Drag-drop FROM Finder | ⛔ reverted, BACKLOG |
+| Outline V2 Notion rail | gelé |
+| Flash blanc resize | gelé |
 
-## Surface livrée en production
+## Architecture du frontmatter UI (livré)
+
+`Editor.svelte` rend `<FrontmatterBlock>` au-dessus de BlockNote uniquement en preview (source mode garde la YAML inline dans le textarea). 3 états :
+
+1. **Read** (default collapsed) — strip d'une ligne `▶ FRONTMATTER · N clé(s)`. Click sur la toggle → expansion → rows clé/valeur + pencil top-right.
+2. **Edit-structured** — pencil → mode édition. Chaque ligne = inputs key + value, `+ Ajouter un champ` bottom, `✕` par ligne. Commit débounced 200ms via `onChange(data)`. Cancel restaure le snapshot, Done flush le pending. **Round-trip type-preservant** : la valeur passe par `yaml.load(valueStr)` → `42` devient number, `true` boolean, `2026-05-13` Date.
+3. **Error** — banner rouge si le YAML ne parse pas, raw YAML affiché en monospace + bouton "Modifier le YAML brut" inerte jusqu'à STEP 4.
+
+**Quiet-by-default** : pas d'état "Ajouter" affiché pour les fichiers sans frontmatter (écart conscient de la lettre du plan §2 — STEP 3+ pourra réintroduire via palette).
+
+**Persistance collapsed** : `localStorage['markhub.frontmatter.collapsed.v1']` = map keyed `vaultId::relativePath`. Module `src/lib/stores/frontmatterCollapsed.svelte.ts`. STEP 6 du plan déplacera ça en disque app config dir.
+
+**Valeurs complexes** (arrays / objects nested) : readonly dans le edit form avec tooltip "Éditer en mode brut (à venir)". STEP 4 livrera l'escape hatch.
+
+**Wire avec autosave** : `Editor.svelte::onFrontmatterChange` re-serialize via `serializeFrontmatter()`, récupère le body courant de BlockNote (`blocksToMarkdownLossy()`) ou fallback sur `body` $derived, puis appelle `onChange(joinFrontmatter(newYaml, body))` qui remonte au store + autosave. **BlockNote onChange a été corrigé** pour lire `frontmatter` $derived au callback-time (au lieu de `initialFrontmatter` capturé à mount) — sinon une édition body après une édition frontmatter clobbait celle-ci.
+
+## Rust nettoyé
+
+`UserSettings.behavior` retiré (struct `BehaviorSettings` supprimée). Le champ était inerte côté TS depuis le retrait de la section Behavior en 2026-05-14, mais le payload côté Rust l'attendait toujours en sérialisation, déclenchant un warn `settings_write — missing field behavior` à chaque persist. Tests cargo cleanés (2 assertions retirées). 120/120 verts.
+
+## Surface livrée en production (inchangée)
 
 **Raccourcis globaux** :
-- `⌘K` palette de commandes (catalog file/vault/view/settings/tabs)
-- `⌘P` file switcher (fuzzy filename+path, MRU, dedupe tabs)
+- `⌘K` palette de commandes
+- `⌘P` file switcher
 - `⌘⇧F` search vault (ripgrep)
-- `⌘F` find-in-document (nouveau)
+- `⌘F` find-in-document
 - `⌘G` / `⇧⌘G` next/previous match
 - `⌘\` outline panel toggle
 - `⌘W` ferme le tab actif
@@ -77,51 +100,52 @@ ca779fd revert(sidebar): disable drag-drop from Finder — restore in-app HTML5 
 - `⌘S` save manuel — `⌘,` settings
 
 **Layout 3 colonnes resizables** :
-- Sidebar gauche (180-480px) avec **split vertical** Vaults/Files (80-600px)
+- Sidebar gauche (180-480px) avec split vertical Vaults/Files (80-600px)
 - Main editor au milieu avec tabs Cursor-style intégrant le mode-toggle + outline button
-- Outline panel droite (200-480px) toggleable, handle de resize sur son edge gauche
+- Outline panel droite (200-480px) toggleable, handle sur son edge gauche
 
-**Toast system** : couvre tous les write-side handlers (create/delete/duplicate/move/import/rename de fichier ET dossier, vault add/remove/rename/toggle-mode, copy path) + save error sticky (`duration: 0`).
-
-**Settings** : 5 sections (Apparence / Éditeur / Source / Fichiers / Avancé). Behavior section retirée (redondante). Avancé : Open config folder + Export/Import JSON + version.
+**StatusBar** : pill compteur (mots/caractères/tokens cycliques), reading time, slider content-width en %, save status, theme toggle, settings shortcut.
 
 ## Pattern "auto-switch source" pour le scroll programmatique
 
-Toutes les opérations qui scrollent vers une position du doc (Cmd+F find, Cmd+Shift+F search hits, Outline click) **basculent automatiquement en source mode** quand l'utilisateur est en preview. Source-mode est la source de vérité ; native textarea selection sert de cue visuel. Le path preview-natif via BlockNote API est BACKLOG'd (instabilité observée sur les 4 tentatives).
+Inchangé. Find / search hits / outline click basculent en source mode quand l'utilisateur est en preview. BlockNote scroll programmatique BACKLOG'd.
 
 ## BACKLOG (dettes ouvertes)
 
 Voir `BACKLOG.md` :
-- **Body editor font-size + line-height** (4e tentative reverted — path propre = BlockNote theming API)
-- **Scroll-in-preview pour jumps** (workaround source-mode partout, V2 via ProseMirror view.coordsAtPos)
+- **Body editor font-size + line-height** (4e tentative reverted)
+- **Scroll-in-preview pour jumps** (workaround source-mode partout)
 - **Drag-drop FROM Finder** (refactor pointer events nécessaire)
 - **Flash blanc resize** (objc CALayer)
 - **PLAN-COMMAND-SYSTEM follow-ups** : double-scan vault tree, SearchOptions UI
-- **Outline V2 Notion rail** (gelé, V1 suffit)
+- **Outline V2 Notion rail** (gelé)
 
-Idées identifiées en cours de session 2026-05-14 :
-- Pin tab (épingler un tab pour qu'il survive ⌘W global / close-others)
-- Tab right-click menu (close others / close to right / close all)
-- Réordrer vaults dans Sidebar (drag-drop)
-- Find-and-replace (extension du find Cmd+F)
+Idées identifiées en cours de session 2026-05-13 (frontmatter) :
+- "Add frontmatter" affordance via palette pour fichiers sans `---` (skipped par décision quiet-by-default, à reconsiderer après STEP 4-5)
+- Inline duplicate-key validation pendant l'édition (v2)
+- Field-level undo dans le edit mode (v2)
+- Migration localStorage → disque pour collapsed state (STEP 6 du plan)
 
 ## Fichiers à relire en début de prochaine session
 
 1. `STATE.md` (ce fichier — porte d'entrée)
 2. `CLAUDE.md`
 3. `WORKPLAN.md`
-4. **Dernière entrée `JOURNAL.md`** (session 2026-05-14 soir)
-5. `BACKLOG.md` (dettes + items différés)
+4. `PLAN-FRONTMATTER-UI.md` (chantier actif — STEPS 4-8 à venir)
+5. `JOURNAL.md` (dernière entrée à compléter par Matheo)
+6. `BACKLOG.md`
 
 ## Prochaine session
 
 Toutes les pistes :
-- Tab right-click menu + middle-click close (~30min, UX cliché attendu)
+- **PLAN-FRONTMATTER-UI STEP 4** — raw YAML edit mode (textarea monospace, validation live, switch depuis structured / depuis error banner) ~1-2h
+- **PLAN-FRONTMATTER-UI STEP 5** — typed controls : date picker, tag chips, toggle boolean, number input ~2-3h
+- **PLAN-FRONTMATTER-UI STEP 6** — collapsed state persistence sur disque (`frontmatter-state.json` app config dir) ~1h
+- **PLAN-FRONTMATTER-UI STEP 7** — visual polish + Playwright baselines ~2h
+- Tab right-click menu + middle-click close (~30min)
 - Pin tab (~1h)
 - Réordrer vaults (~30min)
-- Find-and-replace (~1h, extension Cmd+F)
+- Find-and-replace (~1h)
 - Body typography via BlockNote theming API (~2-3h research+dev)
 - Scroll preview via ProseMirror view.coordsAtPos (~1-2h)
 - Drag-drop FROM Finder via pointer events (~1-2h)
-- Outline V2 Notion rail (~3h)
-- Multi-cursor / smooth caret (nice-to-have)
