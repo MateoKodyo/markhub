@@ -4,6 +4,21 @@ Idées et raffinements identifiés pendant le développement, mais hors-scope MV
 
 ## Idées identifiées en cours de dev
 
+### PLAN-FRONTMATTER-UI v2 — gelé après clôture v1 (2026-05-14)
+Plan v1 closed avec les 8 steps livrés. Si users le demandent en réel après usage :
+- **Vault-wide tag autocomplete** : maintenance d'un index de tags global au vault. Suggérer depuis tous les fichiers, pas juste l'ouvert. Demande un side-process d'indexation ou un scan lazy.
+- **Schema declaration per vault** : `.markhub/frontmatter-schema.yml` pour déclarer les champs requis par type de fichier. Validation à l'édition. Probablement un PLAN-VAULT-SCHEMA dédié.
+- **Frontmatter templates** : "Nouveau fichier avec template X" → pré-rempli avec des clés courantes selon le contexte (Notes / Tasks / Daily / etc).
+- **Field-level undo** dans l'edit mode (actuellement Cancel revert tout). Utile si users le réclament après usage réel.
+- **Inline duplicate-key validation** pendant l'édition (actuellement last-write-wins silencieux).
+- **Wikilinks / backlinks** dans les frontmatter values : explicit NO pour v1, mais à reconsiderer si Markhub vire vers du Obsidian-like.
+
+### Theming v1 — petites dettes à reprendre si besoin
+- **Cycle StatusBar plus malin** (mentionné §STEP 5 du plan) : en mode Always, cycler les thèmes du family au lieu de basculer le mode. Pas critique tant que le picker est la voie principale.
+- **`vaultsStore.setTheme` dead code** : l'API Rust `Settings.theme` dans `config.json` (legacy) reste, mais plus aucun appel côté front. À nettoyer si on touche au legacy Settings.
+- **WCAG audit formel** : Cocoa et Forest. Refaire les contrastes au contrast-checker une fois les hex stabilisés.
+- **Playwright visual baselines** : pas posées en autonomie (smoke interactif requis). À ajouter après validation des 4 thèmes — fixture `_visual?theme=cocoa` et `_visual?theme=forest`.
+
 ### PLAN-THEMING v2 — gelé après clôture v1 (2026-05-13)
 Catalog v1 est **closed** par décision design (4 thèmes curated, pas d'extension). Si users le demandent en réel après lancement, considérer dans cet ordre :
 - **Theme editor live** (sliders couleurs + preview en temps réel) — gros chantier UI + persistance JSON par thème.
@@ -11,12 +26,6 @@ Catalog v1 est **closed** par décision design (4 thèmes curated, pas d'extensi
 - **Accent override par thème** — laisser l'utilisateur changer juste l'accent sans toucher le reste.
 - **Sepia / High contrast variants** — accessibility, prioritaire si users vision basse.
 - **Per-vault theme override** — un thème par vault (utile si vaults distincts par projet/contexte). Stockage : `VaultState.themeOverride: ThemeId | null`.
-
-### Theming v1 — petites dettes à reprendre si besoin
-- **Cycle StatusBar plus malin** (mentionné §STEP 5 du plan) : en mode Always, cycler les thèmes du family au lieu de basculer le mode. Pas critique tant que le picker est la voie principale.
-- **`vaultsStore.setTheme` dead code** : l'API Rust `Settings.theme` dans `config.json` (legacy) reste, mais plus aucun appel côté front. À nettoyer si on touche au legacy Settings.
-- **WCAG audit formel** : Solar et Tokyo en starting values. Refaire les contrastes au contrast-checker une fois les hex stabilisés.
-- **Playwright visual baselines** : pas posées en autonomie (smoke interactif requis). À ajouter après validation des 4 thèmes — fixture `_visual?theme=solar` et `_visual?theme=tokyo`.
 
 ### Drag-drop FROM Finder (chantier C5) — bloqué par incompatibilité Tauri ↔ HTML5 — 2026-05-14
 - Livré 2026-05-14 (commit `de10739`) avec `dragDropEnabled: true` dans tauri.conf.json + listener `tauri://drag-drop` côté `+page.svelte` qui hit-test la position contre la sidebar et dispatch `palette:action { action: 'importPaths' }`.

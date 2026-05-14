@@ -128,14 +128,14 @@ Per-file collapsed state lives in a small map persisted to disk alongside the fi
 
 | Step | Status | Commit | Matheo validation |
 |------|--------|--------|-------------------|
-| 1. Parser + store foundation | ⏳ | — | — |
-| 2. Read mode (default rendering) | ⏳ | — | — |
-| 3. Structured edit mode | ⏳ | — | — |
-| 4. Raw YAML edit mode | ⏳ | — | — |
-| 5. Type-specific controls (date, tags, toggle) | ⏳ | — | — |
-| 6. Collapsed state + persistence | ⏳ | — | — |
-| 7. Visual polish + DESIGN-PRINCIPLES alignment | ⏳ | — | — |
-| 8. Closure | ⏳ | — | — |
+| 1. Parser + store foundation | ✅ | `aa93a83` (bundled) | 2026-05-13 |
+| 2. Read mode (default rendering) | ✅ | `aa93a83` (bundled) | 2026-05-13 |
+| 3. Structured edit mode | ✅ | `aa93a83` (bundled) | 2026-05-13 |
+| 4. Raw YAML edit mode | ✅ | `650fb68` | 2026-05-14 |
+| 5. Type-specific controls (date, tags, toggle) | ✅ | `af51767` | 2026-05-14 |
+| 6. Collapsed state + persistence | ✅ | `0a07bb8` | 2026-05-14 |
+| 7. Visual polish + DESIGN-PRINCIPLES alignment | ✅ | next commit | 2026-05-14 |
+| 8. Closure | ✅ | this commit | 2026-05-14 |
 
 ---
 

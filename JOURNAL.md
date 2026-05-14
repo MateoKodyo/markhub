@@ -2561,3 +2561,80 @@ Plus features atypique :
 - Smoke test interactif par Matheo + itérer sur les hex Solar/Tokyo si besoin (sont en starting values, pas en valeurs finales).
 - Si validé, merge `feat/theming` → `main`.
 - Reprendre PLAN-FRONTMATTER-UI STEPS 4-7 (raw YAML edit, typed controls, collapsed disk, polish + Playwright).
+
+---
+
+# Session 2026-05-14 (autonome) — PLAN-FRONTMATTER-UI STEPS 4-8 clôturés
+
+> Mission : exécuter STEPS 4-8 en autonomie. Steps 1-3 étaient déjà mergés sur main (`aa93a83`).
+
+## Branche
+
+`feat/frontmatter-ui-finish` — 5 commits, prête pour merge.
+
+## Livraison
+
+1. **STEP 4 — Raw YAML edit mode** (`650fb68`)
+   - Troisième mode `edit-raw` sur FrontmatterBlock. Live parse on input ; Done/Mode structuré sont disabled tant que le YAML est invalide. Boutons d'entrée : depuis le banner d'erreur (maintenant fonctionnel) et depuis le header structured-edit ("YAML brut").
+   - Cancel revert via le snapshot pris à l'entrée d'un mode édition (cohérent entre structured ↔ raw).
+   - 7 tests R4.1-R4.7.
+
+2. **STEP 5 — Typed controls** (`af51767`)
+   - `inferValueType(value)` exporté pour mapping per-key vers `string | number | date | datetime | boolean | tags | complex`.
+   - Read mode : dates formatées en français ("14 mai 2026"), tags rendus en chips, booléen "oui/non".
+   - Structured edit mode :
+     - `boolean` → toggle switch custom (CSS pur).
+     - `number` → `<input type="number">`.
+     - `date` / `datetime` → `<input type="date">` ou `datetime-local`.
+     - `tags` → chip row + input "Ajouter un tag" (Enter / virgule pour commit, Backspace pour retirer le dernier).
+     - `complex` (objets, arrays mixtes) → readonly + tooltip raw mode.
+   - 7 tests T5.1-T5.7. Les tag arrays ne sont plus 'complex' donc round-trip propre sans passer par raw mode.
+
+3. **STEP 6 — Collapsed state sur disque** (`0a07bb8`)
+   - Nouveau fichier Rust `commands/frontmatter_state.rs` avec commands `frontmatter_state_read/write` (write atomic tmp+rename).
+   - `frontmatterCollapsed.svelte.ts` réécrit : hydrate via `init()` au boot (`+page.svelte::onMount`), persiste debounced 300ms.
+   - Migration localStorage → disque au premier `init()` post-upgrade : copie + retire la legacy key. Disque gagne sur conflit.
+   - 5 tests Rust + 10 tests TS (dont les nouveaux disk + migration).
+
+4. **STEP 7 — Visual polish + Playwright** (commit après celui-ci)
+   - Visual spec frontmatter réécrit : 6 baselines (collapsed, expanded, edit-structured, edit-raw, no-block, error). L'ancien spec testait encore le `<details>` pré-STEP-2 — obsolète, remplacé.
+   - Fixture `frontmatter` enrichie (string + tags + date + boolean + number + author) ; deux nouvelles fixtures `frontmatter-empty` et `frontmatter-error`.
+   - Helper `_helpers.ts::gotoFixture` accepte maintenant n'importe quel theme du catalog (markhub-*, cocoa, forest) avec backward-compat sur `'light'`/`'dark'`.
+   - Snapshots obsolètes retirés ; Playwright les régénérera au prochain run.
+
+5. **STEP 8 — Closure** (ce commit)
+   - PLAN-FRONTMATTER-UI.md tableau ✅.
+   - JOURNAL.md : cette entrée.
+   - BACKLOG.md : v2 candidates ajoutés.
+
+## Tests
+
+- cargo : **126/126 ✅** (+5 frontmatter_state tests)
+- vitest : **505/505 ✅** (+12 frontmatter component : R4.1-R4.7 + T5.1-T5.7 ; +6 frontmatterCollapsed disk/migration)
+- svelte-check : **0 erreur / 0 warning ✅**
+- Playwright : non lancé en autonomie (smoke interactif requis pour valider visuellement). Les specs sont en place ; un `npx playwright test --update-snapshots` régénère les baselines.
+
+## Décisions hors lettre du plan
+
+- **Empty state pas affiché quand data=null** : déjà documenté en `STATE.md` comme "quiet-by-default" écart conscient. Pas re-discuté. Le block n'est pas monté du tout dans Editor.svelte tant que data ET error sont null. Cohérent.
+- **Date input français vs ISO** : Le read mode formate en français (`14 mai 2026`). L'`<input type="date">` reste sur le format ISO du browser (le navigateur localise selon OS). Pas de conversion custom — le browser fait le boulot.
+- **Backspace sur tag-input vide** : retire le dernier chip (UX Linear/Notion/Apple Mail). Pas spec'é dans le plan, ajouté par cohérence avec les conventions chip-input. Reversible si tu n'aimes pas.
+- **`tags` accepté pour `[]` vide** : `inferValueType([])` retourne 'tags' (pas 'complex'). Permet de démarrer un nouveau champ tag depuis un array vide saisi en raw mode. Cohérent avec l'intention "futurs tags".
+- **Migration localStorage → disque silencieuse** : pas de toast, pas de log visible côté user. Le legacy localStorage est juste copié + supprimé. Si la migration échoue (rare : disque plein), la legacy localStorage reste intacte au prochain boot, on retry.
+
+## Smoke test attendu de Matheo
+
+1. Boot l'app. Ouvre un fichier avec frontmatter — la nouvelle UI rend les bons controls par type :
+   - `published: true` → toggle (oui/non en lecture, switch en édition).
+   - `priority: 3` → input number en édition, "3" en lecture.
+   - `date: 2026-05-14` → "14 mai 2026" en lecture, date picker en édition.
+   - `tags: [demo, polish]` → chips en lecture et édition.
+2. Click pencil → mode structuré. Click "YAML brut" → bascule en raw. Casse le YAML (mauvais indent) → bouton Done disabled + error rouge. Fix → Done réactif. Click Done → retour read mode avec les modifs persistées.
+3. Toggle collapsed sur un fichier, ferme l'app, rouvre → état persisté. Vérifie `~/Library/Application Support/com.kodyo.markhub/frontmatter-state.json` contient le map.
+4. Si tu avais des entrées dans `localStorage['markhub.frontmatter.collapsed.v1']` avant ce sprint, elles ont migré sur disque au premier boot (puis la legacy key est retirée).
+
+## Prochaine session
+
+- Playwright `--update-snapshots` pour les baselines (et inspect visuel).
+- Merge `feat/frontmatter-ui-finish` → main.
+- Reprendre le BACKLOG : body font-size/line-height (4 essais reverted), drag-drop Finder, scroll-in-preview, flash blanc resize.
