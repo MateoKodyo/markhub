@@ -12,21 +12,26 @@ import { expect, type Page } from '@playwright/test';
 export async function gotoFixture(
 	page: Page,
 	fixture: string,
-	theme?: 'light' | 'dark'
+	theme?: 'light' | 'dark' | 'markhub-light' | 'markhub-dark' | 'cocoa' | 'forest'
 ): Promise<void> {
-	const themeQS = theme === 'light' ? '&theme=light' : '';
-	await page.goto(`/_visual?fixture=${fixture}${themeQS}`);
+	// Resolve to a catalog id. The legacy `light`/`dark` shortcuts map to the
+	// Markhub defaults so older specs keep working without edits.
+	const themeId =
+		theme === 'light' || theme === 'markhub-light'
+			? 'markhub-light'
+			: theme === 'cocoa'
+				? 'cocoa'
+				: theme === 'forest'
+					? 'forest'
+					: 'markhub-dark';
+	await page.goto(`/_visual?fixture=${fixture}&theme=${themeId}`);
 	// Force the theme attribute via Playwright too — onMount of the fixture
 	// page also does this, but setting it from the test side guarantees the
 	// attribute is in place even if Svelte's hydration runs in an order where
 	// the screenshot would otherwise capture the dark fallback.
-	await page.evaluate((t) => {
-		if (t === 'light') {
-			document.documentElement.setAttribute('data-theme', 'light');
-		} else {
-			document.documentElement.removeAttribute('data-theme');
-		}
-	}, theme ?? 'dark');
+	await page.evaluate((id) => {
+		document.documentElement.setAttribute('data-theme', id);
+	}, themeId);
 	// BlockNote (post-bascule) renders blocks under `.bn-container` /
 	// `.bn-editor` with the ProseMirror surface inside. Match the deepest
 	// container that exists in both modes so we wait for actual paint.

@@ -21,15 +21,38 @@ A second paragraph below to check spacing rhythm.`,
 
 		frontmatter: `---
 title: Sample document
-tags: [demo, polish]
-date: 2026-05-09
+tags: [demo, polish, frontmatter]
+date: 2026-05-14
+published: true
+priority: 3
+author: Matheo
 ---
 
 # Body title
 
-The frontmatter above must render as a collapsed monospace \`<details>\` block, NOT in italic giant serif.
+The frontmatter above renders as the styled FrontmatterBlock — a quiet
+metadata strip above the editor. Click the chevron to expand, the
+pencil to enter structured edit mode, then "YAML brut" to switch to
+the raw textarea.
 
 A paragraph below.`,
+
+		'frontmatter-empty': `# No frontmatter
+
+This file has no \`---\` block so the FrontmatterBlock renders its
+empty state with an "Ajouter" affordance.`,
+
+		'frontmatter-error': `---
+title: Sample
+  bad: indent
+extra: oui
+---
+
+# Body title
+
+The frontmatter above is malformed (bad YAML indentation). The
+FrontmatterBlock surfaces the error banner with the raw YAML and a
+button to switch into the raw editor.`,
 
 		slash: `# Type slash to open the menu
 

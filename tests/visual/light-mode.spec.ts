@@ -22,6 +22,12 @@ test('frontmatter collapsed — light theme', async ({ page }) => {
 	await snap(page, 'editor-frontmatter-collapsed-light.png');
 });
 
+test('frontmatter expanded with typed values — light theme', async ({ page }) => {
+	await gotoFixture(page, 'frontmatter', 'light');
+	await page.getByTestId('frontmatter-toggle').click();
+	await snap(page, 'editor-frontmatter-expanded-light.png');
+});
+
 test('task list — light theme', async ({ page }) => {
 	await gotoFixture(page, 'task-list', 'light');
 	await snap(page, 'task-list-light.png');
