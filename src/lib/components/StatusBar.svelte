@@ -3,6 +3,7 @@
 		AlertCircle,
 		Check,
 		Copy,
+		Download,
 		Loader,
 		Lock,
 		Monitor,
@@ -24,7 +25,8 @@
 		readonly = false,
 		content = '',
 		status = 'idle' as SaveStatus,
-		onCopyPath = () => {}
+		onCopyPath = () => {},
+		onExport = () => {}
 	}: {
 		vault?: Vault | null;
 		relativePath?: string | null;
@@ -32,6 +34,7 @@
 		content?: string;
 		status?: SaveStatus;
 		onCopyPath?: () => void;
+		onExport?: () => void;
 	} = $props();
 
 	let countMode = $state<'words' | 'characters' | 'tokens'>('words');
@@ -184,6 +187,19 @@
 					<span>{statusInfo.label}</span>
 				{/if}
 			</span>
+		{/if}
+
+		{#if relativePath}
+			<button
+				type="button"
+				class="pill pill-btn pill-icon"
+				title="Exporter ce fichier en Markdown propre"
+				aria-label="Exporter en Markdown"
+				onclick={onExport}
+				data-testid="export-btn"
+			>
+				<Download size={12} aria-hidden="true" focusable="false" />
+			</button>
 		{/if}
 
 		<button

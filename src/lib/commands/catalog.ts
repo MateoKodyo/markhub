@@ -26,6 +26,7 @@ import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { vaultsStore } from '$lib/stores/vaults.svelte';
 import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
 import * as api from '$lib/tauri/api';
+import { defaultExportFilename, runExportWithToast } from '$lib/utils/export';
 import { commandRegistry } from './registry.svelte';
 
 /** Dispatch an event the Sidebar listens to. Centralised to keep the
@@ -95,6 +96,21 @@ export function registerAppCommands(): void {
 			} catch (e) {
 				console.warn('[command] reveal failed', e);
 			}
+		}
+	});
+
+	commandRegistry.register({
+		id: 'file.export',
+		label: 'Export File…',
+		group: 'File',
+		when: () => activeFileStore.activeFile !== null,
+		handler: async () => {
+			const af = activeFileStore.activeFile;
+			if (!af) return;
+			await runExportWithToast(
+				activeFileStore.content,
+				defaultExportFilename(af.relativePath)
+			);
 		}
 	});
 
@@ -311,6 +327,7 @@ export function unregisterAppCommands(): void {
 		'file.import',
 		'file.save',
 		'file.reveal',
+		'file.export',
 		'vault.add',
 		'view.toggleSidebar',
 		'view.toggleTheme',

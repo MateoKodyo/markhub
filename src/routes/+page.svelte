@@ -33,6 +33,7 @@
 	import { rankCommands } from '$lib/commands/fuzzy';
 	import { rankFiles, type FilePaletteEntry } from '$lib/commands/fuzzyFiles';
 	import { joinPath } from '$lib/utils/path';
+	import { defaultExportFilename, runExportWithToast } from '$lib/utils/export';
 	import * as api from '$lib/tauri/api';
 
 	type PendingAction = 'create' | 'sample' | 'clone';
@@ -341,6 +342,15 @@
 		}
 	}
 
+	async function exportActiveFile() {
+		const f = activeFileStore.activeFile;
+		if (!f) return;
+		await runExportWithToast(
+			activeFileStore.content,
+			defaultExportFilename(f.relativePath)
+		);
+	}
+
 	// Re-key on tab switch so the BlockNote instance is fully reset.
 	// Tab id is unique per open even on the same (vault, path), so
 	// closing and re-opening a tab also triggers a clean remount.
@@ -515,6 +525,7 @@
 			content={activeFileStore.content}
 			status={activeFileStore.status}
 			onCopyPath={copyActiveFilePath}
+			onExport={exportActiveFile}
 		/>
 		</main>
 

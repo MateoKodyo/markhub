@@ -123,6 +123,17 @@ export const fileRevealInFinder = (
 	relativePath: string
 ): Promise<void> => invoke('file_reveal_in_finder', { vaultId, relativePath });
 
+/**
+ * Export `content` as normalized markdown to `targetPath` (absolute, chosen
+ * by the system save dialog). The Rust side applies the export pipeline
+ * (frontmatter passthrough, trim trailing whitespace, collapse blank lines,
+ * final LF) and overwrites without question.
+ */
+export const fileExport = (
+	content: string,
+	targetPath: string
+): Promise<void> => invoke('file_export', { content, targetPath });
+
 /** Open an http/https URL in the system default browser. */
 export const urlOpen = (url: string): Promise<void> => invoke('url_open', { url });
 

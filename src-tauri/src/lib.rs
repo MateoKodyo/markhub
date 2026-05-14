@@ -37,6 +37,7 @@ pub fn run() {
             commands::files::file_import,
             commands::files::file_reveal_in_finder,
             commands::files::url_open,
+            commands::export::file_export,
             commands::settings::settings_read,
             commands::settings::settings_write,
             commands::settings::app_version,

@@ -18,12 +18,14 @@
 		fileCreate,
 		fileDelete,
 		fileImport,
+		fileRead,
 		fileRename,
 		fileDuplicate,
 		fileRevealInFinder,
 		folderCreate,
 		folderDelete
 	} from '$lib/tauri/api';
+	import { defaultExportFilename, runExportWithToast } from '$lib/utils/export';
 	import { joinPath, getFileName, getParentPath, isMarkdownFile } from '$lib/utils/path';
 	import {
 		findInsertionTarget,
@@ -368,6 +370,10 @@
 						label: 'Révéler dans le Finder',
 						onClick: () => handleRevealInFinder(entry.relativePath)
 					},
+					{
+						label: 'Exporter…',
+						onClick: () => handleExportFile(entry)
+					},
 					{ separator: true },
 					{
 						label: 'Supprimer',
@@ -595,6 +601,22 @@
 		} catch (e) {
 			topLevelError = `Impossible d'ouvrir le Finder : ${String(e)}`;
 		}
+	}
+
+	async function handleExportFile(entry: FileEntry) {
+		const id = vaultsStore.activeVaultId;
+		if (!id) return;
+		// Sidebar export = export du fichier tel qu'il est sur disque (le
+		// buffer courant n'est en général synchronisé qu'après le debounce
+		// autosave ; et on peut exporter un fichier qui n'est pas ouvert).
+		let content: string;
+		try {
+			content = await fileRead(id, entry.relativePath);
+		} catch (e) {
+			toast.error('Export impossible', { details: String(e) });
+			return;
+		}
+		await runExportWithToast(content, defaultExportFilename(entry.relativePath));
 	}
 
 	async function copyEntryPath(entry: FileEntry, mode: 'relative' | 'absolute') {
