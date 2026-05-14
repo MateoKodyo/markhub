@@ -5,15 +5,17 @@
 
 ## Date de mise à jour
 
-2026-05-14 (fin d'après-midi) — longue session : PLAN-THEMING v1 mergé, PLAN-FRONTMATTER-UI v1 mergé, **PLAN-EDITOR-POLISH démarré puis pausé** (2 bugs visuels non résolus), **PLAN-UI-PORT-PENCIL démarré puis bloqué** (MCP enregistré mais tools pas chargés dans la session courante — restart Claude Code requis).
+2026-05-14 (soir) — court chantier PLAN-EXPORT-MD livré et mergé : pipeline Rust de normalisation markdown (frontmatter passthrough, body minimal cleanup) + commande Tauri `file_export` + 3 entrées UI (palette / status bar / sidebar context menu). Smoke test validé en réel par Matheo. Push à origin demandé.
 
 ## Branche courante
 
-`main` — **1 commit d'avance sur `origin/main`** (housekeeping, push à faire par Matheo).
+`main` — **3 commits d'avance sur `origin/main`** (housekeeping + docs marathon + export). Push autorisé explicitement cette fois (override de la règle habituelle).
 
 Dernière séquence de commits sur main :
 
 ```
+602bab8 feat(export): export current file as clean Markdown
+5834ef9 docs: refresh STATE + JOURNAL for the 2026-05-14 marathon session
 b116c01 chore: housekeeping — relocate retired plans, refresh app icons, drop retired notes
 7469dc8 chore(frontmatter): closure — PLAN-FRONTMATTER-UI v1 complete
 ff96807 feat(frontmatter): visual polish and Playwright baselines
@@ -22,11 +24,9 @@ af51767 feat(frontmatter): typed controls — date, tags, toggle, number
 650fb68 feat(frontmatter): raw YAML edit mode
 930cd25 feat(theming): swap Solar/Tokyo for Cocoa (Claude-warm) and Forest (kaki)
 c3b7252 docs(theming): close PLAN-THEMING progress table
-cd636e0 fix(theming): theme selectors lost the cascade race against the :root fallback
-fc18d14 chore(theming): final audit and documentation update
 ```
 
-Plus en amont : 8 autres commits theming (af998e5..) — voir `git log`.
+Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits theming antérieurs (af998e5..).
 
 ## Branches actives (non mergées)
 
@@ -36,8 +36,8 @@ Plus en amont : 8 autres commits theming (af998e5..) — voir `git log`.
 
 ## Tests (état actuel sur main)
 
-- cargo : **126/126 ✅**
-- vitest : **505/505 ✅**
+- cargo : **156/156 ✅** (+30 sur `commands::export`)
+- vitest : **512/512 ✅** (+7 sur `utils/export`)
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
@@ -57,6 +57,7 @@ Plus en amont : 8 autres commits theming (af998e5..) — voir `git log`.
 | Cmd+F find-in-document, resize handles, content-width slider, tabs polish | ✅ LIVRÉS 2026-05-14 |
 | PLAN-FRONTMATTER-UI STEPS 1-3 (parser/store/read/edit-structured) | ✅ MERGÉ 2026-05-13 |
 | **PLAN-FRONTMATTER-UI STEPS 4-8 (raw YAML, typed controls, disk persist, polish + closure)** | **✅ MERGÉ 2026-05-14** |
+| **PLAN-EXPORT-MD — export normalisé : pipeline Rust + 3 entrées UI** | **✅ MERGÉ 2026-05-14 (soir)** |
 | **PLAN-THEMING v1 — 4 thèmes curated, picker à 2 slots, OS-follow, anti-flash** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-THEMING iteration Cocoa + Forest (remplacent Solar/Tokyo)** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-EDITOR-POLISH (16 steps)** | **⏸ PAUSÉ après STEPS 1-3 partiels — `feat/editor-polish` branch, 2 bugs CSS cascade (H1 serif + blockquote color)** |
@@ -122,6 +123,8 @@ Plus en amont : 8 autres commits theming (af998e5..) — voir `git log`.
 **4 thèmes** (depuis PLAN-THEMING) : Markhub Light, Markhub Dark, Cocoa (warm browns), Forest (kaki). Picker à 2 slots dans Settings → Apparence.
 
 **Frontmatter custom UI** (depuis PLAN-FRONTMATTER-UI) : block au-dessus de BlockNote avec read collapsed + structured edit (controls typés date/tags/toggle/number) + raw YAML edit + collapsed state sur disque (`frontmatter-state.json`).
+
+**Export Markdown propre** (depuis PLAN-EXPORT-MD) : 3 entrées UI (Cmd+K → "Export File…", bouton Download dans la status bar, item "Exporter…" dans le context menu sidebar). Pipeline de normalisation côté Rust : frontmatter YAML passthrough verbatim, blank line forcée entre frontmatter et body, CRLF/CR → LF, trim trailing whitespace par ligne, collapse 3+ newlines → 2, final LF. Aucune transformation sémantique des tokens markdown. Palette/status bar exportent le buffer courant ; sidebar lit depuis disque.
 
 ## BACKLOG (dettes ouvertes)
 
