@@ -4,7 +4,7 @@
 
 # PLAN — UI PORT TO PAPER
 
-> **Single objective**: port Markhub's current UI into Paper (paper.design) to obtain a faithful **v0 reference**, then use Paper as the playground for UI/UX explorations driven by Claude Code via MCP. Read at the start of every Claude Code session working on this plan. **Mirror plan**: `PLAN-UI-PORT-PENCIL.md` — same steps, same validation criteria, same scope. Only the tool and the workflow specifics differ. The point of running both is to compare the two tools honestly on identical work. **Reference**: `DESIGN-PRINCIPLES.md` defines what the UI must look like. This plan is about reproducing it inside Paper, not redefining it.
+> **Single objective**: port Markhub's current UI into Paper (paper.design) to obtain a faithful **v0 reference**, then use Paper as the playground for UI/UX explorations driven by Claude Code via MCP. Read at the start of every Claude Code session working on this plan. **Reference**: `DESIGN-PRINCIPLES.md` defines what the UI must look like. This plan is about reproducing it inside Paper, not redefining it.
 
 ***
 
@@ -12,7 +12,7 @@
 
 Markhub's UI is built in Svelte and currently runs in a Tauri shell. Iterating on UI/UX inside the live codebase is slow: every "what if" requires editing Svelte, rebuilding, and reviewing. The goal is to offload exploration to a design canvas that can be modified surgically by Claude Code via MCP, while keeping the Svelte codebase clean and stable.
 
-Paper is one of two candidates. The other is Pencil. Both plans are run independently to evaluate which tool produces the better iteration loop for Markhub. **No conclusion is drawn until both plans are complete.**
+Paper is the chosen candidate. The plan validates that the porting workflow works end-to-end and produces a usable iteration loop on Markhub's UI before committing to it as a permanent surface for explorations.
 
 ***
 
@@ -335,7 +335,7 @@ Claude Code reads the actual Svelte components in `src/lib/components/` to deter
 
 ## STEP 7 — Comparative assessment
 
-**Objective**: write the honest assessment of Paper for Markhub's iteration workflow. Feeds the final Paper-vs-Pencil decision.
+**Objective**: write the honest assessment of Paper for Markhub's iteration workflow. Decides whether Paper graduates to permanent use for the project's UI explorations.
 
 ### Mission
 
@@ -377,8 +377,6 @@ Also include:
 
 ```text
 You're starting work on PLAN-UI-PORT-PAPER.md.
-
-Mirror plan: PLAN-UI-PORT-PENCIL.md exists with identical steps for Pencil. We're running them sequentially to compare the two tools. Do not look at the Pencil plan during your work.
 
 Read PLAN-UI-PORT-PAPER.md and DESIGN-PRINCIPLES.md BEFORE any action.
 

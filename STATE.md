@@ -5,7 +5,9 @@
 
 ## Date de mise à jour
 
-2026-05-14 (soir) — court chantier PLAN-EXPORT-MD livré et mergé : pipeline Rust de normalisation markdown (frontmatter passthrough, body minimal cleanup) + commande Tauri `file_export` + 3 entrées UI (palette / status bar / sidebar context menu). Smoke test validé en réel par Matheo. Push à origin demandé.
+2026-05-14 (nuit) — chantier d'exploration UI tooling abandonné en cours de route (friction d'autonomie structurelle). Repo nettoyé. Prochaine étape : **PLAN-UI-PAPER** (reformulé en plan standalone).
+
+Plus tôt dans la journée : court chantier PLAN-EXPORT-MD livré et mergé (pipeline Rust de normalisation markdown + 3 entrées UI). Smoke test validé en réel.
 
 ## Branche courante
 
@@ -41,10 +43,6 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
-## Working tree (non-committé)
-
-- `?? Pencil/markhub.pen` — placeholder `.pen` créé via Pencil Desktop app (frame 800×600 blanche, version "2.11"). Pas committé pour ne pas figer un emplacement / structure encore en flux. Le plan dit `design/markhub.pen` à la racine ; l'app a créé `Pencil/markhub.pen`. À trancher au reboot de session.
-
 ## Chantiers
 
 | Chantier | Statut |
@@ -61,8 +59,7 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 | **PLAN-THEMING v1 — 4 thèmes curated, picker à 2 slots, OS-follow, anti-flash** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-THEMING iteration Cocoa + Forest (remplacent Solar/Tokyo)** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-EDITOR-POLISH (16 steps)** | **⏸ PAUSÉ après STEPS 1-3 partiels — `feat/editor-polish` branch, 2 bugs CSS cascade (H1 serif + blockquote color)** |
-| **PLAN-UI-PORT-PENCIL (7 steps)** | **🚧 BLOQUÉ avant STEP 1 — MCP enregistré mais tools pas dans la session courante** |
-| PLAN-UI-PORT-PAPER (mirror plan Pencil) | ⏳ pas démarré (mirror du Pencil run, sera lancé après) |
+| **PLAN-UI-PORT-PAPER (7 steps)** | ⏳ pas démarré — prochaine prio |
 | Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG |
 | Drag-drop FROM Finder | ⛔ reverted, BACKLOG |
 | Outline V2 Notion rail | gelé |
@@ -86,26 +83,6 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 1. `rm -rf node_modules/.vite .svelte-kit` puis `npm run tauri dev` → si les 2 bugs disparaissent, c'était bien le cache HMR.
 2. Sinon : DevTools dans la fenêtre Tauri, inspect un `<h1>` problématique, regarder les rules computed et la cascade en direct. Cela révèlera la règle qui gagne.
 3. Sinon (worst case) : revert le commit WIP, isoler les changements par paquet (commit par STEP), smoke test pas à pas.
-
-## PLAN-UI-PORT-PENCIL — état précis
-
-**Ce qui est en place** :
-- Pencil CLI installé via Homebrew (`/opt/homebrew/bin/pencil`, v0.2.6). **Non authentifié** (`pencil status` dit "Not authenticated"). Auth bloquée mais probablement contournable car on passe par le MCP de l'app desktop, pas par le CLI.
-- **Pencil Desktop app** installé (`/Applications/Pencil.app`). Son MCP server bundled à `/Applications/Pencil.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64`.
-- **MCP server enregistré au scope user dans Claude Code** : `claude mcp list` → `pencil: ... ✓ Connected`.
-- Un `Pencil/markhub.pen` minimal créé manuellement via l'app (frame 800×600 blanche, version "2.11"). Non committé.
-
-**Ce qui bloque** :
-- **Les tools MCP Pencil ne sont pas chargés dans la session Claude Code courante**. Claude Code charge les MCP servers au démarrage ; un serveur ajouté en cours de session ne devient pas accessible avant un restart de session.
-- ToolSearch query="pencil" retourne "No matching deferred tools found" — confirmation.
-
-**À faire au retour pour démarrer Pencil** :
-1. **Quitter et relancer la session Claude Code** (CLI ou IDE host).
-2. **Premier check** : `ToolSearch query="pencil"` doit lister les tools du MCP Pencil.
-3. **Adapter PLAN-UI-PENCIL.md** au modèle réel (MCP server du Desktop app, pas extension IDE comme le plan le décrit). Le plan a été rédigé sur des assumptions Pencil = extension IDE avec MCP — la réalité c'est Desktop app séparée + MCP bundled.
-4. Vérifier où placer le `.pen` : plan dit `design/markhub.pen`, app a créé `Pencil/markhub.pen`. Trancher.
-5. Créer la branche `feat/ui-port-pencil` from main.
-6. Lancer STEP 1 round-trip test via les tools MCP.
 
 ## Surface livrée en production (inchangée)
 
@@ -136,22 +113,19 @@ Voir `BACKLOG.md` :
 - **PLAN-COMMAND-SYSTEM follow-ups** : double-scan vault tree, SearchOptions UI
 - **Outline V2 Notion rail** (gelé)
 - **PLAN-EDITOR-POLISH STEPS 1-3** : 2 bugs CSS cascade à résoudre (`feat/editor-polish` branche)
-- **Pencil tools loading** : restart session Claude Code requis
 
 ## Fichiers à relire en début de prochaine session
 
 1. **`STATE.md`** (ce fichier — porte d'entrée)
 2. **`CLAUDE.md`**
 3. **`WORKPLAN.md`**
-4. **`PLAN-UI-PENCIL.md`** (chantier prioritaire — STEP 1 à démarrer après restart session)
+4. **`PLAN-UI-PAPER.md`** (chantier prioritaire — STEP 1 à démarrer)
 5. **`PLAN-POLISH-EDIT.md`** (à lire seulement si tu reprends `feat/editor-polish` — voir PAUSE NOTE en tête)
 6. **`JOURNAL.md`** (dernière entrée 2026-05-14 — session longue)
 7. **`BACKLOG.md`**
 
 ## Prochaine session — checklist de démarrage
 
-1. **Push origin/main** (1 commit ahead).
-2. **Restart Claude Code** pour charger les tools MCP Pencil.
-3. `ToolSearch query="pencil"` → confirmer les tools dispos.
-4. Adapter PLAN-UI-PENCIL.md selon ce que le MCP expose réellement (lister les tools dans le plan).
-5. Démarrer STEP 1 du PLAN-UI-PENCIL — vraie scaffold de branche + round-trip MCP.
+1. **Push origin/main** si commits ahead.
+2. **Charger le skill officiel Paper** s'il existe avant tout code — règle d'or pour tout outil tiers, leçon retenue d'une exploration récente.
+3. Lire `PLAN-UI-PAPER.md` end to end et démarrer STEP 1.

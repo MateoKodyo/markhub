@@ -2890,3 +2890,36 @@ Rien à signaler. Petit chantier, scope tenu, smoke test validé du premier coup
 Prio inchangée : **PLAN-UI-PORT-PENCIL** (cf. STATE.md section dédiée). Le restart Claude Code reste nécessaire pour les tools MCP Pencil — note : dans la session courante les `mcp__pencil__*` apparaissent dans les deferred tools, donc le blocage est peut-être déjà levé pour la prochaine session si on relance avec la même config MCP.
 
 Si à la place tu veux clore `feat/editor-polish` : voir PAUSE NOTE en tête de PLAN-POLISH-EDIT.md.
+
+---
+
+# 2026-05-14 (nuit) — Pencil abandonné
+
+## Décision
+
+Après ~3h d'exploration, Pencil est **abandonné**. La friction structurelle est non-négociable : `Cmd+S` manuel après chaque opération MCP avant que le `.pen` ne soit synchronisé sur disque. Aucun tool MCP `save_document`. Conséquence : pas d'autonomie possible — chaque batch d'opérations Claude doit être suivi d'une intervention humaine, ce qui casse complètement le modèle d'usage visé.
+
+## Symptômes vécus
+
+1. **Cmd+S manuel après chaque `batch_design`** — découvert au round-trip initial (l'éditeur reflète les changements, le disque non, jusqu'à un save explicite).
+2. **Save silencieusement échouée si parallélisme git** — pendant que Pencil bossait via MCP sur `feat/ui-port-pencil`, une session parallèle (Export MD) a fait `git checkout main` puis revenu. Le path absolu auquel Pencil ancrait son state mémoire avait disparu du working tree → save sans erreur, contenu perdu (récupéré in extremis).
+3. **Skill officiel pencil découvert tardivement** — le skill `pencil-design` listé dans les available-skills couvre uniquement le **CLI** (mode AI-driven from-scratch), pas le **MCP** (mode chirurgical pour porter une UI existante). Découvert après ~2h de travail. Aucune doctrine officielle pour notre workflow.
+
+## Ce qui a été purgé
+
+- Worktree `../markhub-pencil/` supprimé (`git worktree remove --force`)
+- Branche `feat/ui-port-pencil` supprimée (`git branch -D`, dernier commit `97163c8` — récupérable via reflog ~30j)
+- `PLAN-UI-PENCIL.md` à la racine supprimé
+- Sections Pencil retirées de `STATE.md` (chantiers, état précis, BACKLOG, fichiers à relire, checklist)
+- Mentions comparatives "Paper vs Pencil" retirées de `PLAN-UI-PAPER.md` (reformulé en plan standalone)
+
+## Leçons retenues (pour la suite)
+
+1. **Charger le skill officiel d'un outil EN DÉBUT de session** avant tout code, même si la description du skill listée est opaque. Cost de skip : plusieurs heures.
+2. **Distinguer les interfaces multi-modes d'un produit** (CLI vs MCP vs SDK vs API) avant de choisir le bon rail. Tester l'auth de chaque interface séparément.
+3. **Évaluer l'autonomie possible avant de s'engager** : si l'outil exige une intervention humaine après chaque opération automatisable, c'est rédhibitoire pour un workflow agent.
+4. **Pencil ignore git** (anchor à path absolu, aucune notion de branche). Toujours travailler en worktree dédié si parallélisme — mais cette mitigation ne sauve pas du Cmd+S manuel.
+
+## Prochaine session
+
+**Exploration Paper.design** via `PLAN-UI-PAPER.md` (reformulé en plan standalone, plus comparatif). Matheo a mentionné avoir testé Paper il y a quelques jours et que la connexion MCP reproduisait l'UI sans problème. Première action : charger le skill officiel Paper s'il existe, lire `PLAN-UI-PAPER.md` end to end, puis démarrer STEP 1.
