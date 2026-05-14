@@ -144,6 +144,23 @@ export const settingsWrite = (settings: UserSettings): Promise<void> =>
 /** Compile-time version baked into the Rust binary (matches Cargo.toml). */
 export const appVersion = (): Promise<string> => invoke('app_version');
 
+/**
+ * Read the per-file frontmatter collapsed-state map from disk
+ * (`<config-dir>/frontmatter-state.json`). Returns an empty object when
+ * missing / unreadable / malformed — collapsed state is cosmetic so a
+ * failure here must never block the app.
+ */
+export const frontmatterStateRead = (): Promise<Record<string, boolean>> =>
+	invoke('frontmatter_state_read');
+
+/**
+ * Atomically persist the per-file frontmatter collapsed-state map. The
+ * caller debounces writes; the Rust side does an atomic tmp+rename.
+ */
+export const frontmatterStateWrite = (
+	state: Record<string, boolean>
+): Promise<void> => invoke('frontmatter_state_write', { state });
+
 /** Open the on-disk config directory in Finder (creates it if missing). */
 export const settingsConfigFolderReveal = (): Promise<void> =>
 	invoke('settings_config_folder_reveal');

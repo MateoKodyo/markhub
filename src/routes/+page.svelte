@@ -21,6 +21,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { recentFilesStore } from '$lib/stores/recentFiles.svelte';
 	import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
+	import { init as initFrontmatterCollapsed } from '$lib/stores/frontmatterCollapsed.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import CommandMode from '$lib/components/palette/CommandMode.svelte';
 	import FileMode from '$lib/components/palette/FileMode.svelte';
@@ -261,6 +262,11 @@
 			// theme — `settingsStore.load()` internally wires `themeManager`
 			// to the persisted preference and starts the OS listener.
 			await settingsStore.load();
+			// Hydrate the per-file frontmatter collapsed state from disk
+			// before the first file mount so FrontmatterBlock reads the
+			// persisted state on its first render (no flash from collapsed
+			// → expanded). Migrates legacy localStorage data once.
+			void initFrontmatterCollapsed();
 			// Restore the last-opened vault (so the sidebar shows the right
 			// files), but DO NOT auto-open the last file — the launch screen
 			// is always the EmptyState. lastOpenedFile is preserved in the

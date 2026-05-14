@@ -43,6 +43,8 @@ pub fn run() {
             commands::settings::settings_config_folder_reveal,
             commands::settings::settings_export,
             commands::settings::settings_import,
+            commands::frontmatter_state::frontmatter_state_read,
+            commands::frontmatter_state::frontmatter_state_write,
             commands::search::search_in_vault,
         ])
         .run(tauri::generate_context!())
