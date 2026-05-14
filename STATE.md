@@ -5,9 +5,13 @@
 
 ## Date de mise à jour
 
-2026-05-14 (nuit) — chantier d'exploration UI tooling abandonné en cours de route (friction d'autonomie structurelle). Repo nettoyé. Prochaine étape : **PLAN-UI-PAPER** (reformulé en plan standalone).
+2026-05-15 (matin) — `PLAN-UI-PAPER.md` réécrit avec un nouveau scope (asset library complet pour landing page : tous les écrans + modales + menus + composants atomiques, ~25 artboards sur 9 STEPs). Avant le redémarrage de session Claude Code, le plan est prêt et la memory `project_paper_chantier` à jour.
 
-Plus tôt dans la journée : court chantier PLAN-EXPORT-MD livré et mergé (pipeline Rust de normalisation markdown + 3 entrées UI). Smoke test validé en réel.
+Pour démarrer effectivement : Paper Desktop doit tourner (vérifié, tourne sur PID 4626 et écoute sur 127.0.0.1:29979) ET il faut **restart Claude Code** car la connexion MCP au serveur Paper a été tentée au start de cette session avant que Paper Desktop soit lancé → status `✗ Failed to connect` cached, tools `mcp__paper__*` non chargés. Pas de mécanisme de reconnect à chaud côté Claude Code CLI.
+
+Veille (2026-05-14 nuit) — exploration UI tooling alternative abandonnée en cours de route (friction d'autonomie structurelle). Repo nettoyé.
+
+Plus tôt le 2026-05-14 : court chantier PLAN-EXPORT-MD livré et mergé (pipeline Rust de normalisation markdown + 3 entrées UI). Smoke test validé en réel.
 
 ## Branche courante
 
