@@ -1,7 +1,8 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import FrontmatterBlock, {
-	formatValueForRead
+	formatValueForRead,
+	inferValueType
 } from '../../src/lib/components/FrontmatterBlock.svelte';
 
 describe('FrontmatterBlock — empty state', () => {
@@ -90,7 +91,10 @@ describe('FrontmatterBlock — read mode', () => {
 		expect(screen.getByText('title')).toBeInTheDocument();
 		expect(screen.getByText('Hello')).toBeInTheDocument();
 		expect(screen.getByText('tags')).toBeInTheDocument();
-		expect(screen.getByText('note, todo')).toBeInTheDocument();
+		// STEP 5 renders tags as chip elements, not as joined text.
+		const chipRow = screen.getByTestId('frontmatter-read-chips');
+		expect(chipRow).toHaveTextContent('note');
+		expect(chipRow).toHaveTextContent('todo');
 		expect(screen.getByText('published')).toBeInTheDocument();
 		expect(screen.getByText('oui')).toBeInTheDocument();
 	});
@@ -223,23 +227,26 @@ describe('FrontmatterBlock — structured edit mode (STEP 3)', () => {
 		expect(onChange).toHaveBeenCalledWith({ title: 'World' });
 	});
 
-	it('round-trips scalar types — "42" becomes a number, "true" a boolean', async () => {
+	it('round-trips scalar types from a string row — "42" becomes a number, "true" a boolean', async () => {
+		// String-typed rows (the default for free-form text) still YAML-parse
+		// the input on commit so the natural type intuition survives. Number
+		// and boolean rows now have their own dedicated controls (STEP 5).
 		vi.useFakeTimers();
 		const onChange = vi.fn();
 		render(FrontmatterBlock, {
-			data: { count: 1 },
+			data: { note: 'hi' },
 			parseError: null,
 			commitDebounceMs: 10,
 			onChange
 		});
-		await enterEdit({ count: 1 });
+		await enterEdit({ note: 'hi' });
 		const valueInput = screen.getByTestId('frontmatter-edit-value');
 		await fireEvent.input(valueInput, { target: { value: '42' } });
 		await vi.advanceTimersByTimeAsync(20);
-		expect(onChange).toHaveBeenLastCalledWith({ count: 42 });
+		expect(onChange).toHaveBeenLastCalledWith({ note: 42 });
 		await fireEvent.input(valueInput, { target: { value: 'true' } });
 		await vi.advanceTimersByTimeAsync(20);
-		expect(onChange).toHaveBeenLastCalledWith({ count: true });
+		expect(onChange).toHaveBeenLastCalledWith({ note: true });
 	});
 
 	it('adding a field appends an empty row', async () => {
@@ -307,12 +314,15 @@ describe('FrontmatterBlock — structured edit mode (STEP 3)', () => {
 		expect(screen.queryByTestId('frontmatter-edit-structured')).toBeNull();
 	});
 
-	it('complex values render readonly with the placeholder message', async () => {
+	it('object values render readonly with the placeholder message', async () => {
+		// STEP 5 promoted `Array<string>` to its own tags type — only nested
+		// objects (and mixed arrays) still fall through to the complex
+		// placeholder.
 		render(FrontmatterBlock, {
-			data: { tags: ['a', 'b'], meta: { x: 1 } },
+			data: { meta: { x: 1 }, mixed: [1, 'two', true] },
 			parseError: null
 		});
-		await enterEdit({ tags: ['a', 'b'], meta: { x: 1 } });
+		await enterEdit({ meta: { x: 1 }, mixed: [1, 'two', true] });
 		const complexInputs = screen.getAllByTestId(
 			'frontmatter-edit-value-complex'
 		);
@@ -321,6 +331,142 @@ describe('FrontmatterBlock — structured edit mode (STEP 3)', () => {
 			expect(el).toHaveAttribute('readonly');
 			expect((el as HTMLInputElement).value).toContain('complexe');
 		});
+	});
+});
+
+describe('FrontmatterBlock — typed controls (STEP 5)', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	// ------ T5.1 — inferValueType covers the six recognised shapes ------
+	it('inferValueType maps each value shape to the right type', () => {
+		expect(inferValueType('Hello')).toBe('string');
+		expect(inferValueType(42)).toBe('number');
+		expect(inferValueType(true)).toBe('boolean');
+		expect(inferValueType(false)).toBe('boolean');
+		expect(inferValueType('2026-05-14')).toBe('date');
+		expect(inferValueType(new Date('2026-05-14T00:00:00Z'))).toBe('date');
+		expect(inferValueType(new Date('2026-05-14T10:30:00Z'))).toBe('datetime');
+		expect(inferValueType(['a', 'b'])).toBe('tags');
+		expect(inferValueType([])).toBe('tags');
+		expect(inferValueType({ x: 1 })).toBe('complex');
+		expect(inferValueType([1, 'two'])).toBe('complex');
+		expect(inferValueType(null)).toBe('string');
+	});
+
+	async function enterEditWith(data: Record<string, unknown>) {
+		await fireEvent.click(screen.getByTestId('frontmatter-toggle'));
+		await fireEvent.click(screen.getByTestId('frontmatter-edit-btn'));
+		void data;
+	}
+
+	// ------ T5.2 — boolean → toggle ------
+	it('boolean values render as a toggle, click flips the value', async () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { published: true },
+			parseError: null,
+			commitDebounceMs: 10,
+			onChange
+		});
+		await enterEditWith({ published: true });
+		const toggle = screen.getByTestId('frontmatter-edit-toggle') as HTMLInputElement;
+		expect(toggle.checked).toBe(true);
+		await fireEvent.click(toggle);
+		await vi.advanceTimersByTimeAsync(20);
+		expect(onChange).toHaveBeenLastCalledWith({ published: false });
+	});
+
+	// ------ T5.3 — number → input[type=number] ------
+	it('number values render as a number input, typing preserves the number type', async () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { count: 1 },
+			parseError: null,
+			commitDebounceMs: 10,
+			onChange
+		});
+		await enterEditWith({ count: 1 });
+		const input = screen.getByTestId(
+			'frontmatter-edit-value-number'
+		) as HTMLInputElement;
+		expect(input.type).toBe('number');
+		await fireEvent.input(input, { target: { value: '42' } });
+		await vi.advanceTimersByTimeAsync(20);
+		expect(onChange).toHaveBeenLastCalledWith({ count: 42 });
+	});
+
+	// ------ T5.4 — date → input[type=date], read mode formats the date ------
+	it('date values render with a date input and a formatted French read view', async () => {
+		render(FrontmatterBlock, {
+			data: { published_at: '2026-05-14' },
+			parseError: null
+		});
+		// Read mode shows formatted French date.
+		await fireEvent.click(screen.getByTestId('frontmatter-toggle'));
+		expect(screen.getByText(/14 mai 2026/)).toBeInTheDocument();
+		// Edit mode shows a date input.
+		await fireEvent.click(screen.getByTestId('frontmatter-edit-btn'));
+		const input = screen.getByTestId(
+			'frontmatter-edit-value-date'
+		) as HTMLInputElement;
+		expect(input.type).toBe('date');
+		expect(input.value).toBe('2026-05-14');
+	});
+
+	// ------ T5.5 — tags → chip list with add input ------
+	it('tag arrays render as chips with an "add" input — Enter commits a new tag', async () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { tags: ['note', 'todo'] },
+			parseError: null,
+			commitDebounceMs: 10,
+			onChange
+		});
+		await enterEditWith({ tags: ['note', 'todo'] });
+		// Two chips visible.
+		expect(screen.getAllByTestId('frontmatter-tag-remove')).toHaveLength(2);
+		// Add a new tag.
+		const tagInput = screen.getByTestId(
+			'frontmatter-tag-input'
+		) as HTMLInputElement;
+		await fireEvent.input(tagInput, { target: { value: 'urgent' } });
+		await fireEvent.keyDown(tagInput, { key: 'Enter' });
+		await vi.advanceTimersByTimeAsync(20);
+		expect(onChange).toHaveBeenLastCalledWith({
+			tags: ['note', 'todo', 'urgent']
+		});
+	});
+
+	// ------ T5.6 — tag remove button drops the chip ------
+	it('clicking a chip × removes the tag', async () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { tags: ['note', 'todo'] },
+			parseError: null,
+			commitDebounceMs: 10,
+			onChange
+		});
+		await enterEditWith({ tags: ['note', 'todo'] });
+		const removeButtons = screen.getAllByTestId('frontmatter-tag-remove');
+		await fireEvent.click(removeButtons[0]);
+		await vi.advanceTimersByTimeAsync(20);
+		expect(onChange).toHaveBeenLastCalledWith({ tags: ['todo'] });
+	});
+
+	// ------ T5.7 — read mode formats booleans, dates, and renders tag chips ------
+	it('read mode formats booleans, dates, and renders tag chips', () => {
+		expect(formatValueForRead(true)).toBe('oui');
+		expect(formatValueForRead(false)).toBe('non');
+		expect(formatValueForRead(new Date('2026-05-14T00:00:00Z'))).toMatch(
+			/14 mai 2026/
+		);
+		expect(formatValueForRead('2026-05-14')).toMatch(/14 mai 2026/);
 	});
 });
 

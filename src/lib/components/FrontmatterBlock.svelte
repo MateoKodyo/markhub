@@ -1,21 +1,84 @@
 <script lang="ts" module>
 	/**
+	 * Per-key value typing — read at file load + on every value update.
+	 * Drives which control renders in structured edit mode (date input,
+	 * tag chips, toggle, number input, plain text input, or the readonly
+	 * fallback for complex shapes).
+	 */
+	export type ValueType =
+		| 'string'
+		| 'number'
+		| 'date'
+		| 'datetime'
+		| 'boolean'
+		| 'tags'
+		| 'complex';
+
+	const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+	/**
+	 * Infer the value's logical type. This is intentionally non-exotic — only
+	 * the five common cases get their own UI affordance; everything else
+	 * falls through to 'string' (free text) or 'complex' (raw mode only).
+	 */
+	export function inferValueType(value: unknown): ValueType {
+		if (value === null || value === undefined) return 'string';
+		if (typeof value === 'boolean') return 'boolean';
+		if (typeof value === 'number') return 'number';
+		if (value instanceof Date) {
+			const iso = value.toISOString();
+			return iso.endsWith('T00:00:00.000Z') ? 'date' : 'datetime';
+		}
+		if (typeof value === 'string') {
+			return ISO_DATE_RE.test(value) ? 'date' : 'string';
+		}
+		if (Array.isArray(value)) {
+			if (value.length === 0) return 'tags'; // empty array → start as tags
+			const allStrings = value.every((v) => typeof v === 'string');
+			return allStrings ? 'tags' : 'complex';
+		}
+		return 'complex';
+	}
+
+	/** Format a Date (or YYYY-MM-DD string) for read-mode display in French. */
+	function formatDateForRead(value: unknown): string {
+		const d = value instanceof Date ? value : new Date(String(value));
+		if (isNaN(d.getTime())) return String(value);
+		return d.toLocaleDateString('fr-FR', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		});
+	}
+
+	function formatDateTimeForRead(value: unknown): string {
+		const d = value instanceof Date ? value : new Date(String(value));
+		if (isNaN(d.getTime())) return String(value);
+		return d.toLocaleString('fr-FR', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+
+	/**
 	 * Format a single frontmatter value for read-mode display.
-	 *
-	 * Rules (per PLAN-FRONTMATTER-UI.md STEP 2):
-	 *  - null / undefined        -> "—"
-	 *  - boolean                 -> "oui" / "non"
-	 *  - Array of primitives     -> joined with ", "
-	 *  - Array with non-primitive items OR length > 8 -> complex placeholder
-	 *  - Plain object            -> complex placeholder
-	 *  - everything else         -> String(value)
-	 *
-	 * STEP 2 renders every value as text; typed controls (date / chips /
-	 * toggles) arrive in STEP 5.
+	 * STEP 5 routes dates / tags / booleans / numbers through typed
+	 * formatters; tags get rendered as chip components by the consumer,
+	 * not via this helper (it still returns a string fallback for
+	 * environments that can't render the chip row).
 	 */
 	export function formatValueForRead(value: unknown): string {
 		if (value === null || value === undefined) return '—';
 		if (typeof value === 'boolean') return value ? 'oui' : 'non';
+		if (value instanceof Date) {
+			const iso = value.toISOString();
+			return iso.endsWith('T00:00:00.000Z')
+				? formatDateForRead(value)
+				: formatDateTimeForRead(value);
+		}
 		if (Array.isArray(value)) {
 			if (value.length > 8) return '(valeur complexe — éditer en mode brut)';
 			const allPrimitive = value.every(
@@ -36,18 +99,10 @@
 				.join(', ');
 		}
 		if (typeof value === 'object') return '(valeur complexe — éditer en mode brut)';
+		if (typeof value === 'string' && ISO_DATE_RE.test(value)) {
+			return formatDateForRead(value);
+		}
 		return String(value);
-	}
-
-	/**
-	 * Whether a value can be edited as a single text input (plain scalar).
-	 * Objects and arrays fall back to the readonly placeholder in STEP 3 —
-	 * STEP 4 will add the raw-YAML editor for them.
-	 */
-	function isComplex(value: unknown): boolean {
-		if (value === null || value === undefined) return false;
-		if (typeof value === 'object') return true;
-		return false;
 	}
 
 	/** Best-effort string representation of a scalar for the value input. */
@@ -57,7 +112,6 @@
 		if (typeof value === 'boolean') return value ? 'true' : 'false';
 		if (typeof value === 'number') return String(value);
 		if (value instanceof Date) {
-			// Plain date (no time component) → YYYY-MM-DD; otherwise full ISO.
 			const iso = value.toISOString();
 			return iso.endsWith('T00:00:00.000Z') ? iso.slice(0, 10) : iso;
 		}
@@ -132,11 +186,18 @@
 	type DraftRow = {
 		id: string;
 		key: string;
+		type: ValueType;
+		/** Scalar text — used by string, number, date, datetime. */
 		valueStr: string;
+		/** Boolean toggle state — used by type='boolean'. */
+		valueBool: boolean;
+		/** Tag list — used by type='tags'. */
+		valueTags: string[];
+		/** Pending text inside the "add tag" input — never persisted as-is. */
+		tagDraft: string;
 		/** Preserved original value for complex types (arrays / objects).
 		 *  Edits to the key still move it along, but the value is opaque. */
 		originalValue?: unknown;
-		complex: boolean;
 	};
 
 	// ----- Mode & collapse state -----
@@ -189,39 +250,77 @@
 
 	function rowsFromData(d: Record<string, unknown>): DraftRow[] {
 		return Object.entries(d).map(([k, v]) => {
-			const complex = isComplex(v);
+			const type = inferValueType(v);
 			return {
 				id: freshId(),
 				key: k,
-				valueStr: complex ? '' : scalarToString(v),
-				originalValue: complex ? v : undefined,
-				complex
+				type,
+				valueStr: type === 'boolean' || type === 'tags' || type === 'complex'
+					? ''
+					: scalarToString(v),
+				valueBool: type === 'boolean' ? (v as boolean) : false,
+				valueTags: type === 'tags' ? ([...(v as string[])] as string[]) : [],
+				tagDraft: '',
+				originalValue: type === 'complex' ? v : undefined
 			};
 		});
 	}
 
-	/** Build the next data object from the current draft. YAML round-trip on
-	 *  each scalar value preserves natural types (numbers, booleans, dates). */
+	/** Build the next data object from the current draft. Each row's type
+	 *  drives the conversion back to the natural JS value (number, Date,
+	 *  boolean, array, string). */
 	function dataFromRows(rows: DraftRow[]): Record<string, unknown> {
 		const result: Record<string, unknown> = {};
 		for (const row of rows) {
 			const key = row.key.trim();
 			if (key === '') continue;
 			// Last-write-wins on duplicate keys — inline validation is a v2
-			// polish task; STEP 3 ships the happy path.
-			if (row.complex) {
-				result[key] = row.originalValue;
-				continue;
-			}
-			if (row.valueStr === '') {
-				result[key] = '';
-				continue;
-			}
-			try {
-				const parsed = yaml.load(row.valueStr);
-				result[key] = parsed === undefined ? '' : parsed;
-			} catch {
-				result[key] = row.valueStr;
+			// polish task.
+			switch (row.type) {
+				case 'complex':
+					result[key] = row.originalValue;
+					break;
+				case 'boolean':
+					result[key] = row.valueBool;
+					break;
+				case 'tags':
+					result[key] = [...row.valueTags];
+					break;
+				case 'number': {
+					if (row.valueStr === '') {
+						result[key] = '';
+					} else {
+						const n = Number(row.valueStr);
+						result[key] = Number.isNaN(n) ? row.valueStr : n;
+					}
+					break;
+				}
+				case 'date':
+				case 'datetime': {
+					if (row.valueStr === '') {
+						result[key] = '';
+					} else {
+						const d = new Date(row.valueStr);
+						result[key] = Number.isNaN(d.getTime()) ? row.valueStr : d;
+					}
+					break;
+				}
+				case 'string': {
+					if (row.valueStr === '') {
+						result[key] = '';
+					} else {
+						// YAML round-trip preserves intuition — typing "true" in a
+						// string field promotes the row to a boolean on next reload,
+						// typing "42" promotes to number, "2026-05-14" to date.
+						try {
+							const parsed = yaml.load(row.valueStr);
+							result[key] = parsed === undefined ? '' : parsed;
+						} catch {
+							result[key] = row.valueStr;
+						}
+					}
+					break;
+				}
 			}
 		}
 		return result;
@@ -366,7 +465,15 @@
 	function addRow(): void {
 		draft = [
 			...draft,
-			{ id: freshId(), key: '', valueStr: '', complex: false }
+			{
+				id: freshId(),
+				key: '',
+				type: 'string',
+				valueStr: '',
+				valueBool: false,
+				valueTags: [],
+				tagDraft: ''
+			}
 		];
 		// No commit here — an empty key would just be filtered out anyway.
 	}
@@ -385,6 +492,56 @@
 	function onValueInput(id: string, e: Event): void {
 		const v = (e.target as HTMLInputElement).value;
 		draft = draft.map((r) => (r.id === id ? { ...r, valueStr: v } : r));
+		scheduleCommit();
+	}
+
+	function onBoolToggle(id: string, e: Event): void {
+		const v = (e.target as HTMLInputElement).checked;
+		draft = draft.map((r) => (r.id === id ? { ...r, valueBool: v } : r));
+		scheduleCommit();
+	}
+
+	function onTagDraftInput(id: string, e: Event): void {
+		const v = (e.target as HTMLInputElement).value;
+		draft = draft.map((r) => (r.id === id ? { ...r, tagDraft: v } : r));
+		// No commit — the draft hasn't been promoted to a tag yet.
+	}
+
+	function commitTagDraft(id: string): void {
+		draft = draft.map((r) => {
+			if (r.id !== id) return r;
+			const trimmed = r.tagDraft.trim();
+			if (trimmed === '') return r;
+			if (r.valueTags.includes(trimmed)) {
+				return { ...r, tagDraft: '' };
+			}
+			return { ...r, valueTags: [...r.valueTags, trimmed], tagDraft: '' };
+		});
+		scheduleCommit();
+	}
+
+	function onTagKeydown(id: string, e: KeyboardEvent): void {
+		if (e.key === 'Enter' || e.key === ',') {
+			e.preventDefault();
+			commitTagDraft(id);
+		} else if (e.key === 'Backspace') {
+			// Backspace on an empty draft removes the last chip — standard
+			// chip-input UX (Linear, Notion, Apple Mail).
+			const row = draft.find((r) => r.id === id);
+			if (row && row.tagDraft === '' && row.valueTags.length > 0) {
+				e.preventDefault();
+				draft = draft.map((r) =>
+					r.id === id ? { ...r, valueTags: r.valueTags.slice(0, -1) } : r
+				);
+				scheduleCommit();
+			}
+		}
+	}
+
+	function removeTag(rowId: string, tag: string): void {
+		draft = draft.map((r) =>
+			r.id === rowId ? { ...r, valueTags: r.valueTags.filter((t) => t !== tag) } : r
+		);
 		scheduleCommit();
 	}
 </script>
@@ -520,7 +677,7 @@
 		</header>
 		<div class="edit-rows" data-testid="frontmatter-edit-rows">
 			{#each draft as row (row.id)}
-				<div class="edit-row" data-testid="frontmatter-edit-row">
+				<div class="edit-row" data-testid="frontmatter-edit-row" data-row-type={row.type}>
 					<input
 						type="text"
 						class="edit-input edit-key"
@@ -530,16 +687,81 @@
 						placeholder="clé"
 						data-testid="frontmatter-edit-key"
 					/>
-					{#if row.complex}
+					{#if row.type === 'complex'}
 						<input
 							type="text"
 							class="edit-input edit-value edit-value--complex"
 							value="(valeur complexe — éditer en mode brut)"
 							readonly
-							title="Éditer en mode brut (à venir)"
+							title="Éditer en mode brut"
 							aria-label="Valeur (complexe, lecture seule)"
 							data-testid="frontmatter-edit-value-complex"
 						/>
+					{:else if row.type === 'boolean'}
+						<label class="toggle-wrap" data-testid="frontmatter-edit-toggle-wrap">
+							<input
+								type="checkbox"
+								class="toggle-input"
+								checked={row.valueBool}
+								onchange={(e) => onBoolToggle(row.id, e)}
+								aria-label="Valeur (booléen)"
+								data-testid="frontmatter-edit-toggle"
+							/>
+							<span class="toggle-track" aria-hidden="true">
+								<span class="toggle-thumb"></span>
+							</span>
+							<span class="toggle-label">{row.valueBool ? 'oui' : 'non'}</span>
+						</label>
+					{:else if row.type === 'number'}
+						<input
+							type="number"
+							class="edit-input edit-value"
+							value={row.valueStr}
+							oninput={(e) => onValueInput(row.id, e)}
+							aria-label="Valeur (nombre)"
+							placeholder="0"
+							data-testid="frontmatter-edit-value-number"
+						/>
+					{:else if row.type === 'date' || row.type === 'datetime'}
+						<input
+							type={row.type === 'datetime' ? 'datetime-local' : 'date'}
+							class="edit-input edit-value"
+							value={row.valueStr}
+							oninput={(e) => onValueInput(row.id, e)}
+							aria-label="Valeur (date)"
+							data-testid={row.type === 'datetime'
+								? 'frontmatter-edit-value-datetime'
+								: 'frontmatter-edit-value-date'}
+						/>
+					{:else if row.type === 'tags'}
+						<div class="chips chips--edit" data-testid="frontmatter-edit-value-tags">
+							{#each row.valueTags as tag (tag)}
+								<span class="chip chip--editable">
+									<span class="chip-label">{tag}</span>
+									<button
+										type="button"
+										class="chip-remove"
+										onclick={() => removeTag(row.id, tag)}
+										aria-label="Retirer ce tag"
+										title="Retirer"
+										data-testid="frontmatter-tag-remove"
+									>
+										<X size={11} strokeWidth={2} aria-hidden="true" focusable="false" />
+									</button>
+								</span>
+							{/each}
+							<input
+								type="text"
+								class="chip-input"
+								value={row.tagDraft}
+								oninput={(e) => onTagDraftInput(row.id, e)}
+								onkeydown={(e) => onTagKeydown(row.id, e)}
+								onblur={() => commitTagDraft(row.id)}
+								placeholder={row.valueTags.length === 0 ? 'Ajouter un tag…' : ''}
+								aria-label="Nouveau tag"
+								data-testid="frontmatter-tag-input"
+							/>
+						</div>
 					{:else}
 						<input
 							type="text"
@@ -623,9 +845,20 @@
 				{:else}
 					<dl class="rows">
 						{#each entries as [key, value] (key)}
+							{@const valueType = inferValueType(value)}
 							<div class="row" data-testid="frontmatter-row">
 								<dt class="row-key" title={key}>{key}</dt>
-								<dd class="row-value">{formatValueForRead(value)}</dd>
+								<dd class="row-value">
+									{#if valueType === 'tags' && Array.isArray(value)}
+										<div class="chips chips--read" data-testid="frontmatter-read-chips">
+											{#each value as tag (tag)}
+												<span class="chip">{tag}</span>
+											{/each}
+										</div>
+									{:else}
+										{formatValueForRead(value)}
+									{/if}
+								</dd>
 							</div>
 						{/each}
 					</dl>
@@ -909,6 +1142,153 @@
 	.button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	/* ---------- Chips (tags) ---------- */
+
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		align-items: center;
+	}
+
+	.chips--edit {
+		min-height: 28px;
+		padding: 3px 4px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md, 6px);
+		background: var(--color-bg);
+	}
+
+	.chips--edit:focus-within {
+		border-color: var(--color-accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 25%, transparent);
+	}
+
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 8px;
+		background: var(--color-surface-active);
+		border: 1px solid var(--color-border-subtle);
+		border-radius: var(--radius-pill, 50px);
+		font-size: var(--text-caption);
+		color: var(--color-text-primary);
+		line-height: 1.4;
+		white-space: nowrap;
+	}
+
+	.chip--editable {
+		padding-right: 4px;
+	}
+
+	.chip-label {
+		max-width: 200px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.chip-remove {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--color-text-muted);
+		border-radius: 50%;
+		cursor: pointer;
+		transition:
+			background-color var(--duration-fast) var(--easing-standard),
+			color var(--duration-fast) var(--easing-standard);
+	}
+
+	.chip-remove:hover {
+		background: var(--color-surface-strong);
+		color: var(--color-text-primary);
+	}
+
+	.chip-input {
+		appearance: none;
+		flex: 1 1 80px;
+		min-width: 80px;
+		border: 0;
+		outline: none;
+		padding: 2px 6px;
+		background: transparent;
+		color: var(--color-text-primary);
+		font-family: var(--font-ui);
+		font-size: var(--text-ui);
+	}
+
+	.chip-input::placeholder {
+		color: var(--color-text-muted);
+	}
+
+	/* ---------- Toggle (boolean) ---------- */
+
+	.toggle-wrap {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		cursor: pointer;
+		user-select: none;
+		padding: 4px 6px;
+	}
+
+	.toggle-input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.toggle-track {
+		position: relative;
+		display: inline-block;
+		width: 32px;
+		height: 18px;
+		background: var(--color-surface-active);
+		border: 1px solid var(--color-border);
+		border-radius: 9999px;
+		transition: background-color var(--duration-base) var(--easing-standard);
+	}
+
+	.toggle-thumb {
+		position: absolute;
+		top: 1px;
+		left: 1px;
+		width: 14px;
+		height: 14px;
+		background: var(--color-text-secondary);
+		border-radius: 50%;
+		transition:
+			transform var(--duration-base) var(--easing-standard),
+			background-color var(--duration-base) var(--easing-standard);
+	}
+
+	.toggle-input:checked + .toggle-track {
+		background: color-mix(in oklab, var(--color-accent) 65%, transparent);
+		border-color: var(--color-accent);
+	}
+
+	.toggle-input:checked + .toggle-track .toggle-thumb {
+		transform: translateX(14px);
+		background: var(--color-accent-fg, #fff);
+	}
+
+	.toggle-input:focus-visible + .toggle-track {
+		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
+		outline-offset: 2px;
+	}
+
+	.toggle-label {
+		font-size: var(--text-caption);
+		color: var(--color-text-secondary);
+		min-width: 22px;
 	}
 
 	/* ---------- Shared button styling ---------- */
