@@ -89,8 +89,9 @@
 	 *  - Complex values (arrays / objects) render readonly with a tooltip —
 	 *    STEP 4 (raw mode) will provide the escape hatch.
 	 */
-	import { ChevronDown, ChevronRight, Pencil, Plus, X } from 'lucide-svelte';
+	import { ChevronDown, ChevronRight, Code2, Pencil, Plus, X } from 'lucide-svelte';
 	import yaml from 'js-yaml';
+	import { parseFrontmatter, serializeFrontmatter } from '$lib/frontmatter/parser';
 	import {
 		getCollapsed,
 		setCollapsed as persistCollapsed
@@ -140,8 +141,12 @@
 
 	// ----- Mode & collapse state -----
 
-	type Mode = 'read' | 'edit-structured';
+	type Mode = 'read' | 'edit-structured' | 'edit-raw';
 	let mode = $state<Mode>('read');
+
+	// Raw editor state — only meaningful when mode === 'edit-raw'.
+	let rawDraft = $state<string>('');
+	let rawError = $state<string | null>(null);
 
 	let localCollapsed = $state<boolean | null>(null);
 	const collapsed = $derived.by<boolean>(() => {
@@ -158,6 +163,8 @@
 		localCollapsed = null;
 		mode = 'read';
 		draft = [];
+		rawDraft = '';
+		rawError = null;
 	});
 
 	// ----- Edit-mode draft state -----
@@ -242,6 +249,100 @@
 		mode = 'edit-structured';
 	}
 
+	// ----- Raw edit transitions -----
+
+	/** Build the initial textarea content — prefer the live parsed `data` so
+	 *  the user sees their latest edits; fall back to the raw YAML stored on
+	 *  the file when the YAML is malformed (parseError path). */
+	function rawSeed(): string {
+		if (parseError !== null) return raw;
+		if (data === null) return '';
+		try {
+			return serializeFrontmatter(data);
+		} catch {
+			return raw;
+		}
+	}
+
+	function enterRawFromAnywhere(): void {
+		// Snapshot the original on entry so Cancel can revert intermediate
+		// commits that landed via structured edit before this transition.
+		if (original === null) {
+			original = data === null ? {} : structuredClone(data);
+		}
+		// If the structured editor has uncommitted edits, flush them so the
+		// raw textarea reflects the latest user state (not a stale snapshot).
+		if (mode === 'edit-structured' && pendingCommit !== null) {
+			flushPendingCommit();
+		}
+		rawDraft = rawSeed();
+		// Validate the seed immediately — when entering from the error banner
+		// the YAML is broken, and the user expects to see the error message
+		// (and the disabled Done button) right away, not only after the first
+		// keystroke.
+		const seedResult = parseFrontmatter(rawDraft);
+		rawError = seedResult.ok ? null : seedResult.error;
+		mode = 'edit-raw';
+	}
+
+	function onRawInput(e: Event): void {
+		const v = (e.target as HTMLTextAreaElement).value;
+		rawDraft = v;
+		// Live-validate without applying — the parent only learns the new
+		// data when the user clicks Done (or switches mode and the parse
+		// succeeds). Empty content is treated as an empty mapping.
+		const result = parseFrontmatter(v);
+		rawError = result.ok ? null : result.error;
+	}
+
+	function exitRawCommit(): void {
+		const result = parseFrontmatter(rawDraft);
+		if (!result.ok) {
+			rawError = result.error;
+			return;
+		}
+		// Apply through the standard onChange channel — parent re-serializes
+		// and the autosave picks it up. Then return to read mode.
+		onChange(result.data);
+		mode = 'read';
+		draft = [];
+		rawDraft = '';
+		rawError = null;
+		original = null;
+	}
+
+	function exitRawToStructured(): void {
+		const result = parseFrontmatter(rawDraft);
+		if (!result.ok) {
+			rawError = result.error;
+			return;
+		}
+		// Apply the parsed data first so the structured form opens on the
+		// user's latest content, not on the pre-raw snapshot. `enterEdit`
+		// reads from `data` which is the parent-supplied prop — we route
+		// through `onChange` and then re-enter on the next tick by seeding
+		// the draft directly from the parsed result.
+		onChange(result.data);
+		original = structuredClone(result.data);
+		draft = rowsFromData(result.data);
+		rawDraft = '';
+		rawError = null;
+		mode = 'edit-structured';
+	}
+
+	function exitRawCancel(): void {
+		// Revert to whatever the parent had when the user first entered any
+		// edit mode for this file. If `original` is null, the user entered
+		// raw mode from the error banner — there's nothing to revert TO
+		// (the file was broken on disk), so just exit silently.
+		if (original !== null) onChange(original);
+		mode = 'read';
+		draft = [];
+		rawDraft = '';
+		rawError = null;
+		original = null;
+	}
+
 	function exitEditCommit(): void {
 		flushPendingCommit();
 		mode = 'read';
@@ -288,7 +389,62 @@
 	}
 </script>
 
-{#if parseError !== null}
+{#if mode === 'edit-raw'}
+	<section
+		class="frontmatter frontmatter--edit frontmatter--raw"
+		data-testid="frontmatter-edit-raw"
+	>
+		<header class="edit-header">
+			<span class="read-label">Frontmatter (YAML brut)</span>
+			<div class="edit-actions">
+				<button
+					type="button"
+					class="button button--ghost"
+					onclick={exitRawCancel}
+					data-testid="frontmatter-raw-cancel-btn"
+				>
+					Annuler
+				</button>
+				<button
+					type="button"
+					class="button button--ghost"
+					onclick={exitRawToStructured}
+					disabled={rawError !== null}
+					data-testid="frontmatter-raw-to-structured-btn"
+					title={rawError !== null ? 'Corrige le YAML pour revenir au mode structuré' : ''}
+				>
+					Mode structuré
+				</button>
+				<button
+					type="button"
+					class="button button--primary"
+					onclick={exitRawCommit}
+					disabled={rawError !== null}
+					data-testid="frontmatter-raw-done-btn"
+					title={rawError !== null ? 'Corrige le YAML pour terminer' : ''}
+				>
+					Terminé
+				</button>
+			</div>
+		</header>
+		<textarea
+			class="raw-editor"
+			class:has-error={rawError !== null}
+			value={rawDraft}
+			oninput={onRawInput}
+			spellcheck="false"
+			autocomplete="off"
+			autocapitalize="off"
+			rows="10"
+			aria-label="YAML brut"
+			aria-invalid={rawError !== null}
+			data-testid="frontmatter-raw-textarea"
+		></textarea>
+		{#if rawError !== null}
+			<p class="raw-error" data-testid="frontmatter-raw-error">{rawError}</p>
+		{/if}
+	</section>
+{:else if parseError !== null}
 	<section
 		class="frontmatter frontmatter--error"
 		data-testid="frontmatter-error"
@@ -299,7 +455,10 @@
 			<button
 				type="button"
 				class="button button--ghost"
-				onclick={onEditRaw}
+				onclick={() => {
+					onEditRaw();
+					enterRawFromAnywhere();
+				}}
 				data-testid="frontmatter-edit-raw-btn"
 			>
 				Modifier le YAML brut
@@ -331,6 +490,16 @@
 		<header class="edit-header">
 			<span class="read-label">Frontmatter (édition)</span>
 			<div class="edit-actions">
+				<button
+					type="button"
+					class="button button--ghost"
+					onclick={enterRawFromAnywhere}
+					data-testid="frontmatter-to-raw-btn"
+					title="Passer en mode YAML brut"
+				>
+					<Code2 size={12} strokeWidth={1.5} aria-hidden="true" focusable="false" />
+					<span>YAML brut</span>
+				</button>
 				<button
 					type="button"
 					class="button button--ghost"
@@ -699,6 +868,47 @@
 		color: var(--color-text-muted);
 		cursor: not-allowed;
 		background: var(--color-surface-hover);
+	}
+
+	/* ---------- Raw edit state ---------- */
+
+	.raw-editor {
+		appearance: none;
+		width: 100%;
+		min-height: 180px;
+		padding: var(--space-3);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md, 6px);
+		background: var(--color-bg);
+		color: var(--color-text-primary);
+		font-family: var(--font-mono);
+		font-size: var(--text-caption);
+		line-height: 1.5;
+		resize: vertical;
+		tab-size: 2;
+	}
+
+	.raw-editor:focus {
+		outline: none;
+		border-color: var(--color-accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 25%, transparent);
+	}
+
+	.raw-editor.has-error {
+		border-color: var(--color-status-error);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-status-error) 25%, transparent);
+	}
+
+	.raw-error {
+		margin: 0;
+		font-size: var(--text-caption);
+		color: var(--color-status-error);
+		font-family: var(--font-mono);
+	}
+
+	.button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	/* ---------- Shared button styling ---------- */

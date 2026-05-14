@@ -323,3 +323,152 @@ describe('FrontmatterBlock — structured edit mode (STEP 3)', () => {
 		});
 	});
 });
+
+describe('FrontmatterBlock — raw YAML edit mode (STEP 4)', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	async function enterRawFromStructured(initial: Record<string, unknown>): Promise<void> {
+		await fireEvent.click(screen.getByTestId('frontmatter-toggle'));
+		await fireEvent.click(screen.getByTestId('frontmatter-edit-btn'));
+		await fireEvent.click(screen.getByTestId('frontmatter-to-raw-btn'));
+		void initial;
+	}
+
+	// ------ R4.1 — entry from structured edit shows current data as YAML ------
+	it('switching from structured edit to raw seeds the textarea with the current data', async () => {
+		render(FrontmatterBlock, {
+			data: { title: 'Hello', published: true },
+			parseError: null
+		});
+		await enterRawFromStructured({ title: 'Hello', published: true });
+		const textarea = screen.getByTestId(
+			'frontmatter-raw-textarea'
+		) as HTMLTextAreaElement;
+		expect(textarea).toBeInTheDocument();
+		expect(textarea.value).toContain('title: Hello');
+		expect(textarea.value).toContain('published: true');
+		// No error on entry.
+		expect(screen.queryByTestId('frontmatter-raw-error')).toBeNull();
+	});
+
+	// ------ R4.2 — entry from error banner enters raw mode with the raw YAML ------
+	it('clicking "Modifier le YAML brut" on the error banner enters raw mode with the broken YAML', async () => {
+		render(FrontmatterBlock, {
+			data: null,
+			parseError: 'YAMLException: bad indentation',
+			raw: 'title: Hello\n  bad: indent'
+		});
+		await fireEvent.click(screen.getByTestId('frontmatter-edit-raw-btn'));
+		const textarea = screen.getByTestId(
+			'frontmatter-raw-textarea'
+		) as HTMLTextAreaElement;
+		expect(textarea.value).toBe('title: Hello\n  bad: indent');
+		// The live validator immediately surfaces the error.
+		expect(screen.getByTestId('frontmatter-raw-error')).toBeInTheDocument();
+	});
+
+	// ------ R4.3 — live validation: typing valid YAML clears the error ------
+	it('live-validates: invalid YAML shows the error, fixing it clears it', async () => {
+		render(FrontmatterBlock, {
+			data: { title: 'Hello' },
+			parseError: null
+		});
+		await enterRawFromStructured({ title: 'Hello' });
+		const textarea = screen.getByTestId(
+			'frontmatter-raw-textarea'
+		) as HTMLTextAreaElement;
+
+		// Break it.
+		await fireEvent.input(textarea, {
+			target: { value: 'title: Hello\n  bad: indent' }
+		});
+		expect(screen.getByTestId('frontmatter-raw-error')).toBeInTheDocument();
+		expect(screen.getByTestId('frontmatter-raw-done-btn')).toBeDisabled();
+		expect(
+			screen.getByTestId('frontmatter-raw-to-structured-btn')
+		).toBeDisabled();
+
+		// Fix it.
+		await fireEvent.input(textarea, { target: { value: 'title: World' } });
+		expect(screen.queryByTestId('frontmatter-raw-error')).toBeNull();
+		expect(screen.getByTestId('frontmatter-raw-done-btn')).not.toBeDisabled();
+	});
+
+	// ------ R4.4 — Done with valid YAML commits and returns to read mode ------
+	it('Done with valid YAML calls onChange with the parsed data and returns to read mode', async () => {
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { title: 'Hello' },
+			parseError: null,
+			onChange
+		});
+		await enterRawFromStructured({ title: 'Hello' });
+		await fireEvent.input(screen.getByTestId('frontmatter-raw-textarea'), {
+			target: { value: 'title: World\npublished: true' }
+		});
+		await fireEvent.click(screen.getByTestId('frontmatter-raw-done-btn'));
+		expect(onChange).toHaveBeenLastCalledWith({
+			title: 'World',
+			published: true
+		});
+		expect(screen.queryByTestId('frontmatter-edit-raw')).toBeNull();
+	});
+
+	// ------ R4.5 — Done with invalid YAML stays in raw mode and shows the error ------
+	it('Done with invalid YAML stays in raw mode', async () => {
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { title: 'Hello' },
+			parseError: null,
+			onChange
+		});
+		await enterRawFromStructured({ title: 'Hello' });
+		await fireEvent.input(screen.getByTestId('frontmatter-raw-textarea'), {
+			target: { value: 'title: Hello\n  bad: indent' }
+		});
+		await fireEvent.click(screen.getByTestId('frontmatter-raw-done-btn'));
+		// onChange must NOT fire with broken data — the disabled state on
+		// the button is the contract, but we also guard inside the handler.
+		expect(onChange).not.toHaveBeenCalled();
+		expect(screen.getByTestId('frontmatter-edit-raw')).toBeInTheDocument();
+	});
+
+	// ------ R4.6 — Switching back to structured re-renders the form ------
+	it('Switching back to structured form preserves the parsed data', async () => {
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { title: 'Hello' },
+			parseError: null,
+			onChange
+		});
+		await enterRawFromStructured({ title: 'Hello' });
+		await fireEvent.input(screen.getByTestId('frontmatter-raw-textarea'), {
+			target: { value: 'title: World' }
+		});
+		await fireEvent.click(
+			screen.getByTestId('frontmatter-raw-to-structured-btn')
+		);
+		expect(onChange).toHaveBeenLastCalledWith({ title: 'World' });
+		expect(screen.getByTestId('frontmatter-edit-structured')).toBeInTheDocument();
+	});
+
+	// ------ R4.7 — Cancel reverts to the pre-edit data ------
+	it('Cancel reverts to the snapshot taken on entering edit mode', async () => {
+		const onChange = vi.fn();
+		render(FrontmatterBlock, {
+			data: { title: 'Hello' },
+			parseError: null,
+			onChange
+		});
+		await enterRawFromStructured({ title: 'Hello' });
+		await fireEvent.input(screen.getByTestId('frontmatter-raw-textarea'), {
+			target: { value: 'title: World' }
+		});
+		await fireEvent.click(screen.getByTestId('frontmatter-raw-cancel-btn'));
+		// The last onChange call is the revert to the original.
+		expect(onChange).toHaveBeenLastCalledWith({ title: 'Hello' });
+		expect(screen.queryByTestId('frontmatter-edit-raw')).toBeNull();
+	});
+});
