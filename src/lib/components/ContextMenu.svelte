@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import type { IconComponent } from '$lib/commands/registry.svelte';
 
 	export type MenuItem =
 		| { separator: true }
@@ -8,6 +9,9 @@
 				separator?: false;
 				header?: undefined;
 				label: string;
+				/** Lucide icon component (rendered at the left of the row,
+				 *  16×16 fixed slot for vertical lane alignment). Optional. */
+				icon?: IconComponent;
 				onClick: () => void;
 				danger?: boolean;
 				disabled?: boolean;
@@ -115,7 +119,13 @@
 						onclick={() => trigger(item)}
 						role="menuitem"
 					>
-						{item.label}
+						<span class="ctx-item-icon" aria-hidden="true">
+							{#if item.icon}
+								{@const Icon = item.icon}
+								<Icon size={14} strokeWidth={1.5} />
+							{/if}
+						</span>
+						<span class="ctx-item-label">{item.label}</span>
 					</button>
 				</li>
 			{/if}
@@ -146,6 +156,7 @@
 	.ctx-item {
 		display: flex;
 		align-items: center;
+		gap: var(--space-2);
 		width: 100%;
 		padding: 6px var(--space-3);
 		border: 0;
@@ -158,8 +169,31 @@
 		cursor: pointer;
 	}
 
+	/* Fixed-width icon slot so labels form a vertical lane even when a
+	 * subset of items lack an icon (separators between groups can skip
+	 * the icon, but the lane stays consistent). 16×16 holds the 14px
+	 * Lucide glyph with a 1px breathing pad on each side. */
+	.ctx-item-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
+		color: var(--color-text-secondary);
+	}
+
+	.ctx-item-label {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.ctx-item:hover:not(:disabled) {
 		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	.ctx-item:hover:not(:disabled) .ctx-item-icon {
 		color: var(--color-text-primary);
 	}
 
@@ -169,6 +203,10 @@
 	}
 
 	.ctx-item.is-danger {
+		color: var(--color-status-error);
+	}
+
+	.ctx-item.is-danger .ctx-item-icon {
 		color: var(--color-status-error);
 	}
 

@@ -43,6 +43,13 @@
 	// when the underlying Map mutates.
 	const all = $derived(commandRegistry.getAll());
 	const recent = $derived(recentCommandsStore.getRecent());
+	// rankCommands does the work: when the query is empty it returns the
+	// commands ordered by section (File · View · Vault · Tabs · Settings),
+	// with recents floated to the top of their respective bucket. When the
+	// query is non-empty it returns a flat fuzzy ranking — relevance trumps
+	// structure. The boundary detection below relies on consecutive items
+	// from the same group being adjacent, which the rest-mode ordering
+	// guarantees.
 	const ranked: RankedCommand[] = $derived(rankCommands(all, query, recent));
 
 	// Keep the parent's itemCount in sync so the shell's keyboard nav uses
@@ -51,6 +58,11 @@
 	$effect(() => {
 		itemCount = ranked.length;
 	});
+
+	/** Section headers (File · View · …) appear only when the query is empty.
+	 *  As soon as the user types, the palette flips to a flat fuzzy ranking
+	 *  where headers would break the reading flow. */
+	const showHeaders = $derived(!query.trim());
 
 	/**
 	 * Split a label into runs of plain + matched characters using the
@@ -81,6 +93,18 @@
 	<ul class="command-mode-list" role="listbox">
 		{#each ranked as r, i (r.command.id)}
 			{@const parts = splitLabel(r.command.label, r.matchIndices)}
+			{@const group = r.command.group ?? 'Other'}
+			{@const prevGroup = i > 0 ? (ranked[i - 1].command.group ?? 'Other') : null}
+			{@const showHeader = showHeaders && group !== prevGroup}
+			{#if showHeader}
+				<li
+					role="presentation"
+					class="command-mode-section"
+					data-testid="command-mode-section"
+				>
+					{group}
+				</li>
+			{/if}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- Keyboard activation lives on the shell's input (Enter fires
 				 onActivate on the parent, which forwards to this mode). -->
@@ -93,6 +117,12 @@
 				onmouseenter={() => undefined /* selection driven by parent */}
 				onclick={() => onActivate(r.command)}
 			>
+				<span class="command-mode-icon" aria-hidden="true">
+					{#if r.command.icon}
+						{@const Icon = r.command.icon}
+						<Icon size={14} strokeWidth={1.5} />
+					{/if}
+				</span>
 				<span class="command-mode-label" data-testid="command-mode-label">
 					{#each parts as part, j (j)}
 						{#if part.match}<mark>{part.text}</mark>{:else}{part.text}{/if}
@@ -102,7 +132,7 @@
 					{#if r.command.shortcut}
 						<span class="command-mode-shortcut">{r.command.shortcut}</span>
 					{/if}
-					{#if r.command.group}
+					{#if r.command.group && !showHeaders}
 						<span class="command-mode-group">{r.command.group}</span>
 					{/if}
 				</span>
@@ -122,7 +152,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-3);
+		gap: var(--space-2);
 		padding: 8px 14px;
 		font-size: var(--text-ui);
 		color: var(--color-text-body);
@@ -131,6 +161,22 @@
 
 	.command-mode-row.is-selected {
 		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	/* Fixed-width icon slot — same recipe as ContextMenu. Holds the 14px
+	 * Lucide glyph and keeps labels in a vertical lane across rows. */
+	.command-mode-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
+		color: var(--color-text-secondary);
+	}
+
+	.command-mode-row.is-selected .command-mode-icon {
 		color: var(--color-text-primary);
 	}
 
@@ -169,6 +215,26 @@
 	.command-mode-group {
 		font-size: var(--text-caption);
 		color: var(--color-text-muted);
+	}
+
+	/* Eyebrow header above each group when the palette is at rest. Same
+	 * typographic recipe as the sidebar section labels (uppercase 11px
+	 * tracking 1.4px muted) so the two surfaces feel familial. First
+	 * header has tight top spacing — extra room would make the palette
+	 * read as bottom-heavy below the input. */
+	.command-mode-section {
+		padding: 10px 14px 4px;
+		font-size: var(--text-label);
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--color-text-muted);
+		font-weight: var(--weight-regular);
+		pointer-events: none;
+		list-style: none;
+	}
+
+	.command-mode-section:first-child {
+		padding-top: 6px;
 	}
 
 	.command-mode-empty {

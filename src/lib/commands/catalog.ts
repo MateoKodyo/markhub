@@ -17,6 +17,23 @@
  * not apply (no active vault, no open file, etc).
  */
 
+import {
+	Code2,
+	Download,
+	ExternalLink,
+	FileInput,
+	FilePlus,
+	FileText,
+	FolderPlus,
+	Monitor,
+	PanelLeft,
+	PanelRight,
+	Plus,
+	Save,
+	Search,
+	Settings,
+	X
+} from 'lucide-svelte';
 import { activeFileStore } from '$lib/stores/activeFile.svelte';
 import { findStore } from '$lib/stores/find.svelte';
 import { paletteStore } from '$lib/stores/palette.svelte';
@@ -48,6 +65,7 @@ export function registerAppCommands(): void {
 		id: 'file.new',
 		label: 'New File',
 		group: 'File',
+		icon: FilePlus,
 		when: () => vaultsStore.activeVaultId !== null,
 		handler: () => dispatchSidebar('newFile')
 	});
@@ -56,6 +74,7 @@ export function registerAppCommands(): void {
 		id: 'file.newFolder',
 		label: 'New Folder',
 		group: 'File',
+		icon: FolderPlus,
 		when: () => vaultsStore.activeVaultId !== null,
 		handler: () => dispatchSidebar('newFolder')
 	});
@@ -64,6 +83,7 @@ export function registerAppCommands(): void {
 		id: 'file.import',
 		label: 'Import Files…',
 		group: 'File',
+		icon: FileInput,
 		when: () => vaultsStore.activeVaultId !== null,
 		handler: () => dispatchSidebar('importFile')
 	});
@@ -72,6 +92,7 @@ export function registerAppCommands(): void {
 		id: 'file.save',
 		label: 'Save File',
 		group: 'File',
+		icon: Save,
 		shortcut: '⌘S',
 		// Hidden from the palette: autosave covers the common case, and
 		// users who really want to flush manually already have Cmd+S.
@@ -87,6 +108,7 @@ export function registerAppCommands(): void {
 		id: 'file.reveal',
 		label: 'Reveal in Finder',
 		group: 'File',
+		icon: ExternalLink,
 		when: () => activeFileStore.activeFile !== null,
 		handler: async () => {
 			const af = activeFileStore.activeFile;
@@ -103,6 +125,7 @@ export function registerAppCommands(): void {
 		id: 'file.export',
 		label: 'Export File…',
 		group: 'File',
+		icon: Download,
 		when: () => activeFileStore.activeFile !== null,
 		handler: async () => {
 			const af = activeFileStore.activeFile;
@@ -119,6 +142,7 @@ export function registerAppCommands(): void {
 		id: 'vault.add',
 		label: 'Add Vault…',
 		group: 'Vault',
+		icon: Plus,
 		handler: async () => {
 			try {
 				await vaultsStore.addVaultFromPicker();
@@ -133,6 +157,7 @@ export function registerAppCommands(): void {
 		id: 'view.toggleSidebar',
 		label: 'Toggle Sidebar',
 		group: 'View',
+		icon: PanelLeft,
 		handler: () => uiStateStore.toggleSidebar()
 	});
 
@@ -140,6 +165,7 @@ export function registerAppCommands(): void {
 		id: 'view.toggleTheme',
 		label: 'Toggle Theme',
 		group: 'View',
+		icon: Monitor,
 		handler: () => {
 			themeManager.cycleMode();
 			settingsStore.setTheme(themeManager.preference);
@@ -150,6 +176,7 @@ export function registerAppCommands(): void {
 		id: 'view.toggleEditorMode',
 		label: 'Toggle Preview / Source',
 		group: 'View',
+		icon: Code2,
 		when: () => activeFileStore.activeFile !== null,
 		handler: () => dispatchEditorModeToggle()
 	});
@@ -158,6 +185,7 @@ export function registerAppCommands(): void {
 		id: 'view.toggleOutline',
 		label: 'Toggle Outline',
 		group: 'View',
+		icon: PanelRight,
 		shortcut: '⌘\\',
 		handler: () => uiStateStore.toggleOutline()
 	});
@@ -167,6 +195,7 @@ export function registerAppCommands(): void {
 		id: 'find.open',
 		label: 'Find in Document',
 		group: 'View',
+		icon: Search,
 		shortcut: '⌘F',
 		when: () => activeFileStore.activeTabId !== null,
 		handler: () => findStore.open()
@@ -195,6 +224,7 @@ export function registerAppCommands(): void {
 		id: 'tab.close',
 		label: 'Close Tab',
 		group: 'Tabs',
+		icon: X,
 		shortcut: '⌘W',
 		when: () => activeFileStore.activeTabId !== null,
 		handler: () => activeFileStore.closeActiveTab()
@@ -219,6 +249,7 @@ export function registerAppCommands(): void {
 		id: 'settings.open',
 		label: 'Open Settings',
 		group: 'Settings',
+		icon: Settings,
 		shortcut: '⌘,',
 		handler: () => settingsStore.open()
 	});
@@ -230,30 +261,35 @@ export function registerAppCommands(): void {
 		id: 'settings.open.appearance',
 		label: 'Settings: Appearance',
 		group: 'Settings',
+		icon: Settings,
 		handler: () => settingsStore.open('appearance')
 	});
 	commandRegistry.register({
 		id: 'settings.open.editor',
 		label: 'Settings: Editor',
 		group: 'Settings',
+		icon: Settings,
 		handler: () => settingsStore.open('editor')
 	});
 	commandRegistry.register({
 		id: 'settings.open.source',
 		label: 'Settings: Source Mode',
 		group: 'Settings',
+		icon: Settings,
 		handler: () => settingsStore.open('source')
 	});
 	commandRegistry.register({
 		id: 'settings.open.files',
 		label: 'Settings: Files',
 		group: 'Settings',
+		icon: Settings,
 		handler: () => settingsStore.open('files')
 	});
 	commandRegistry.register({
 		id: 'settings.open.advanced',
 		label: 'Settings: Advanced',
 		group: 'Settings',
+		icon: Settings,
 		handler: () => settingsStore.open('advanced')
 	});
 
@@ -273,6 +309,7 @@ export function registerAppCommands(): void {
 		id: 'palette.openFile',
 		label: 'Go to File…',
 		group: 'View',
+		icon: FileText,
 		shortcut: '⌘P',
 		handler: () => {
 			// Fire-and-forget refresh so the palette opens immediately on the
@@ -286,6 +323,7 @@ export function registerAppCommands(): void {
 		id: 'palette.openSearch',
 		label: 'Search in Vault…',
 		group: 'View',
+		icon: Search,
 		shortcut: '⌘⇧F',
 		when: () => vaultsStore.activeVaultId !== null,
 		handler: () => paletteStore.open('search')

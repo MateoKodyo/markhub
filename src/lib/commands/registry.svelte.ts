@@ -10,6 +10,17 @@
  * (icon, group, shortcut hint, visibility guard) is presentation/wiring.
  */
 
+import type { SvelteComponent } from 'svelte';
+
+/** Shape accepted as an icon prop. Lucide-svelte v1.x icons are legacy
+ *  Svelte class components, so we accept `typeof SvelteComponent`. */
+export type IconComponent = typeof SvelteComponent<{
+	size?: number | string;
+	strokeWidth?: number | string;
+	color?: string;
+	class?: string;
+}>;
+
 export interface Command {
 	/** Unique identifier, dotted convention (e.g. "file.save"). */
 	id: string;
@@ -19,8 +30,9 @@ export interface Command {
 	description?: string;
 	/** Grouping shown in the palette (e.g. "File", "View"). */
 	group?: string;
-	/** Lucide icon name (resolved at render time by the palette). */
-	icon?: string;
+	/** Lucide icon component (imported from `lucide-svelte` at the call
+	 *  site and passed directly — no string-to-component resolver). */
+	icon?: IconComponent;
 	/** Display-only shortcut hint (e.g. "⌘S"). Binding lives in the keymap. */
 	shortcut?: string;
 	/** Effect to run when activated. May be async; return value ignored. */

@@ -1,12 +1,21 @@
 <script lang="ts">
 	import {
+		ArrowRightLeft,
+		ClipboardCopy,
+		Copy,
+		Download,
+		ExternalLink,
 		Eye,
 		EyeOff,
 		FileInput,
 		FilePlus,
+		FolderOpen,
 		FolderPlus,
+		Lock,
+		Pencil,
 		Plus,
-		Search
+		Search,
+		Trash2
 	} from 'lucide-svelte';
 	import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 	import VaultList from './VaultList.svelte';
@@ -253,6 +262,7 @@
 		ctxItems = [
 			{
 				label: 'Nouvelle note à la racine',
+				icon: FilePlus,
 				disabled: ro,
 				onClick: () => {
 					vaultsStore.selectVault(vault.id);
@@ -261,6 +271,7 @@
 			},
 			{
 				label: 'Nouveau dossier à la racine',
+				icon: FolderPlus,
 				disabled: ro,
 				onClick: () => {
 					vaultsStore.selectVault(vault.id);
@@ -268,23 +279,27 @@
 				}
 			},
 			{ separator: true },
-			{ label: 'Renommer le vault', onClick: () => promptRenameVault(vault) },
+			{ label: 'Renommer le vault', icon: Pencil, onClick: () => promptRenameVault(vault) },
 			{
 				label: vault.mode === 'edit' ? 'Mode lecture seule' : 'Mode édition',
+				icon: vault.mode === 'edit' ? Lock : Eye,
 				onClick: () => toggleVaultMode(vault)
 			},
 			{ separator: true },
 			{
 				label: 'Révéler dans le Finder',
+				icon: ExternalLink,
 				onClick: () => revealVault(vault)
 			},
 			{
 				label: 'Copier le chemin du vault',
+				icon: ClipboardCopy,
 				onClick: () => copyVaultPath(vault)
 			},
 			{ separator: true },
 			{
 				label: 'Retirer le vault',
+				icon: Trash2,
 				danger: true,
 				onClick: () => confirmRemoveVault(vault)
 			}
@@ -369,43 +384,51 @@
 			case 'file': {
 				const entry = ctx.entry;
 				return [
-					{ label: 'Ouvrir', onClick: () => handleOpenFile(entry.relativePath) },
+					{ label: 'Ouvrir', icon: FolderOpen, onClick: () => handleOpenFile(entry.relativePath) },
 					{ separator: true },
 					{
 						label: 'Renommer',
+						icon: Pencil,
 						disabled: ro,
 						onClick: () => startRenameEntry(entry)
 					},
 					{
 						label: 'Dupliquer',
+						icon: Copy,
 						disabled: ro,
 						onClick: () => handleDuplicateFile(entry)
 					},
 					{
 						label: 'Déplacer vers…',
+						icon: ArrowRightLeft,
 						disabled: ro,
 						onClick: () => promptMoveFile(entry)
 					},
 					{ separator: true },
 					{
 						label: 'Copier le chemin (relatif)',
+						icon: ClipboardCopy,
 						onClick: () => copyEntryPath(entry, 'relative')
 					},
 					{
 						label: 'Copier le chemin (absolu)',
+						icon: ClipboardCopy,
 						onClick: () => copyEntryPath(entry, 'absolute')
 					},
 					{
 						label: 'Révéler dans le Finder',
+						icon: ExternalLink,
 						onClick: () => handleRevealInFinder(entry.relativePath)
 					},
 					{
 						label: 'Exporter…',
+						icon: Download,
 						onClick: () => handleExportFile(entry)
 					},
 					{ separator: true },
 					{
 						label: 'Supprimer',
+						icon: Trash2,
 						danger: true,
 						disabled: ro,
 						onClick: () => confirmDeleteFile(entry)
@@ -417,36 +440,43 @@
 				return [
 					{
 						label: 'Nouvelle note ici',
+						icon: FilePlus,
 						disabled: ro,
 						onClick: () => startCreate('file', entry.relativePath)
 					},
 					{
 						label: 'Nouveau dossier ici',
+						icon: FolderPlus,
 						disabled: ro,
 						onClick: () => startCreate('folder', entry.relativePath)
 					},
 					{ separator: true },
 					{
 						label: 'Renommer',
+						icon: Pencil,
 						disabled: ro,
 						onClick: () => startRenameEntry(entry)
 					},
 					{ separator: true },
 					{
 						label: 'Copier le chemin (relatif)',
+						icon: ClipboardCopy,
 						onClick: () => copyEntryPath(entry, 'relative')
 					},
 					{
 						label: 'Copier le chemin (absolu)',
+						icon: ClipboardCopy,
 						onClick: () => copyEntryPath(entry, 'absolute')
 					},
 					{
 						label: 'Révéler dans le Finder',
+						icon: ExternalLink,
 						onClick: () => handleRevealInFinder(entry.relativePath)
 					},
 					{ separator: true },
 					{
 						label: 'Supprimer',
+						icon: Trash2,
 						danger: true,
 						disabled: ro,
 						onClick: () => confirmDeleteEntry(entry)
@@ -457,11 +487,13 @@
 				return [
 					{
 						label: 'Nouvelle note à la racine',
+						icon: FilePlus,
 						disabled: ro,
 						onClick: () => startCreate('file', '')
 					},
 					{
 						label: 'Nouveau dossier à la racine',
+						icon: FolderPlus,
 						disabled: ro,
 						onClick: () => startCreate('folder', '')
 					}

@@ -21,6 +21,13 @@ export interface RankedCommand {
 	matchIndices?: number[];
 }
 
+/** Stable order of groups when the palette is at rest (no query). Mirrors
+ *  the catalog's natural reading order (file work first, then app surface,
+ *  then prefs). Tabs / Settings live at the bottom because they are less
+ *  frequent. Any group not in this list is appended at the end in
+ *  registration order. */
+const GROUP_ORDER = ['File', 'View', 'Vault', 'Tabs', 'Settings'] as const;
+
 export function rankCommands(
 	commands: Command[],
 	query: string,
@@ -31,19 +38,41 @@ export function rankCommands(
 	if (!query.trim()) {
 		const byId = new Map(visible.map((c) => [c.id, c]));
 		const seen = new Set<string>();
-		const out: RankedCommand[] = [];
+		const recentsFirst: Command[] = [];
 		// 1. Recents first, in given order, dropping any that are gone or
 		//    guarded out. Dedup against the rest.
 		for (const id of recentIds) {
 			const c = byId.get(id);
 			if (!c) continue;
-			out.push({ command: c });
+			recentsFirst.push(c);
 			seen.add(id);
 		}
 		// 2. Everything else in registration order.
 		for (const c of visible) {
 			if (seen.has(c.id)) continue;
-			out.push({ command: c });
+			recentsFirst.push(c);
+		}
+		// 3. Bucket by group following GROUP_ORDER. Within each group the
+		//    recents-first ordering is preserved (a recently used "View"
+		//    command lands at the top of the View bucket). Groups not in
+		//    GROUP_ORDER are appended after the known ones, in first-seen
+		//    order.
+		const out: RankedCommand[] = [];
+		const extraGroupsSeen: string[] = [];
+		for (const g of GROUP_ORDER) {
+			for (const c of recentsFirst) {
+				if ((c.group ?? 'Other') === g) out.push({ command: c });
+			}
+		}
+		for (const c of recentsFirst) {
+			const g = c.group ?? 'Other';
+			if (GROUP_ORDER.includes(g as (typeof GROUP_ORDER)[number])) continue;
+			if (!extraGroupsSeen.includes(g)) extraGroupsSeen.push(g);
+		}
+		for (const g of extraGroupsSeen) {
+			for (const c of recentsFirst) {
+				if ((c.group ?? 'Other') === g) out.push({ command: c });
+			}
 		}
 		return out;
 	}
