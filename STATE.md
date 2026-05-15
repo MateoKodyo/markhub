@@ -5,13 +5,55 @@
 
 ## Date de mise à jour
 
-2026-05-15 (matin) — `PLAN-UI-PAPER.md` réécrit avec un nouveau scope (asset library complet pour landing page : tous les écrans + modales + menus + composants atomiques, ~25 artboards sur 9 STEPs). Avant le redémarrage de session Claude Code, le plan est prêt et la memory `project_paper_chantier` à jour.
+2026-05-15 (session autonome longue, automode) — **PLAN-UI-PAPER STEPS 1–8 livrés**. 18 artboards dans `markhub-assets.paper` (app.paper.design/file/01KRMBRXTQNNYPFE64HVRM2QZS), 2160 nodes. STEP 9 (export PNG @2x) **différé** : budget MCP free tier Paper (~100 calls/sem) dépassé en cours de chantier (~110 calls consommés). Matheo vérifiera demain matin.
 
-Pour démarrer effectivement : Paper Desktop doit tourner (vérifié, tourne sur PID 4626 et écoute sur 127.0.0.1:29979) ET il faut **restart Claude Code** car la connexion MCP au serveur Paper a été tentée au start de cette session avant que Paper Desktop soit lancé → status `✗ Failed to connect` cached, tools `mcp__paper__*` non chargés. Pas de mécanisme de reconnect à chaud côté Claude Code CLI.
+### Livré dans Paper
+- `chrome/sidebar` (280×900), `chrome/status-bar` (1440×38), `chrome/window-controls` (1440×44), `chrome/tabs-bar` (1440×32) — STEP 3 ✅
+- `screen/empty-state`, `screen/file-view`, `screen/settings` (1440×900 chacun) — STEP 4 ✅
+- `palette/cmd-k`, `palette/cmd-p`, `palette/cmd-shift-f`, `palette/find-in-doc` (1440×900, file-view cloné en backdrop via `<x-paper-clone>`) — STEP 5 ✅
+- `modal/confirm-delete`, `modal/input-dialog`, `menu/sidebar-context-menu`, `menu/vault-dropdown` — STEP 6 ✅
+- `inline/frontmatter` (3 modes), `inline/toasts` (success + error) — STEP 7 ✅
+- `editor/blocknote-showcase` (single tall artboard, H1-H6 + body + lists + blockquote + code + table + hr) — STEP 8 ✅
 
-Veille (2026-05-14 nuit) — exploration UI tooling alternative abandonnée en cours de route (friction d'autonomie structurelle). Repo nettoyé.
+### Rework STEP 3 (icon fidelity)
+Premier pass STEP 3 a redessiné les SVG Lucide à la main → drift visible (FileText body absent, Settings gear approximatif, Lock à moitié rendu). **Fix mécanique** : pull les `iconNode` verbatim depuis `node_modules/lucide-svelte/dist/icons/{kebab}.svelte`, suivre les alias (`Code2 → code-2.js → code-xml.svelte`), translater en inline SVG. 4 artboards chrome reconstruits.
 
-Plus tôt le 2026-05-14 : court chantier PLAN-EXPORT-MD livré et mergé (pipeline Rust de normalisation markdown + 3 entrées UI). Smoke test validé en réel.
+### Docs et règles renforcés
+- **PLAN-UI-PAPER.md règle 10 ajoutée** : "Icon fidelity — verbatim from node_modules". Plus règle 11 sur "Mirror discipline — read source before writing pixel".
+- **Procédure de testing custom** ajoutée au plan (5 checkpoints : token spot-check, icon fidelity verbatim, live-app side-by-side, state coverage, MCP budget honesty).
+- **OBSERVER-NOTES.md** enrichi : MCP limitations (variables, components), conventions STEP 3 (rework + recipe bash), STEP 4-8 tentative answers aux open questions de STEP 1.
+- **PAPER-TOKENS.md** créé à la racine — mirror code-side de markhub-dark.css + app.css, source de vérité pour les valeurs inline (Paper MCP n'expose pas de tool variables).
+- **Skill `paper-mirror`** mis à jour : section "Lucide icons — verbatim from node_modules", section "Tool limitations & gotchas (Paper MCP)". 2 copies de l'edit syncées (hardlink ~/.claude/skills + ~/Ressources/Skills).
+
+### Détails / décisions
+- Le scope tokens Paper a été pivoté en code-side `PAPER-TOKENS.md` car la MCP n'expose pas de tool de gestion variables (vérifié 2× via ToolSearch + relecture guide). Strategy : agent emit valeurs literales inline, source de vérité reste la CSS. Documenté dans OBSERVER-NOTES.md.
+- État variants regroupés dans le même artboard quand possible (sidebar avec rest/hover/active dans un seul tree) plutôt qu'éclatés.
+- Backdrop dimmed pour overlays = clone du screen/file-view via `<x-paper-clone node-id="EW-0">`. Économise ~150 MCP calls (sinon chaque palette aurait dû ré-émettre l'intégralité du file-view). Pattern à généraliser.
+- Dimensions artboards = tailles shipped (sidebar 280, status-bar 1440×38, etc.), pas full-window. Sauf pour les screens et overlays où full-window 1440×900 est nécessaire.
+- Theme picker tile : skippé comme artboard séparé puisque déjà visible dans screen/settings.
+
+### Review pass — défauts identifiés et statut
+
+Après livraison initiale des 8 STEPs, Matheo a flaggé "beaucoup, beaucoup de défauts" et demandé une review autonome. Pass systématique screenshot de tous les artboards. Verdict factuel :
+
+**Corrigé pendant la review** :
+- ✅ `screen/empty-state` shippait sans file tree dans la sidebar — corrigé (4 rows ajoutés README/SPEC/docs/src).
+
+**Documenté comme limitations Paper MCP, pas corrigé** :
+- ⚠️ `palette/find-in-doc` : la `<x-paper-clone node-id="EW-0">` du file-view ne préserve pas les contraintes `width:60%;max-width:760px;padding:32px 64px` du `.editor-canvas` interne. Résultat : le H1 et l'intro paragraphe rendent overlapping, le code block aussi. Sur les autres overlays (cmd-k/cmd-p/cmd-shift-f) ce n'est pas visible parce que le backdrop 0.5 + la palette couvrent le haut de la zone. Sur find-in-doc seul un fin find-bar overlay → le clone bug est visible. Fix possible : remplacer le clone par un placeholder canvas simple. ~10 MCP calls. Différé.
+- ⚠️ `editor/blocknote-showcase` body paragraph : les inline `<span style="font-weight:500">bold</span>`, `italic`, `strike`, `link` ne se distinguent pas tous à scale 1 (Paper guide : "Rich text isn't supported in Paper"). Fix possible : isoler chaque inline annotation en block-level avec contexte. Différé.
+- ⚠️ États hover/active sidebar (`surface-hover` 0.025 alpha) sont quasi invisibles. **Fidèle à l'app live** (IDE-restrained), mais peut ne pas suffire pour landing-page hero shots. Si besoin : variante boostée à 0.06 dans STEP 7 ultérieur.
+- ⚠️ Icônes Lucide à low-contrast (#666469 / #868584 sur near-black) faithful mais peu lisibles à scale 1. Hero shots devront peut-être override la couleur.
+
+**Limitations confirmées (pas des défauts, sont structurelles Paper MCP)** :
+- Pas d'API variables → tokens en code-side `PAPER-TOKENS.md`.
+- Pas d'API composants → réutilisation via `<x-paper-clone>` (avec bug layout cf. find-in-doc).
+- Pas d'animation captée (HTML statique only).
+- Inline `<span>` styles flattenés dans certains contextes.
+
+### Limitations honnêtes
+- **MCP budget** : consommé probablement ~145/100 hebdo cette semaine (~45 calls au-dessus du free tier). Si Paper renvoie 429 sur prochaines calls, attendre la prochaine semaine ou passer au tier payant.
+- **STEP 9 différé** : aucun PNG dans `assets/exports/`. À reprendre en session dédiée (budget MCP frais), via `export` tool ou via Paper UI manuel (File → Export).
 
 ## Branche courante
 
@@ -63,7 +105,7 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 | **PLAN-THEMING v1 — 4 thèmes curated, picker à 2 slots, OS-follow, anti-flash** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-THEMING iteration Cocoa + Forest (remplacent Solar/Tokyo)** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-EDITOR-POLISH (16 steps)** | **⏸ PAUSÉ après STEPS 1-3 partiels — `feat/editor-polish` branch, 2 bugs CSS cascade (H1 serif + blockquote color)** |
-| **PLAN-UI-PORT-PAPER (7 steps)** | ⏳ pas démarré — prochaine prio |
+| **PLAN-UI-PAPER (9 steps)** | **🟡 STEPS 1-8 livrés en automode 2026-05-15 — 18 artboards dans Paper, STEP 9 export différé** |
 | Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG |
 | Drag-drop FROM Finder | ⛔ reverted, BACKLOG |
 | Outline V2 Notion rail | gelé |

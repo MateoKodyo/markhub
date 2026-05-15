@@ -2923,3 +2923,82 @@ Après ~3h d'exploration, Pencil est **abandonné**. La friction structurelle es
 ## Prochaine session
 
 **Exploration Paper.design** via `PLAN-UI-PAPER.md` (reformulé en plan standalone, plus comparatif). Matheo a mentionné avoir testé Paper il y a quelques jours et que la connexion MCP reproduisait l'UI sans problème. Première action : charger le skill officiel Paper s'il existe, lire `PLAN-UI-PAPER.md` end to end, puis démarrer STEP 1.
+
+---
+
+# 2026-05-15 (session autonome longue, automode) — PLAN-UI-PAPER STEPS 1–8 livrés
+
+Matheo a lancé la session pour démarrer PLAN-UI-PAPER après le redémarrage Claude Code (la connexion MCP Paper avait raté au boot de la session précédente parce que Paper Desktop n'était pas encore lancé — pas de hot-reconnect côté CLI). Cette session : Paper Desktop running, MCP `paper` connecté, fichier `markhub-assets.paper` créé par Matheo puis ouvert.
+
+Le scope final : **18 artboards** (chrome + screens + overlays + modals/menus + inline + showcase BlockNote), 2160 nodes au total. STEP 9 export PNG déferré (budget MCP free tier dépassé en cours de chantier).
+
+## Ce qui a été fait
+
+### STEPS 1–2 — Setup + tokens (matin)
+- Round-trip MCP validé (create + write + delete + verify). `OBSERVER-NOTES.md` créé à la racine en voix portable.
+- STEP 2 pivot : Paper MCP n'expose **aucun tool de gestion de variables** (vérifié 2× via ToolSearch + relecture guide). Remplacement par `PAPER-TOKENS.md` à la racine — mirror code-side de `markhub-dark.css` + `app.css`, source de vérité pour les valeurs inline.
+
+### STEP 3 — Chrome (4 artboards) — avec rework icon fidelity
+Premier pass : 4 artboards chrome construits avec SVG Lucide redessinés à la main → drift visible (FileText body absent, Settings gear approximatif, Lock à moitié rendu). Matheo a flaggé : « ça doit être exactement comme la code B ».
+
+**Fix mécanique adopté** : pull les `iconNode` verbatim depuis `node_modules/lucide-svelte/dist/icons/{kebab}.svelte`, suivre les alias (`Code2 → code-2.js → code-xml.svelte`, `AlertCircle → alert-circle.js → circle-alert.svelte`), translater en inline SVG. Les 4 chrome artboards ont été supprimés (batch delete avec 4 IDs) et reconstruits.
+
+**Règles non-négociables ajoutées à `PLAN-UI-PAPER.md`** :
+- Règle 10 : Icon fidelity — verbatim from node_modules. Jamais redessiner de mémoire. Suivre les alias chains.
+- Règle 11 : Mirror discipline — read source before writing pixel. Composants Svelte + sous-composants doivent être lus avant le artboard.
+- Procédure de testing custom (5 checkpoints) : token spot-check / icon fidelity verbatim / live-app side-by-side / state coverage / MCP budget honesty.
+
+**Skill `paper-mirror` mis à jour** (~/.claude/skills + ~/Ressources/Skills, hardlink → sync auto) avec :
+- Section « Lucide icons — verbatim from node_modules » + recipe bash de batch extraction.
+- Section « Tool limitations & gotchas (Paper MCP) » : pas d'API variables, pas de live components, save behavior, MCP budget free tier ~100/sem.
+
+### STEP 4 — Main screens (3 artboards 1440×900)
+- `screen/empty-state` — Cursor-style avec brand "Markhub" h1, action grid 2×2 (Ouvrir / Créer / Cloner Git / Sample), Vaults récents list avec mono paths right-aligned.
+- `screen/file-view` — chrome complet + tabs bar + editor canvas centré avec frontmatter card (collapsed avec champs title/status/updated), H1 32px tracking -0.4, intro paragraph, H2 24px, inline code, code block syntax-colored, bullet list, blockquote, table 3 colonnes — status bar plein avec slider + Sauvegardé.
+- `screen/settings` — modal centré 760×600, rail 200 (Apparence active), content avec mode selector (Système active) + theme picker 2×2 (Markhub Dark active border accent + check, Markhub Light, Cocoa, Forest avec mini previews).
+
+### STEP 5 — Overlays (4 artboards 1440×900)
+Pattern découvert : `<x-paper-clone node-id="EW-0">` clone le screen/file-view entier en backdrop dimmed. Économise probablement ~150 MCP calls par rapport à ré-émettre l'intégralité du file-view 3× supplémentaires.
+- `palette/cmd-k` — palette commande avec input "export" + ⌘K, 5 résultats dont "Exporter le fichier en Markdown" active accent border + ⌘E hotkey, footer hints.
+- `palette/cmd-p` — file switcher avec input "plan", 4 fichiers fuzzy-highlighted, footer @/> hints.
+- `palette/cmd-shift-f` — vault search "lucide", 3 groupes (PLAN-UI-PAPER 3 matches, OBSERVER-NOTES 2 matches, package.json 1 match) avec L42/L87/L104 et highlights inline.
+- `palette/find-in-doc` — find bar pinned top-right, query "node_modules", counter 3/12, prev/next arrows, close X.
+
+### STEP 6 — Modals + menus (4 artboards compacts)
+- `modal/confirm-delete` 480×~280 — header destructive (danger-bg) + body avec inline-code dossier name + footer Cancel + Supprimer rouge.
+- `modal/input-dialog` 480×~240 — field "Markhub Notes" focus accent + caret + helper text + Cancel + Renommer primary.
+- `menu/sidebar-context-menu` 280×~440 — context-menu fichier (Ouvrir active + ↵, séparateurs, Renommer/Dupliquer/Déplacer, Copier chemin × 2, Révéler Finder, Exporter, Supprimer rouge).
+- `menu/vault-dropdown` 280×~280 — Vaults récents label, 3 vaults avec dots + ⌘1/⌘2/⌘3, séparateur, "Ouvrir un autre vault…" avec Plus.
+
+### STEP 7 — Inline UI (2 artboards consolidés)
+- `inline/frontmatter` 880×~640 — 3 modes empilés : collapsed (single-row summary), structured edit (title text input + updated date picker + tags chips + draft toggle), raw YAML (syntax-highlighted YAML avec keys colorées).
+- `inline/toasts` 480×~210 — toast-success (Check rond vert + "Fichier sauvegardé" + path mono) + toast-error (AlertCircle rond rouge + "Suppression échouée" + détail).
+
+### STEP 8 — BlockNote showcase
+- `editor/blocknote-showcase` 880×1323 — H1 à H6 avec scale typographique (32 / 24 / 19 / 16 / 14 caps / 13 caps), body paragraph avec inline annotations (bold / italic / strike / link / inline-code raised), bullet list / ordered list / checklist (1 checked rayée + 1 unchecked), blockquote left-border, code block TypeScript syntax-colored avec language label, table 3 colonnes (Block / Spacing / Rationale), HR.
+
+## Tests automatiques
+
+N/A. Le travail est dans Paper, pas dans le code Svelte. Aucun fichier `src/` modifié (sauf vérifications). Tests cargo / vitest / svelte-check : inchangés (156 / 512 / 0 erreur).
+
+## Décisions prises (en autonomie)
+
+- **STEP 9 (export PNG @2x) différé** : budget MCP Paper free tier dépassé (~110/100). Plutôt qu'enchaîner et risquer rate limit, préférer une session dédiée fresh budget.
+- **Theme picker tile** skippé comme artboard séparé puisque déjà visible dans `screen/settings`.
+- **Dimensions artboards** = tailles shipped pour chrome (sidebar 280, status-bar 1440×38, etc.) ; **full-window 1440×900** pour screens et overlays car ils ont besoin du contexte complet.
+- **State variants** regroupés dans le même artboard quand possible (sidebar avec rest/hover/active dans un seul tree).
+- **Pattern x-paper-clone** : clone du file-view comme backdrop dimmed des 4 overlays.
+
+## Limitations honnêtes
+
+- Budget MCP Paper free tier consommé probablement ~110/100 cette semaine. Prochaine session : attendre ou tier payant.
+- Pas de tests automatiques côté Paper — la fidélité visuelle se vérifie à l'œil contre l'app live.
+- L'app rendue en mode dark sur fond very-near-black (#0a0908) est intentionnellement subtile (IDE-restrained aesthetic) ; les icônes Lucide sont là mais peu contrastées. Si une hero shot landing veut max-contrast, prévoir override couleur en STEP 9 ou re-capture en thème light.
+- Aucune animation représentée (Paper rend du HTML statique).
+
+## Prochaine session
+
+1. **STEP 9 export PNG @2x** : avec budget MCP fresh, exporter chaque artboard via `mcp__paper__export` ou via Paper UI manuel (File → Export PNG @2x). Output dans `assets/exports/`.
+2. **Audit + consolidation skills** : déjà partiellement fait dans cette session (paper-mirror mis à jour). À finaliser selon memory `project_paper_chantier` end-of-chantier deliverable.
+3. **Smoke test Matheo** : ouvrir markhub-assets.paper et faire le tour des 18 artboards. Comparer contre app live à `localhost:1420` pour les screens/overlays.
+

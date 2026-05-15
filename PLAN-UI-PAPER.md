@@ -95,21 +95,47 @@ DECISIONS MADE
 
 9. **Project-agnostic OBSERVER notes**: maintain `OBSERVER-NOTES.md` at the repo root in portable voice ("the user", "the project", "the codebase") so the future Paper-porting skill can be assembled from it directly. Update at the end of each STEP.
 
+10. **Icon fidelity — verbatim from node_modules**: every Lucide icon used in an artboard MUST be pulled verbatim from `node_modules/lucide-svelte/dist/icons/{kebab-name}.svelte` (the `const iconNode = [...]` line). NEVER redraw an icon from memory. NEVER approximate path data. NEVER guess. When the Svelte component imports `Code2`, follow the alias chain (`code-2.js → code-xml.svelte`) and use the resolved file's `iconNode`. Same for `AlertCircle → circle-alert`, `FileText`, etc. If an icon's resolved file is missing, STOP and escalate.
+
+11. **Mirror discipline — read source before writing pixel**: every artboard MUST be preceded by reading the actual Svelte source it reproduces (`src/lib/components/*.svelte`) AND any sub-components it uses (e.g. Sidebar pulls in VaultList, FileTree, ContextMenu — read all of them). Token values come from `PAPER-TOKENS.md` which itself mirrors `src/app.css` / `src/styles/themes/markhub-dark.css`. Dimensions, padding, gaps, font sizes, colors: ALL pulled from the source CSS, not from screenshots. Screenshots are for final verification only, never for measuring.
+
+## Custom test procedure (replaces the generic "compare visually" instruction)
+
+For each artboard delivered, Matheo's smoke test follows this checklist — non-negotiable:
+
+**(a) Token spot-check (5 tokens random per artboard)**
+Pick 5 visual elements at random (one heading text, one background, one border, one icon, one pill). For each, inspect the matching Svelte component's CSS rule, look up the token in `PAPER-TOKENS.md`, and verify the artboard uses the same literal value. Goal: catch token drift.
+
+**(b) Icon fidelity (every Lucide icon on the artboard)**
+For each Lucide icon in the artboard:
+1. Identify its name (layer name should hint at it: `file-plus-btn`, `chevron-down`, etc.).
+2. Open `node_modules/lucide-svelte/dist/icons/{kebab-name}.svelte` in an editor or `cat` it.
+3. Compare the `iconNode` path data with what's drawn in Paper. Any mismatch = bug.
+
+**(c) Live-app side-by-side (final pass)**
+Run Markhub at `localhost:1420`, navigate to the state shown in the artboard, screenshot the live app at the same dimensions as the artboard, place both side by side. Visual diff should be minimal — minor anti-aliasing differences acceptable, but every geometric detail (spacing, icon shape, label position) must match.
+
+**(d) Hover / active / dirty state coverage**
+If the artboard claims to show a state variant (active row, hover state, dirty tab, etc.), verify the state is unambiguous — not so subtle the screenshot reader misses it. If the live app makes it subtle on purpose (Markhub's IDE-restrained aesthetic), the artboard reproduces that subtlety AND a clearly-marked variant for hero shots if landing-page needs to highlight it.
+
+**(e) MCP budget honesty**
+Report the cumulative MCP call count after each STEP. If a step exceeded its budget, say so explicitly — do not silently rework.
+
 ***
 
 ## PROGRESS TABLE
 
 | Step                                                                                | Status | Output                                              | Matheo validation |
 | ----------------------------------------------------------------------------------- | ------ | --------------------------------------------------- | ----------------- |
-| 1. Setup + MCP connection                                                           | ⏳      | empty `markhub-assets.paper` open, MCP round-trip ✓ | —                 |
-| 2. Design tokens import (variables only, no presentation artboard)                  | ⏳      | tokens visible in Paper variables panel             | —                 |
-| 3. App chrome (sidebar + status bar + window controls + tabs bar)                   | ⏳      | `chrome/*` artboards                                | —                 |
-| 4. Main screens (empty state + file view + settings)                                | ⏳      | `screen/*` artboards                                | —                 |
-| 5. Overlays (Cmd+K palette + Cmd+P switcher + Cmd+Shift+F search + find-in-doc)     | ⏳      | `palette/*` artboards                               | —                 |
-| 6. Modales et menus (ConfirmDialog + InputDialog + vault dropdown + sidebar ctxmenu) | ⏳      | `modal/*` and `menu/*` artboards                    | —                 |
-| 7. Inline UI (frontmatter 4 modes + source/preview switch + toast + tabs detail)    | ⏳      | `inline/*` artboards                                | —                 |
-| 8. BlockNote rendering showcase (code, table, headings, blockquote, lists, checkbox) | ⏳      | `editor/blocknote-showcase` artboard                | —                 |
-| 9. Export pass (every artboard exported as PNG @2x ready for landing)                | ⏳      | `assets/exports/*.png` in repo                      | —                 |
+| 1. Setup + MCP connection                                                           | ✅      | empty `markhub-assets.paper` open, MCP round-trip ✓ | awaiting          |
+| 2. Design tokens import (variables only, no presentation artboard)                  | ✅\*    | `PAPER-TOKENS.md` reference (pivot, see GATE 2)     | awaiting          |
+| 3. App chrome (sidebar + status bar + window controls + tabs bar)                   | ✅      | `chrome/*` 4 artboards                              | awaiting          |
+| 4. Main screens (empty state + file view + settings)                                | ✅      | 3 `screen/*` artboards                              | awaiting          |
+| 5. Overlays (Cmd+K palette + Cmd+P switcher + Cmd+Shift+F search + find-in-doc)     | ✅      | 4 `palette/*` artboards (file-view backdrop cloned) | awaiting          |
+| 6. Modales et menus (ConfirmDialog + InputDialog + vault dropdown + sidebar ctxmenu) | ✅      | 4 `modal/*` + `menu/*` artboards                    | awaiting          |
+| 7. Inline UI (frontmatter 4 modes + source/preview switch + toast + tabs detail)    | ✅      | 2 consolidated `inline/*` artboards                 | awaiting          |
+| 8. BlockNote rendering showcase (code, table, headings, blockquote, lists, checkbox) | ✅      | `editor/blocknote-showcase` artboard                | awaiting          |
+| 9. Export pass (every artboard exported as PNG @2x ready for landing)                | ⏸ DEFER | MCP budget exhausted (~110/100 free tier)            | next session      |
 
 ***
 
