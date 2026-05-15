@@ -3,7 +3,6 @@ import {
 	getFileName,
 	getFileNameWithoutExt,
 	getParentPath,
-	isMarkdownFile,
 	joinPath
 } from '../../src/lib/utils/path';
 
@@ -51,23 +50,5 @@ describe('path utils', () => {
 	it('getFileNameWithoutExt handles dotfiles correctly (keeps name)', () => {
 		// "note" has no extension, returns "note"
 		expect(getFileNameWithoutExt('note')).toBe('note');
-	});
-
-	// ------ B1.5 / B1.6 / B1.7 — isMarkdownFile ------
-	it('isMarkdownFile recognizes .md', () => {
-		expect(isMarkdownFile('foo.md')).toBe(true);
-	});
-
-	it('isMarkdownFile recognizes .markdown', () => {
-		expect(isMarkdownFile('foo.markdown')).toBe(true);
-	});
-
-	it('isMarkdownFile rejects .txt', () => {
-		expect(isMarkdownFile('foo.txt')).toBe(false);
-	});
-
-	it('isMarkdownFile is case-insensitive', () => {
-		expect(isMarkdownFile('FOO.MD')).toBe(true);
-		expect(isMarkdownFile('Bar.Markdown')).toBe(true);
 	});
 });

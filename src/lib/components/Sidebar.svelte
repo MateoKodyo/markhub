@@ -26,7 +26,8 @@
 		folderDelete
 	} from '$lib/tauri/api';
 	import { defaultExportFilename, runExportWithToast } from '$lib/utils/export';
-	import { joinPath, getFileName, getParentPath, isMarkdownFile } from '$lib/utils/path';
+	import { joinPath, getFileName, getParentPath } from '$lib/utils/path';
+	import { isMarkdownFile, filterTreeToMarkdown } from '$lib/utils/fileType';
 	import {
 		findInsertionTarget,
 		pruneExpandedFolders
@@ -39,6 +40,16 @@
 	let scanRoot = $state<FileEntry | null>(null);
 	let scanError = $state<string | null>(null);
 	let topLevelError = $state<string | null>(null);
+
+	// Step 1 debug toggle — replaced by the real persisted toggle in Step 2.
+	// false (default) = all files visible (non-md will be muted in Step 3),
+	// true = non-markdown files hidden entirely.
+	let hideNonMarkdown = $state(false);
+
+	const displayScanRoot = $derived.by(() => {
+		if (!scanRoot) return null;
+		return hideNonMarkdown ? filterTreeToMarkdown(scanRoot) : scanRoot;
+	});
 
 	// Selection in the file tree (drives contextual creation + visual highlight).
 	let selectedEntry = $state<FileEntry | null>(null);
@@ -924,11 +935,17 @@
 				/>
 			</div>
 
+			<!-- STEP 1 debug toggle — Step 2 replaces with the real UI. -->
+			<label class="debug-toggle" data-testid="debug-hide-non-md">
+				<input type="checkbox" bind:checked={hideNonMarkdown} />
+				<span>Hide non-markdown (debug)</span>
+			</label>
+
 			{#if scanError}
 				<p class="scan-error">{scanError}</p>
 			{:else}
 				<FileTree
-					root={scanRoot}
+					root={displayScanRoot}
 					filter={fileFilter}
 					expanded={expandedSet}
 					selectedPath={selectedPath}
@@ -1128,5 +1145,17 @@
 		padding: var(--space-3);
 		font-size: var(--text-caption);
 		color: var(--color-status-error);
+	}
+
+	/* STEP 1 debug toggle — unstyled on purpose; Step 2 replaces it. */
+	.debug-toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin: 0 var(--space-2) var(--space-2);
+		padding: 4px var(--space-3);
+		font-size: var(--text-caption);
+		color: var(--color-text-secondary);
+		cursor: pointer;
 	}
 </style>

@@ -331,7 +331,8 @@ pub fn reveal_in_finder(vault: &Vault, relative: &str) -> Result<(), String> {
 }
 
 /// Recursively scan a vault, returning a tree of FileEntry.
-/// Filters: only `.md` / `.markdown` files; ignores entries starting with `.`.
+/// Returns *all* files; sidebar-level filtering decides what is shown.
+/// Ignores entries starting with `.`.
 /// Sorts: directories first, then alphabetical within each group.
 pub fn scan_vault(vault: &Vault) -> Result<FileEntry, String> {
     let root = Path::new(&vault.path);
@@ -378,15 +379,12 @@ fn scan_dir(absolute: &Path, relative: &str) -> Result<Vec<FileEntry>, String> {
                 children: Some(nested),
             });
         } else if metadata.is_file() {
-            let lower = name.to_lowercase();
-            if lower.ends_with(".md") || lower.ends_with(".markdown") {
-                files.push(FileEntry {
-                    name,
-                    relative_path: child_rel,
-                    is_directory: false,
-                    children: None,
-                });
-            }
+            files.push(FileEntry {
+                name,
+                relative_path: child_rel,
+                is_directory: false,
+                children: None,
+            });
         }
     }
     directories.sort_by(|a, b| a.name.cmp(&b.name));
@@ -687,12 +685,17 @@ mod tests {
     // ============================================================
 
     #[test]
-    fn scan_returns_only_md_and_markdown_files() {
+    fn scan_returns_all_visible_files() {
+        // Scan returns every file regardless of extension — the sidebar
+        // applies the markdown/non-markdown visibility filter at render time.
         let (g, v) = make_vault(VaultMode::Edit);
         write_fixture(g.path(), "note.md", "");
         write_fixture(g.path(), "doc.markdown", "");
-        write_fixture(g.path(), "ignored.txt", "");
+        write_fixture(g.path(), "page.mdx", "");
+        write_fixture(g.path(), "notes.txt", "");
         write_fixture(g.path(), "image.png", "");
+        write_fixture(g.path(), "script.py", "");
+        write_fixture(g.path(), "README", "");
 
         let root = scan_vault(&v).expect("scan");
         assert!(root.is_directory, "scan returns root as directory");
@@ -700,8 +703,11 @@ mod tests {
         let names: Vec<_> = children.iter().map(|c| c.name.as_str()).collect();
         assert!(names.contains(&"note.md"));
         assert!(names.contains(&"doc.markdown"));
-        assert!(!names.contains(&"ignored.txt"));
-        assert!(!names.contains(&"image.png"));
+        assert!(names.contains(&"page.mdx"));
+        assert!(names.contains(&"notes.txt"));
+        assert!(names.contains(&"image.png"));
+        assert!(names.contains(&"script.py"));
+        assert!(names.contains(&"README"));
     }
 
     #[test]

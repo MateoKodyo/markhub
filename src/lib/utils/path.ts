@@ -27,8 +27,3 @@ export function getFileNameWithoutExt(path: string): string {
 	// Use `> 0` so dotfiles like ".env" keep their full name.
 	return i > 0 ? name.substring(0, i) : name;
 }
-
-export function isMarkdownFile(name: string): boolean {
-	const lower = name.toLowerCase();
-	return lower.endsWith('.md') || lower.endsWith('.markdown');
-}
