@@ -5,6 +5,7 @@
 		lineToBlockIndex,
 		splitFrontmatter
 	} from '$lib/utils/markdown';
+	import { wrapEmptyParagraphs, unwrapEmptyParagraphs } from '$lib/utils/blocknoteEmpty';
 	import { parseFrontmatter, serializeFrontmatter } from '$lib/frontmatter/parser';
 	import FrontmatterBlock from './FrontmatterBlock.svelte';
 	import { urlOpen } from '$lib/tauri/api';
@@ -283,7 +284,11 @@
 		let currentBody = body;
 		if (editorInstance) {
 			try {
-				currentBody = await editorInstance.blocksToMarkdownLossy();
+				// Preserve empty paragraph blocks across the markdown round-trip
+				// (see wrapEmptyParagraphs JSDoc — empty paragraphs would
+				// otherwise be dropped by BlockNote's lossy serializer).
+				const blocks = wrapEmptyParagraphs(editorInstance.document);
+				currentBody = await editorInstance.blocksToMarkdownLossy(blocks);
 			} catch {
 				/* fall back to the split body */
 			}
@@ -416,7 +421,10 @@
 			// Replace the empty default doc with the parsed body. Use the
 			// suppress flag rather than a delayed subscribe: delays leak when
 			// the user types fast right after mount.
-			const blocks = editor.tryParseMarkdownToBlocks(initialBody);
+			// `unwrapEmptyParagraphs` strips the NBSP marker we inject on
+			// serialize so the UI shows truly blank paragraphs (no leading
+			// NBSP appears when the user starts typing into one).
+			const blocks = unwrapEmptyParagraphs(editor.tryParseMarkdownToBlocks(initialBody));
 			editor.replaceBlocks(editor.document, blocks);
 			editor.isEditable = !readonly;
 
@@ -443,7 +451,10 @@
 					suppressNextChange = false;
 					return;
 				}
-				const md = await editor.blocksToMarkdownLossy();
+				// Preserve empty paragraph blocks across the markdown round-trip
+				// (see wrapEmptyParagraphs JSDoc).
+				const blocks = wrapEmptyParagraphs(editor.document);
+				const md = await editor.blocksToMarkdownLossy(blocks);
 				onChange(joinFrontmatter(frontmatter ?? '', md));
 			});
 			if (typeof offChange === 'function') unsubscribers.push(offChange);
