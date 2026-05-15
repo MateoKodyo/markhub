@@ -2,11 +2,13 @@
 	import {
 		ChevronDown,
 		ChevronRight,
+		File,
 		FileText,
 		Folder,
 		FolderOpen
 	} from 'lucide-svelte';
 	import { collectAncestors } from '$lib/utils/tree';
+	import { isMarkdownFile } from '$lib/utils/fileType';
 	import InlineInput from './InlineInput.svelte';
 	import type { FileEntry } from '$lib/tauri/types';
 
@@ -422,18 +424,24 @@
 	{:else}
 		{@const isRenaming = renamingPath === entry.relativePath}
 		{@const isDragSource = dragSourcePath === entry.relativePath}
+		{@const isMd = isMarkdownFile(entry.name)}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="file"
 			class="entry file"
 			class:is-selected={selectedPath === entry.relativePath}
 			class:is-drag-source={isDragSource}
+			class:is-non-markdown={!isMd}
 		>
 			{#if isRenaming}
 				<div class="row inline-renaming" data-testid="inline-rename">
 					<span class="chevron chevron-empty" aria-hidden="true"></span>
 					<span class="icon icon-file">
-						<FileText size={14} />
+						{#if isMd}
+							<FileText size={14} />
+						{:else}
+							<File size={14} />
+						{/if}
 					</span>
 					<InlineInput
 						indentPx={0}
@@ -458,7 +466,11 @@
 				>
 					<span class="chevron chevron-empty" aria-hidden="true"></span>
 					<span class="icon icon-file">
-						<FileText size={14} />
+						{#if isMd}
+							<FileText size={14} />
+						{:else}
+							<File size={14} />
+						{/if}
 					</span>
 					<span class="name">{entry.name}</span>
 				</button>
@@ -571,6 +583,25 @@
 
 	.file > .row > .icon-file {
 		color: var(--color-text-secondary);
+	}
+
+	/* Non-markdown files render muted when the visibility toggle is OFF.
+	 * (When the toggle is ON they are filtered out entirely upstream, so
+	 * this rule only ever applies to OFF state.) Hover, keyboard focus
+	 * and selection all restore full opacity so the row stays legible
+	 * when interacted with. */
+	.file.is-non-markdown > .row {
+		opacity: var(--opacity-muted);
+		transition:
+			background-color var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard),
+			opacity var(--duration-base) var(--easing-standard);
+	}
+
+	.file.is-non-markdown > .row:hover,
+	.file.is-non-markdown > .row:focus-visible,
+	.file.is-non-markdown.is-selected > .row {
+		opacity: 1;
 	}
 
 	.name {

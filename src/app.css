@@ -181,6 +181,13 @@
 	--duration-base: 150ms;
 	--duration-slow: 200ms;
 	--easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+	/* === Opacity ===
+	 * `--opacity-muted` drives the visual treatment of secondary content
+	 * — currently non-markdown files in the sidebar when the visibility
+	 * toggle is OFF (PLAN-SIDEBAR-FILE-VISIBILITY). Fine-tuned during
+	 * Step 3 smoke test. */
+	--opacity-muted: 0.4;
 }
 
 /* === Reset & base === */
