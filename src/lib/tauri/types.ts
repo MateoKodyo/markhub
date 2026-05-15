@@ -86,6 +86,13 @@ export type FilesSettings = {
 	confirmDelete: boolean;
 };
 
+export type SidebarSettings = {
+	/** When true, the sidebar file list hides non-markdown files entirely.
+	 *  When false (default), all files are shown; non-markdown files render
+	 *  muted (see PLAN-SIDEBAR-FILE-VISIBILITY). */
+	hideNonMarkdown: boolean;
+};
+
 /* `BehaviorSettings` retired 2026-05-14 — its only field
  * (`askBeforeClosingUnsaved`) became redundant once `activeFile.openFile`
  * started flushing pending saves unconditionally. The Rust side still
@@ -99,6 +106,7 @@ export type UserSettings = {
 	editor: EditorSettings;
 	source: SourceSettings;
 	files: FilesSettings;
+	sidebar: SidebarSettings;
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -123,6 +131,9 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 	},
 	files: {
 		confirmDelete: true
+	},
+	sidebar: {
+		hideNonMarkdown: false
 	}
 };
 

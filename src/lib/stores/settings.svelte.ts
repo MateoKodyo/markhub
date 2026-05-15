@@ -90,7 +90,8 @@ export function mergeWithDefaults(partial: Partial<UserSettings>): UserSettings 
 		appearance,
 		editor: { ...DEFAULT_USER_SETTINGS.editor, ...(partial.editor ?? {}) },
 		source: { ...DEFAULT_USER_SETTINGS.source, ...(partial.source ?? {}) },
-		files: { ...DEFAULT_USER_SETTINGS.files, ...(partial.files ?? {}) }
+		files: { ...DEFAULT_USER_SETTINGS.files, ...(partial.files ?? {}) },
+		sidebar: { ...DEFAULT_USER_SETTINGS.sidebar, ...(partial.sidebar ?? {}) }
 	};
 }
 

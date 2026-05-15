@@ -165,6 +165,23 @@ impl Default for FilesSettings {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SidebarSettings {
+    /// When true, the sidebar file list hides non-markdown files entirely.
+    /// When false (default), all files are shown; the sidebar mutes the
+    /// non-markdown ones visually.
+    pub hide_non_markdown: bool,
+}
+
+impl Default for SidebarSettings {
+    fn default() -> Self {
+        Self {
+            hide_non_markdown: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSettings {
@@ -173,6 +190,10 @@ pub struct UserSettings {
     pub editor: EditorSettings,
     pub source: SourceSettings,
     pub files: FilesSettings,
+    /// `#[serde(default)]` keeps backwards compat with v2 settings.json files
+    /// written before the sidebar section existed.
+    #[serde(default)]
+    pub sidebar: SidebarSettings,
 }
 
 impl Default for UserSettings {
@@ -183,6 +204,7 @@ impl Default for UserSettings {
             editor: EditorSettings::default(),
             source: SourceSettings::default(),
             files: FilesSettings::default(),
+            sidebar: SidebarSettings::default(),
         }
     }
 }

@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { FileInput, FilePlus, FolderPlus, Plus, Search } from 'lucide-svelte';
+	import {
+		Eye,
+		EyeOff,
+		FileInput,
+		FilePlus,
+		FolderPlus,
+		Plus,
+		Search
+	} from 'lucide-svelte';
 	import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 	import VaultList from './VaultList.svelte';
 	import FileTree, { type CreatingAt, type TreeContext } from './FileTree.svelte';
@@ -41,10 +49,20 @@
 	let scanError = $state<string | null>(null);
 	let topLevelError = $state<string | null>(null);
 
-	// Step 1 debug toggle — replaced by the real persisted toggle in Step 2.
-	// false (default) = all files visible (non-md will be muted in Step 3),
-	// true = non-markdown files hidden entirely.
-	let hideNonMarkdown = $state(false);
+	// Sidebar visibility toggle — persisted in settings.json under
+	// `sidebar.hideNonMarkdown`. false (default) = all files visible
+	// (non-md will be muted in Step 3); true = non-markdown files hidden.
+	const hideNonMarkdown = $derived(settingsStore.current.sidebar.hideNonMarkdown);
+
+	function toggleHideNonMarkdown() {
+		settingsStore.set({
+			...settingsStore.current,
+			sidebar: {
+				...settingsStore.current.sidebar,
+				hideNonMarkdown: !settingsStore.current.sidebar.hideNonMarkdown
+			}
+		});
+	}
 
 	const displayScanRoot = $derived.by(() => {
 		if (!scanRoot) return null;
@@ -892,6 +910,22 @@
 				<div class="header-actions">
 					<button
 						type="button"
+						class="icon-btn visibility-toggle"
+						class:is-active={hideNonMarkdown}
+						title={hideNonMarkdown ? 'Show all files' : 'Markdown only'}
+						aria-label={hideNonMarkdown ? 'Show all files' : 'Markdown only'}
+						aria-pressed={hideNonMarkdown}
+						data-testid="sidebar-visibility-toggle"
+						onclick={toggleHideNonMarkdown}
+					>
+						{#if hideNonMarkdown}
+							<EyeOff size={14} />
+						{:else}
+							<Eye size={14} />
+						{/if}
+					</button>
+					<button
+						type="button"
 						class="icon-btn"
 						title="Nouveau fichier"
 						aria-label="Nouveau fichier"
@@ -934,12 +968,6 @@
 					class="filter-input"
 				/>
 			</div>
-
-			<!-- STEP 1 debug toggle — Step 2 replaces with the real UI. -->
-			<label class="debug-toggle" data-testid="debug-hide-non-md">
-				<input type="checkbox" bind:checked={hideNonMarkdown} />
-				<span>Hide non-markdown (debug)</span>
-			</label>
 
 			{#if scanError}
 				<p class="scan-error">{scanError}</p>
@@ -1147,15 +1175,15 @@
 		color: var(--color-status-error);
 	}
 
-	/* STEP 1 debug toggle — unstyled on purpose; Step 2 replaces it. */
-	.debug-toggle {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		margin: 0 var(--space-2) var(--space-2);
-		padding: 4px var(--space-3);
-		font-size: var(--text-caption);
-		color: var(--color-text-secondary);
-		cursor: pointer;
+	/* Visibility toggle — when active (filtering on), the button gets an
+	 * accent-tinted background so the state is legible at a glance. */
+	.icon-btn.visibility-toggle.is-active {
+		background: color-mix(in oklab, var(--color-accent) 14%, transparent);
+		color: var(--color-accent);
+	}
+
+	.icon-btn.visibility-toggle.is-active:hover {
+		background: color-mix(in oklab, var(--color-accent) 22%, transparent);
+		color: var(--color-accent);
 	}
 </style>

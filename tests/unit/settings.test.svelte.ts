@@ -199,6 +199,49 @@ describe('settingsStore', () => {
 		expect(merged.editor).toEqual(DEFAULT_USER_SETTINGS.editor);
 		expect(merged.source).toEqual(DEFAULT_USER_SETTINGS.source);
 		expect(merged.files).toEqual(DEFAULT_USER_SETTINGS.files);
+		expect(merged.sidebar).toEqual(DEFAULT_USER_SETTINGS.sidebar);
+	});
+
+	// ------ S2.SB1 — sidebar section persists hideNonMarkdown ------
+	it('set() persists sidebar.hideNonMarkdown across a flush', async () => {
+		settingsReadMock.mockResolvedValue(DEFAULT_USER_SETTINGS);
+		await settingsStore.load();
+		expect(settingsStore.current.sidebar.hideNonMarkdown).toBe(false);
+
+		settingsStore.set({
+			...settingsStore.current,
+			sidebar: { hideNonMarkdown: true }
+		});
+		expect(settingsStore.current.sidebar.hideNonMarkdown).toBe(true);
+
+		await settingsStore.flushForTest();
+		const written = settingsWriteMock.mock.calls.at(-1)?.[0] as UserSettings;
+		expect(written.sidebar.hideNonMarkdown).toBe(true);
+	});
+
+	// ------ S2.SB2 — load() rehydrates sidebar.hideNonMarkdown=true ------
+	it('load() rehydrates sidebar.hideNonMarkdown from disk', async () => {
+		settingsReadMock.mockResolvedValue({
+			...DEFAULT_USER_SETTINGS,
+			sidebar: { hideNonMarkdown: true }
+		});
+		await settingsStore.load();
+		expect(settingsStore.current.sidebar.hideNonMarkdown).toBe(true);
+	});
+
+	// ------ S2.SB3 — settings.json written without sidebar still loads ------
+	it('mergeWithDefaults seeds sidebar defaults when missing on disk', () => {
+		const partial = {
+			version: 2 as const,
+			appearance: DEFAULT_USER_SETTINGS.appearance,
+			editor: DEFAULT_USER_SETTINGS.editor,
+			source: DEFAULT_USER_SETTINGS.source,
+			files: DEFAULT_USER_SETTINGS.files
+			// no `sidebar` field — simulates a settings.json written before
+			// the section existed.
+		};
+		const merged = mergeWithDefaults(partial as never);
+		expect(merged.sidebar).toEqual(DEFAULT_USER_SETTINGS.sidebar);
 	});
 
 	// ============================================================
