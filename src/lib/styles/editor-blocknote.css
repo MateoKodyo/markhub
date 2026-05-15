@@ -86,10 +86,12 @@
 .preview .bn-editor h1 {
 	font-size: 26px;
 	line-height: 1.25;
+	color: var(--color-accent);
 }
 .preview .bn-editor h2 {
 	font-size: 21px;
 	line-height: 1.3;
+	color: var(--color-accent);
 }
 .preview .bn-editor h3 {
 	font-size: 18px;

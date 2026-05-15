@@ -150,10 +150,7 @@
 			>
 				<div class="theme-card-preview">
 					<div class="preview-heading">Titre</div>
-					<div class="preview-para">
-						Phrase avec <code class="preview-code">inline</code> et un
-						<span class="preview-link">lien</span>.
-					</div>
+					<div class="preview-para">Une ligne courte pour l'aperçu.</div>
 				</div>
 				<div class="theme-card-footer">
 					<span class="theme-card-name">{meta.name}</span>
@@ -229,18 +226,18 @@
 	.theme-card-preview {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 6px;
 		padding: 14px 16px 12px;
 		background: var(--color-bg);
 		border-bottom: 1px solid var(--color-border-subtle);
-		min-height: 76px;
+		min-height: 64px;
 	}
 
 	.preview-heading {
 		font-family: var(--font-editor);
 		font-size: 15px;
 		font-weight: var(--weight-medium);
-		color: var(--color-text-primary);
+		color: var(--color-accent);
 		letter-spacing: var(--tracking-heading);
 	}
 
@@ -249,22 +246,6 @@
 		font-size: 12px;
 		line-height: 1.5;
 		color: var(--color-text-body);
-	}
-
-	.preview-code {
-		padding: 1px 5px;
-		background: var(--color-surface-active);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: 3px;
-		font-family: var(--font-mono);
-		font-size: 11px;
-		color: var(--color-text-primary);
-	}
-
-	.preview-link {
-		color: var(--color-accent);
-		text-decoration: underline;
-		text-underline-offset: 2px;
 	}
 
 	.theme-card-footer {

@@ -1,0 +1,68 @@
+/* Grape Gatsby — moody dark theme: verdant-abyss canvas + lavender accent.
+ *
+ * Mood: deep ocean / nordic forest at dusk, with a soft Grape Gatsby accent.
+ * Cool blue-green tones with restrained purple contrast.
+ * Palette source: MP138 — Blue Pearl / Nordic / Grape Gatsby /
+ * Verdant Abyss / Speed of Light / Misty Blue.
+ */
+
+:root[data-theme='grape-gatsby'] {
+	/* Canvas — Verdant Abyss scale, near-black with green-teal warmth */
+	--color-bg-sidebar: #0c1b15;
+	--color-bg: #13241f;
+	--color-bg-raised: #1d393c;
+
+	/* Surfaces — Grape Gatsby at very low alpha */
+	--color-surface-veil: rgba(161, 154, 189, 0.04);
+	--color-surface-active: rgba(161, 154, 189, 0.1);
+	--color-surface-hover: rgba(161, 154, 189, 0.06);
+	--color-surface-strong: rgba(161, 154, 189, 0);
+
+	/* Borders — Blue Pearl at low alpha */
+	--color-border-strong: rgba(197, 217, 227, 0.18);
+	--color-border: rgba(197, 217, 227, 0.09);
+	--color-border-subtle: rgba(197, 217, 227, 0.05);
+
+	/* Text — Speed of Light primary, Blue Pearl body, fades through Misty */
+	--color-text-primary: #f6f4ef;
+	--color-text-body: #c5d9e3;
+	--color-text-secondary: #b4c4c3;
+	--color-text-muted: #7a8f8e;
+	--color-text-disabled: #4d5e5d;
+
+	/* Interactive — Nordic pill */
+	--color-button-bg: #1d393c;
+	--color-button-text: #f6f4ef;
+	--color-button-bg-hover: #264649;
+
+	/* Accent — Grape Gatsby lavender */
+	--color-accent: #a19abd;
+	--color-accent-hover: #b0aac9;
+	--color-accent-text: #0c1b15;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(161, 154, 189, 0.32);
+
+	/* Status — earth-and-water palette to stay on-mood */
+	--color-status-ok: #8fb8a8;
+	--color-status-warn: #d4b87a;
+	--color-status-error: #c2756e;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(194, 117, 110, 0.12);
+	--color-danger-border: rgba(194, 117, 110, 0.3);
+
+	--color-backdrop: rgba(12, 27, 21, 0.55);
+
+	/* Shadows — deep abyss drops */
+	--shadow-popover: 0 4px 16px rgba(12, 27, 21, 0.5);
+	--shadow-sm: 0 1px 2px rgba(12, 27, 21, 0.25);
+	--shadow-md: 0 1px 2px rgba(12, 27, 21, 0.22), 0 4px 12px rgba(12, 27, 21, 0.3);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(12, 27, 21, 0.55), 0 2px 4px rgba(12, 27, 21, 0.32);
+
+	/* Ambient — lavender glow top, nordic teal bottom-right */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(161, 154, 189, 0.07), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(29, 57, 60, 0.4), transparent 55%);
+}

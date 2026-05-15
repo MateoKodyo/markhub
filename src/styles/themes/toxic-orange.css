@@ -1,0 +1,67 @@
+/* Toxic Orange — bold dark theme: black-kite canvas + toxic-orange accent.
+ *
+ * Mood: late-night editing, garnet & burnt-orange. Punchy without being neon.
+ * Palette source: MP059 — Morning Snow / Amazon Mist / Aqua Mist /
+ * Toxic Orange / Black Kite / Garnet.
+ */
+
+:root[data-theme='toxic-orange'] {
+	/* Canvas — Black Kite scale, warm cocoa-red near-black */
+	--color-bg-sidebar: #2a1816;
+	--color-bg: #351e1c;
+	--color-bg-raised: #3f2522;
+
+	/* Surfaces — Toxic Orange at very low alpha */
+	--color-surface-veil: rgba(255, 96, 55, 0.04);
+	--color-surface-active: rgba(255, 96, 55, 0.1);
+	--color-surface-hover: rgba(255, 96, 55, 0.06);
+	--color-surface-strong: rgba(255, 96, 55, 0);
+
+	/* Borders — Morning Snow at low alpha, warm */
+	--color-border-strong: rgba(245, 244, 237, 0.16);
+	--color-border: rgba(245, 244, 237, 0.08);
+	--color-border-subtle: rgba(245, 244, 237, 0.04);
+
+	/* Text — Morning Snow primary, Amazon Mist body, fades through Aqua Mist */
+	--color-text-primary: #f5f4ed;
+	--color-text-body: #ececdc;
+	--color-text-secondary: #b4a8a0;
+	--color-text-muted: #8a7a72;
+	--color-text-disabled: #5c4a44;
+
+	/* Interactive — Garnet pill */
+	--color-button-bg: #733635;
+	--color-button-text: #f5f4ed;
+	--color-button-bg-hover: #84403f;
+
+	/* Accent — Toxic Orange */
+	--color-accent: #ff6037;
+	--color-accent-hover: #ff7350;
+	--color-accent-text: #1c0e0c;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(255, 96, 55, 0.32);
+
+	/* Status — earth-tones to avoid clashing with the orange accent */
+	--color-status-ok: #a0c9cb;
+	--color-status-warn: #ffb84d;
+	--color-status-error: #e8806b;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(232, 128, 107, 0.12);
+	--color-danger-border: rgba(232, 128, 107, 0.3);
+
+	--color-backdrop: rgba(28, 14, 12, 0.55);
+
+	/* Shadows — warm-black drops */
+	--shadow-popover: 0 4px 16px rgba(28, 14, 12, 0.45);
+	--shadow-sm: 0 1px 2px rgba(28, 14, 12, 0.22);
+	--shadow-md: 0 1px 2px rgba(28, 14, 12, 0.2), 0 4px 12px rgba(28, 14, 12, 0.28);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(28, 14, 12, 0.48), 0 2px 4px rgba(28, 14, 12, 0.3);
+
+	/* Ambient — orange ember top, garnet bottom */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(255, 96, 55, 0.08), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(115, 54, 53, 0.18), transparent 55%);
+}

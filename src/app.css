@@ -24,6 +24,8 @@
 @import './styles/themes/markhub-light.css';
 @import './styles/themes/cocoa.css';
 @import './styles/themes/forest.css';
+@import './styles/themes/toxic-orange.css';
+@import './styles/themes/grape-gatsby.css';
 
 :root {
 	/* ============================================================

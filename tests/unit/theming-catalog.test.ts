@@ -10,9 +10,16 @@ import {
 
 describe('theming catalog', () => {
 	// ------ TC.1 — catalog growth tracking ------
-	it('exposes the 4 curated themes (STEP 3 closes the catalog with Tokyo)', () => {
+	it('exposes the 6 curated themes (4 originals + toxic-orange + grape-gatsby)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
-		expect(ids).toEqual(['cocoa', 'forest', 'markhub-dark', 'markhub-light']);
+		expect(ids).toEqual([
+			'cocoa',
+			'forest',
+			'grape-gatsby',
+			'markhub-dark',
+			'markhub-light',
+			'toxic-orange'
+		]);
 	});
 
 	// ------ TC.2 — every theme entry carries the full metadata shape ------
@@ -50,9 +57,14 @@ describe('theming catalog', () => {
 		const dark = getThemesByFamily('dark');
 		expect(light.every((t) => t.family === 'light')).toBe(true);
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
-		// Both families ship 2 themes each after STEP 3.
+		// Light family: 2 themes. Dark family: 4 themes (2 originals + 2 new).
 		expect(light.map((t) => t.id).sort()).toEqual(['cocoa', 'markhub-light']);
-		expect(dark.map((t) => t.id).sort()).toEqual(['forest', 'markhub-dark']);
+		expect(dark.map((t) => t.id).sort()).toEqual([
+			'forest',
+			'grape-gatsby',
+			'markhub-dark',
+			'toxic-orange'
+		]);
 	});
 
 	// ------ TC.6 — isThemeId narrows arbitrary strings ------
@@ -61,6 +73,8 @@ describe('theming catalog', () => {
 		expect(isThemeId('markhub-dark')).toBe(true);
 		expect(isThemeId('cocoa')).toBe(true); // added in STEP 2
 		expect(isThemeId('forest')).toBe(true); // added in STEP 3
+		expect(isThemeId('toxic-orange')).toBe(true); // PLAN-THEMES-V2
+		expect(isThemeId('grape-gatsby')).toBe(true); // PLAN-THEMES-V2
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);
 		expect(isThemeId('nonsense')).toBe(false);
