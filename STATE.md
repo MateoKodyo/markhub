@@ -5,6 +5,8 @@
 
 ## Date de mise à jour
 
+2026-05-15 (soir, quick dev autonome) — **PLAN-SIDEBAR-FILE-VISIBILITY mergé sur `main`** en fast-forward (3 commits, 4 STEPs livrés en automode). Sidebar a maintenant une toggle persistée Eye/EyeOff dans le header Fichiers : OFF (défaut) → tous les fichiers visibles, non-markdown mutés à `opacity: 0.4` ; ON → non-markdown filtrés. Le scan Rust retourne désormais tous les fichiers (le filtre vit côté front). Token `--opacity-muted` ajouté. Settings store gagne une section `sidebar`. Tests : **530 vitest / 156 cargo / 0 erreur svelte-check**. Détails dans la section chantier.
+
 2026-05-15 (session autonome longue, automode) — **PLAN-UI-PAPER STEPS 1–8 livrés**. 18 artboards dans `markhub-assets.paper` (app.paper.design/file/01KRMBRXTQNNYPFE64HVRM2QZS), 2160 nodes. STEP 9 (export PNG @2x) **différé** : budget MCP free tier Paper (~100 calls/sem) dépassé en cours de chantier (~110 calls consommés). Matheo vérifiera demain matin.
 
 ### Livré dans Paper
@@ -57,24 +59,24 @@ Après livraison initiale des 8 STEPs, Matheo a flaggé "beaucoup, beaucoup de d
 
 ## Branche courante
 
-`main` — **3 commits d'avance sur `origin/main`** (housekeeping + docs marathon + export). Push autorisé explicitement cette fois (override de la règle habituelle).
+`main` — **6 commits d'avance sur `origin/main`** (1 docs PAPER closure + 3 du chantier sidebar visibility + 2 antérieurs : PAPER plan reframe + housekeeping). Push à Matheo.
 
 Dernière séquence de commits sur main :
 
 ```
+fdb9972 docs(paper): deliver PLAN-UI-PAPER STEPS 1–8 — 18 artboards + tightened plan rules
+ed6587e feat(sidebar): muted visual treatment for non-markdown files
+14d377e feat(sidebar): persistent markdown-only toggle
+3735b8b feat(sidebar): file-type detection and filter logic
+fff5679 docs(plan): reframe PLAN-UI-PAPER as asset library for landing page
+5b4bd3d chore: drop UI tooling exploration — repo cleanup
+a424729 docs: close PLAN-EXPORT-MD — STATE + JOURNAL refresh
 602bab8 feat(export): export current file as clean Markdown
 5834ef9 docs: refresh STATE + JOURNAL for the 2026-05-14 marathon session
 b116c01 chore: housekeeping — relocate retired plans, refresh app icons, drop retired notes
-7469dc8 chore(frontmatter): closure — PLAN-FRONTMATTER-UI v1 complete
-ff96807 feat(frontmatter): visual polish and Playwright baselines
-0a07bb8 feat(frontmatter): persist collapsed state to disk
-af51767 feat(frontmatter): typed controls — date, tags, toggle, number
-650fb68 feat(frontmatter): raw YAML edit mode
-930cd25 feat(theming): swap Solar/Tokyo for Cocoa (Claude-warm) and Forest (kaki)
-c3b7252 docs(theming): close PLAN-THEMING progress table
 ```
 
-Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits theming antérieurs (af998e5..).
+Plus en amont : closure frontmatter v1 (7469dc8), 4 commits frontmatter (ff96807..650fb68), 2 commits theming finaux (930cd25, c3b7252), `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits theming antérieurs.
 
 ## Branches actives (non mergées)
 
@@ -84,8 +86,8 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 
 ## Tests (état actuel sur main)
 
-- cargo : **156/156 ✅** (+30 sur `commands::export`)
-- vitest : **512/512 ✅** (+7 sur `utils/export`)
+- cargo : **156/156 ✅** (1 test renommé `scan_returns_only_md_and_markdown_files` → `scan_returns_all_visible_files`, assertions inversées par PLAN-SIDEBAR-FILE-VISIBILITY)
+- vitest : **530/530 ✅** (+18 net depuis PLAN-SIDEBAR : `fileType.test.ts` 18 cas + 3 sur `settings` − 3 retirés de `path.test.ts`)
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
@@ -106,6 +108,7 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 | **PLAN-THEMING iteration Cocoa + Forest (remplacent Solar/Tokyo)** | **✅ MERGÉ 2026-05-13** |
 | **PLAN-EDITOR-POLISH (16 steps)** | **⏸ PAUSÉ après STEPS 1-3 partiels — `feat/editor-polish` branch, 2 bugs CSS cascade (H1 serif + blockquote color)** |
 | **PLAN-UI-PAPER (9 steps)** | **🟡 STEPS 1-8 livrés en automode 2026-05-15 — 18 artboards dans Paper, STEP 9 export différé** |
+| **PLAN-SIDEBAR-FILE-VISIBILITY (4 steps)** | **✅ MERGÉ 2026-05-15 (soir) — toggle Eye/EyeOff persistée, scan Rust dé-filtré, traitement muted via `--opacity-muted`** |
 | Body typography (PLAN-SETTINGS STEP 3 dette) | ⛔ 4e tentative reverted, BACKLOG |
 | Drag-drop FROM Finder | ⛔ reverted, BACKLOG |
 | Outline V2 Notion rail | gelé |
@@ -149,6 +152,8 @@ Plus en amont : `cd636e0 fix(theming)`, `fc18d14 chore(theming)` + 8 commits the
 
 **Export Markdown propre** (depuis PLAN-EXPORT-MD) : 3 entrées UI (Cmd+K → "Export File…", bouton Download dans la status bar, item "Exporter…" dans le context menu sidebar). Pipeline de normalisation côté Rust : frontmatter YAML passthrough verbatim, blank line forcée entre frontmatter et body, CRLF/CR → LF, trim trailing whitespace par ligne, collapse 3+ newlines → 2, final LF. Aucune transformation sémantique des tokens markdown. Palette/status bar exportent le buffer courant ; sidebar lit depuis disque.
 
+**Sidebar file visibility** (depuis PLAN-SIDEBAR-FILE-VISIBILITY) : toggle Eye/EyeOff dans le header de la section Fichiers, à côté des actions +file/+folder/import. État persisté dans `settings.json` sous `sidebar.hideNonMarkdown` (défaut `false`). OFF → tous les fichiers visibles, les non-markdown rendus à `opacity: var(--opacity-muted)` (0.4) avec icône Lucide `File` générique ; hover/focus/selected restaurent l'opacité full. ON → non-markdown filtrés entièrement, les directories restent toujours visibles. Le scan Rust retourne tous les fichiers (filtre côté front). Cmd+P / Cmd+Shift+F inchangés. Reconnaît `.md` / `.markdown` / `.mdx`.
+
 ## BACKLOG (dettes ouvertes)
 
 Voir `BACKLOG.md` :
@@ -165,13 +170,14 @@ Voir `BACKLOG.md` :
 1. **`STATE.md`** (ce fichier — porte d'entrée)
 2. **`CLAUDE.md`**
 3. **`WORKPLAN.md`**
-4. **`PLAN-UI-PAPER.md`** (chantier prioritaire — STEP 1 à démarrer)
+4. **`PLAN-UI-PAPER.md`** (chantier prioritaire — STEP 9 export à reprendre quand budget MCP frais)
 5. **`PLAN-POLISH-EDIT.md`** (à lire seulement si tu reprends `feat/editor-polish` — voir PAUSE NOTE en tête)
-6. **`JOURNAL.md`** (dernière entrée 2026-05-14 — session longue)
+6. **`JOURNAL.md`** (dernière entrée 2026-05-15 soir — PLAN-SIDEBAR-FILE-VISIBILITY closure)
 7. **`BACKLOG.md`**
 
 ## Prochaine session — checklist de démarrage
 
-1. **Push origin/main** si commits ahead.
-2. **Charger le skill officiel Paper** s'il existe avant tout code — règle d'or pour tout outil tiers, leçon retenue d'une exploration récente.
-3. Lire `PLAN-UI-PAPER.md` end to end et démarrer STEP 1.
+1. **Push origin/main** (6 commits ahead à pousser).
+2. **Smoke test interactif** du toggle sidebar visibility dans les 4 thèmes (Markhub Light/Dark, Cocoa, Forest) : vérifier que `--opacity-muted: 0.4` est confortable, ajuster entre 0.35–0.5 si nécessaire (token unique dans `src/app.css`).
+3. **Inspecter les modifs non-staged restantes** : `src-tauri/Cargo.lock` / `Cargo.toml` / `tauri.conf.json` (héritées du début de session, pas touchées par cette session — à juger / commit / revert selon ce que c'est).
+4. **Reprendre selon priorité** : PLAN-UI-PAPER STEP 9 (export PNG) si budget MCP frais, ou retour sur `feat/editor-polish` pour résoudre les 2 bugs CSS cascade.

@@ -3002,3 +3002,74 @@ N/A. Le travail est dans Paper, pas dans le code Svelte. Aucun fichier `src/` mo
 2. **Audit + consolidation skills** : déjà partiellement fait dans cette session (paper-mirror mis à jour). À finaliser selon memory `project_paper_chantier` end-of-chantier deliverable.
 3. **Smoke test Matheo** : ouvrir markhub-assets.paper et faire le tour des 18 artboards. Comparer contre app live à `localhost:1420` pour les screens/overlays.
 
+
+---
+
+# 2026-05-15 (soir) — PLAN-SIDEBAR-FILE-VISIBILITY livré en autonomie
+
+Quick dev demandé en fin de journée par Matheo, exécuté en automode (override des gates de smoke test du plan, autorisation explicite). 3 commits sur `feat/sidebar-file-visibility`, mergés en fast-forward sur `main`, branche supprimée.
+
+## Ce qui a été fait
+
+### STEP 1 — Extension detection + filter logic (commit `3735b8b`)
+- `src/lib/utils/fileType.ts` créé : `MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdx']`, `isMarkdownFile`, `filterTreeToMarkdown` (récursif, préserve les directories).
+- `isMarkdownFile` migré depuis `path.ts` (ancien doublon supprimé). Conséquence bonus : la création/rename d'un fichier `.mdx` ne reçoit plus de `.md` parasite appendé.
+- **Rust `scan_vault` rendu non-filtrant** : retourne maintenant TOUS les fichiers du vault (avant : seulement `.md` / `.markdown`). Le filtre vit côté front au render time. Le test `scan_returns_only_md_and_markdown_files` est devenu `scan_returns_all_visible_files` avec assertions inversées.
+- 18 cas vitest sur `fileType.ts` + ajustement de `path.test.ts`.
+
+### STEP 2 — Toggle UI + persistence (commit `14d377e`)
+- Nouvelle section `sidebar` dans `UserSettings` (TS + Rust) avec `hideNonMarkdown: bool` (défaut `false`). `#[serde(default)]` côté Rust + merge défensif côté TS pour la compat avec les `settings.json` antérieurs.
+- Toggle icon-button (Lucide `Eye` / `EyeOff`) placé dans le header de la section Fichiers, à côté des actions +file / +folder / import. Tooltip qui décrit l'action ("Markdown only" quand OFF, "Show all files" quand ON), `aria-pressed`.
+- État actif (filtering ON) → fond accent-tinted via `color-mix(in oklab, var(--color-accent) 14%, transparent)`.
+- Lecture / écriture via le settings store standard (debounce 250ms, persistence disque).
+- **Pas de flash au launch** : `settingsStore.load()` est awaited dans `+page.svelte::onMount` avant que `selectVault` ne déclenche le premier scan → le `displayScanRoot` est correct dès le premier render.
+- 3 cas vitest ajoutés sur le settings store (persist round-trip, rehydrate true, mergeWithDefaults sans champ).
+
+### STEP 3 — Muted visual treatment (commit `ed6587e`)
+- Token `--opacity-muted: 0.4` ajouté à `src/app.css` (section Opacity dédiée).
+- `FileTree.svelte` switche entre `FileText` (markdown) et `File` (autre) selon `isMarkdownFile(entry.name)`, et marque la `<li>` avec `is-non-markdown` quand pertinent.
+- CSS muted : `.file.is-non-markdown > .row { opacity: var(--opacity-muted); transition: ... opacity 150ms ... }`. Hover, `:focus-visible` et `.is-selected` restaurent `opacity: 1` — légibilité à l'interaction conservée. Le texte ne change pas de couleur, l'opacité fait tout le travail (conforme aux principes design).
+- Quand la toggle est ON, les non-md sont filtrés en amont → cette règle ne s'applique jamais dans cet état.
+
+### STEP 4 — Audit + closure
+- Tests finaux : **530 vitest / 156 cargo / 0 erreur svelte-check**. Pas de désactivés.
+- Branche `feat/sidebar-file-visibility` mergée ff sur `main`, supprimée localement.
+- Pas de Playwright baseline à régénérer : les tests visuels actuels utilisent le fixture `_visual?fixture=sidebar-overflow` (mirror statique), pas le vrai composant `Sidebar`. Aucun baseline sur le vrai composant Sidebar à ce jour.
+
+## Tests automatiques
+
+| Suite | Avant | Après | Δ |
+|---|---|---|---|
+| cargo test | 156 | 156 | 0 (1 test renommé + assertions inversées) |
+| vitest | 512 | 530 | +18 (`fileType` 18 cas + `settings` 3 cas) — wait, +21. Actually counted : +18 in fileType.test.ts, +3 in settings.test.svelte.ts = +21. Mais STATE.md disait 512 avant cette session ; nouveau total 530 = +18, donc le compte initial à l'entrée de session était probablement déjà à 512 (PAPER session n'a pas touché vitest). Recompté en surface : 530 = 512 + 18. Sound. |
+| svelte-check | 0 / 0 | 0 / 0 | inchangé |
+
+(Le décompte +18 dans le tableau est net : les 21 nouveaux cas remplacent 3 cas retirés de `path.test.ts` — les anciens `isMarkdownFile` tests devenus redondants avec ceux de `fileType.test.ts`.)
+
+## Décisions prises (en autonomie)
+
+- **Doublon `isMarkdownFile` consolidé** : la fonction existait déjà dans `path.ts` pour décider si un nom contient déjà une extension markdown (rename/create). Le plan demandait `fileType.ts` avec `.md / .markdown / .mdx`. Migration de `path.ts` vers `fileType.ts` au lieu d'un doublon — single source of truth.
+- **Position du toggle** : header de la section Fichiers (avec les autres actions file-level) plutôt qu'une ligne dédiée au-dessus. Satisfait "above the file list" et reste compact dans la chrome (conforme aux DESIGN-PRINCIPLES sur la densité IDE-tight).
+- **Hover / focus / selected restaurent l'opacité** : choix de lisibilité conforme à l'esprit du plan ("hover still highlights, but the muted opacity returns on mouse leave"). Implémenté comme "opacité full à l'interaction, retour au mute à mouseleave" pour éviter qu'un fichier sélectionné soit illisible.
+
+## Hors-scope / différé
+
+- **Comportement au clic sur un non-md** : kept as-is per plan. Aujourd'hui : `fileRead` Rust ouvre le fichier comme UTF-8 string → si binaire, toast d'erreur non-UTF8 ; si texte, le contenu s'affiche dans BlockNote parsé comme markdown (rendu wonky mais ne plante pas). Pas de garde côté front, pas de fenêtre OS-open. À décider plus tard si gênant en usage réel.
+- **Smoke test interactif Matheo** : non effectué (mode autonome). Verification visuelle des 3 états (OFF + mute, ON + filtré, persistance restart) + des 4 thèmes sur le rendu muted → à la prochaine ouverture de l'app par Matheo.
+
+## Fichiers touchés
+
+- créés : `src/lib/utils/fileType.ts`, `tests/unit/fileType.test.ts`
+- modifiés : `src/lib/components/Sidebar.svelte`, `src/lib/components/FileTree.svelte`, `src/lib/utils/path.ts`, `src/lib/stores/settings.svelte.ts`, `src/lib/tauri/types.ts`, `src/app.css`, `src-tauri/src/commands/files.rs`, `src-tauri/src/models.rs`, `tests/unit/path.test.ts`, `tests/unit/settings.test.svelte.ts`
+
+## État repo en fin de session
+
+- `main` à `ed6587e` (HEAD sidebar), puis `fdb9972` ajouté par un hook docs externe pendant la mise à jour des journaux (closure PAPER STEPS 1-8 — auto-commit de `PLAN-UI-PAPER.md` + `OBSERVER-NOTES.md` + `PAPER-TOKENS.md`). **6 commits d'avance sur `origin/main`** au final.
+- Modifs non-staged restantes : `JOURNAL.md` (cette entrée), `STATE.md` (refresh), `src-tauri/Cargo.lock` / `Cargo.toml` / `tauri.conf.json` (héritées du début de session — pas touchées par cette session).
+- Branche `feat/editor-polish` toujours en pause (inchangée).
+
+## Prochaine session
+
+- Ouvrir l'app, smoke test du toggle dans les 4 thèmes (vérifier que `--opacity-muted: 0.4` est confortable, ajuster si besoin entre 0.35–0.5).
+- Inspecter les 3 modifs non-staged restantes côté `src-tauri/` (Cargo.lock / Cargo.toml / tauri.conf.json) — héritées du début de session, à juger / commit / revert.
+- Reprendre PLAN-UI-PAPER STEP 9 (export PNG) si budget MCP frais, ou retourner sur `feat/editor-polish`.
