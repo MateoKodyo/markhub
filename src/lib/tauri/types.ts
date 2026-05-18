@@ -55,7 +55,7 @@ export type ThemeId =
 	| 'cocoa'
 	| 'forest'
 	| 'toxic-orange'
-	| 'grape-gatsby';
+	| 'markus';
 
 export interface ThemePreference {
 	mode: FollowMode;

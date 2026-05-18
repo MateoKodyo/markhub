@@ -16,7 +16,7 @@ export type ThemeId =
 	| 'cocoa'
 	| 'forest'
 	| 'toxic-orange'
-	| 'grape-gatsby';
+	| 'markus';
 
 export type ThemeFamily = 'light' | 'dark';
 
@@ -69,11 +69,11 @@ export const THEMES: readonly ThemeMeta[] = [
 		accentName: 'Orange'
 	},
 	{
-		id: 'grape-gatsby',
-		name: 'Grape Gatsby',
+		id: 'markus',
+		name: 'Markus',
 		family: 'dark',
-		description: 'Verdant abyss with a refined lavender accent.',
-		accentName: 'Lavender'
+		description: 'Landing-page palette: neutral near-black with a sage accent.',
+		accentName: 'Sage'
 	}
 ] as const;
 

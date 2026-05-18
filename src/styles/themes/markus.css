@@ -1,0 +1,70 @@
+/* Markus — landing-page-derived dark theme: neutral near-black + sage accent.
+ *
+ * Mood: minéral / studio designer. Canvas neutre quasi-noir (pas chaud comme
+ * Markhub Dark, pas vert comme Forest), avec un accent sage / eucalyptus
+ * désaturé porté entièrement par la couleur primary.
+ *
+ * Palette source: landing page Markus (Figma file HJoUa0vEBSev5Fljvpe9iv,
+ * variables `color/*` et `border/*`).
+ */
+
+:root[data-theme='markus'] {
+	/* Canvas — neutral dark scale, floor at #181A1D (sidebar = darkest) */
+	--color-bg-sidebar: #181a1d;
+	--color-bg: #1d1f22;
+	--color-bg-raised: #25282c;
+
+	/* Surfaces — sage at very low alpha for interactive states */
+	--color-surface-veil: rgba(130, 184, 154, 0.04);
+	--color-surface-active: rgba(130, 184, 154, 0.1);
+	--color-surface-hover: rgba(130, 184, 154, 0.06);
+	--color-surface-strong: rgba(130, 184, 154, 0);
+
+	/* Borders — neutral white alphas (landing tokens: #ffffff1f / 0f) */
+	--color-border-strong: rgba(255, 255, 255, 0.12);
+	--color-border: rgba(255, 255, 255, 0.08);
+	--color-border-subtle: rgba(255, 255, 255, 0.05);
+
+	/* Text — warm off-white headings, neutral grey body, cool fades */
+	--color-text-primary: #faf9f6;
+	--color-text-body: #e8e8ea;
+	--color-text-secondary: #9b9da1;
+	--color-text-muted: #868584;
+	--color-text-disabled: #5e6166;
+
+	/* Interactive — neutral pill, slightly above raised */
+	--color-button-bg: #2e3236;
+	--color-button-text: #faf9f6;
+	--color-button-bg-hover: #383c41;
+
+	/* Accent — sage / eucalyptus, désaturé */
+	--color-accent: #82b89a;
+	--color-accent-hover: #95c5a9;
+	--color-accent-text: #1a1b1e;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(130, 184, 154, 0.32);
+
+	/* Status — botanique calme, on-mood */
+	--color-status-ok: #a8d0bc;
+	--color-status-warn: #d4b87a;
+	--color-status-error: #c2756e;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(194, 117, 110, 0.12);
+	--color-danger-border: rgba(194, 117, 110, 0.3);
+
+	--color-backdrop: rgba(24, 26, 29, 0.55);
+
+	/* Shadows — deep neutral drops (no color cast) */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.5);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.3);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.32);
+
+	/* Ambient — soft sage glow top, near-invisible bottom-right wash */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(130, 184, 154, 0.06), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(130, 184, 154, 0.04), transparent 55%);
+}

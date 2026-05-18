@@ -10,14 +10,14 @@ import {
 
 describe('theming catalog', () => {
 	// ------ TC.1 — catalog growth tracking ------
-	it('exposes the 6 curated themes (4 originals + toxic-orange + grape-gatsby)', () => {
+	it('exposes the 6 curated themes (4 originals + toxic-orange + markus)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
 		expect(ids).toEqual([
 			'cocoa',
 			'forest',
-			'grape-gatsby',
 			'markhub-dark',
 			'markhub-light',
+			'markus',
 			'toxic-orange'
 		]);
 	});
@@ -61,8 +61,8 @@ describe('theming catalog', () => {
 		expect(light.map((t) => t.id).sort()).toEqual(['cocoa', 'markhub-light']);
 		expect(dark.map((t) => t.id).sort()).toEqual([
 			'forest',
-			'grape-gatsby',
 			'markhub-dark',
+			'markus',
 			'toxic-orange'
 		]);
 	});
@@ -74,7 +74,7 @@ describe('theming catalog', () => {
 		expect(isThemeId('cocoa')).toBe(true); // added in STEP 2
 		expect(isThemeId('forest')).toBe(true); // added in STEP 3
 		expect(isThemeId('toxic-orange')).toBe(true); // PLAN-THEMES-V2
-		expect(isThemeId('grape-gatsby')).toBe(true); // PLAN-THEMES-V2
+		expect(isThemeId('markus')).toBe(true); // PLAN-THEMES-V2
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);
 		expect(isThemeId('nonsense')).toBe(false);
