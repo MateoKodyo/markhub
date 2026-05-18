@@ -1,0 +1,70 @@
+/* Terracotta — Anthropic-inspired warm cream paper with terracotta accent.
+ *
+ * PLAN-LIGHT-THEMES §STEP 1. Background `#FAF9F5` and accent `#D97757`
+ * are Anthropic Claude's official cream and terracotta hex values. The
+ * mood is human / warm / inviting — sits next to Markhub Light (Sage)
+ * as a writing-focused alternative for users who want warmth instead
+ * of the calmer sage.
+ *
+ * Note: accent #D97757 hits 3.6:1 on bg — below AA for body text but
+ * fine for buttons / icons / focus rings / links (the only places it's
+ * used as foreground). Plan-validated.
+ */
+
+:root[data-theme='terracotta'],
+[data-theme='terracotta'] {
+	/* Canvas — Anthropic cream */
+	--color-bg-sidebar: #f0eee6;
+	--color-bg: #faf9f5;
+	--color-bg-raised: #f0eee6;
+
+	/* Surfaces — terracotta-tinted veils */
+	--color-surface-veil: rgba(217, 119, 87, 0.035);
+	--color-surface-active: rgba(217, 119, 87, 0.11);
+	--color-surface-hover: rgba(217, 119, 87, 0.07);
+	--color-surface-strong: rgba(217, 119, 87, 0);
+
+	/* Borders */
+	--color-border-strong: rgba(20, 20, 19, 0.12);
+	--color-border: rgba(20, 20, 19, 0.06);
+	--color-border-subtle: rgba(20, 20, 19, 0.04);
+
+	/* Text */
+	--color-text-primary: #141413;
+	--color-text-body: #45433f;
+	--color-text-secondary: #8b8778;
+	--color-text-muted: #a3a092;
+	--color-text-disabled: #bab6a9;
+
+	/* Buttons */
+	--color-button-bg: #e6e3da;
+	--color-button-text: #141413;
+	--color-button-bg-hover: #d9d5c9;
+
+	/* Accent — Anthropic terracotta */
+	--color-accent: #d97757;
+	--color-accent-hover: #c46544;
+	--color-accent-text: #ffffff;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(217, 119, 87, 0.2);
+
+	/* Status */
+	--color-status-ok: #6b8e4e;
+	--color-status-warn: #c68a2e;
+	--color-status-error: #b33a3a;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(179, 58, 58, 0.08);
+	--color-danger-border: rgba(179, 58, 58, 0.25);
+
+	--color-backdrop: rgba(0, 0, 0, 0.3);
+
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.08);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+
+	--gradient-ambient: none;
+}

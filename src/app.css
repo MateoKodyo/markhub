@@ -22,12 +22,17 @@
 
 @import './styles/themes/markhub-dark.css';
 @import './styles/themes/markhub-light.css';
-@import './styles/themes/cocoa.css';
 @import './styles/themes/forest.css';
 @import './styles/themes/kodyo.css';
 @import './styles/themes/markus.css';
 @import './styles/themes/terminal.css';
 @import './styles/themes/editor.css';
+/* PLAN-LIGHT-THEMES §STEP 1 — sage signature + 5 sibling light themes. */
+@import './styles/themes/terracotta.css';
+@import './styles/themes/rose.css';
+@import './styles/themes/amber.css';
+@import './styles/themes/ink.css';
+@import './styles/themes/plum.css';
 
 :root {
 	/* ============================================================

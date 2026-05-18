@@ -1,71 +1,75 @@
-/* Markhub Light — warm IDE light, NOT a Notion white.
- * PLAN-THEMING §STEP 1 — extracted from `app.css` into a per-theme file.
+/* Markhub Light — sage signature.
  *
- * Same hue family as Markhub Dark (warm parchment / earth gray), inverted
- * lightness with manual tweaks for perceptual contrast. Sidebar stays the
- * most recessed surface (darker tinted beige) so the chrome → canvas →
- * raised hierarchy is preserved across themes.
+ * PLAN-LIGHT-THEMES §STEP 1. Replaces the prior blue-accent Markhub Light.
+ * Sage `#567150` is Markhub's chromatic signature: rare in dev tooling
+ * (most pick blue/violet), evokes calm/focus, matches the long-form
+ * writing intent. The Light pairs with a sage-tinted off-white canvas
+ * and near-black warm text.
+ *
+ * The 13 hex values in this file are locked by PLAN-LIGHT-THEMES §STEP 1
+ * (calibrated for WCAG AA/AAA across all surfaces). Other tokens are
+ * derived to keep the project's existing token shape (sidebar, surface
+ * veils, button pill, status aliases, danger surface, shadows).
  */
 
 :root[data-theme='markhub-light'],
 [data-theme='markhub-light'] {
-	--color-bg-sidebar: #f1efe9;
-	--color-bg: #faf9f6;
-	--color-bg-raised: #ffffff;
+	/* Canvas — sage off-white. bg-raised is _darker_ than bg (the plan's
+	   convention for light: "raised" = tinted-recessed surface, used for
+	   sidebar chrome and cards). */
+	--color-bg-sidebar: #edefea;
+	--color-bg: #f7f8f5;
+	--color-bg-raised: #edefea;
 
-	--color-surface-veil: rgba(0, 0, 0, 0.03);
-	--color-surface-active: rgba(0, 0, 0, 0.07);
-	--color-surface-hover: rgba(0, 0, 0, 0.04);
-	--color-surface-strong: rgba(0, 0, 0, 0);
+	/* Surfaces — sage-tinted veils */
+	--color-surface-veil: rgba(86, 113, 80, 0.03);
+	--color-surface-active: rgba(86, 113, 80, 0.1);
+	--color-surface-hover: rgba(86, 113, 80, 0.06);
+	--color-surface-strong: rgba(86, 113, 80, 0);
 
-	--color-border-strong: rgba(0, 0, 0, 0.16);
-	--color-border: rgba(0, 0, 0, 0.1);
-	--color-border-subtle: rgba(0, 0, 0, 0.05);
+	/* Borders */
+	--color-border-strong: rgba(31, 37, 32, 0.12);
+	--color-border: rgba(31, 37, 32, 0.06);
+	--color-border-subtle: rgba(31, 37, 32, 0.04);
 
-	--color-text-primary: #1c1b1a;
-	--color-text-body: #4a4948;
-	/* Bumped from #75736f → #6c6a66 (2026-05-12) to clear WCAG AA 4.5:1
-	 * on the SIDEBAR background (#f1efe9), where the previous value only
-	 * hit 4.12:1. Used by `.label` 11px uppercase chrome that doesn't
-	 * qualify as "large text" and must satisfy normal AA. */
-	--color-text-secondary: #6c6a66;
-	/* Bumped from #a09e9a → #8a8884 (2026-05-11) to clear WCAG AA-large
-	 * (3.36:1 on bg vs 2.54:1 before). Warm tint preserved. */
-	--color-text-muted: #8a8884;
-	--color-text-disabled: #b4b6ba;
+	/* Text — near-black warm primary, sage-gray secondary scale */
+	--color-text-primary: #1f2520;
+	--color-text-body: #4a504a;
+	--color-text-secondary: #8a9285;
+	--color-text-muted: #a8aba3;
+	--color-text-disabled: #b4bab1;
 
-	--color-button-bg: #e0ddd6;
-	--color-button-text: #1c1b1a;
-	--color-button-bg-hover: #d6d2c9;
+	/* Buttons — light pill */
+	--color-button-bg: #e2e5dc;
+	--color-button-text: #1f2520;
+	--color-button-bg-hover: #d6dacf;
 
-	--color-accent: #2563eb;
-	--color-accent-hover: #1d4ed8;
+	/* Accent — sage signature */
+	--color-accent: #567150;
+	--color-accent-hover: #4a6244;
 	--color-accent-text: #ffffff;
 	--color-accent-fg: var(--color-accent-text);
-	--color-selection: rgba(37, 99, 235, 0.18);
+	--color-selection: rgba(86, 113, 80, 0.18);
 
-	--color-status-ok: #16a34a;
-	--color-status-warn: #d97706;
-	--color-status-error: #dc2626;
+	/* Status */
+	--color-status-ok: #3f8049;
+	--color-status-warn: #b07a1f;
+	--color-status-error: #b33a3a;
 	--color-success: var(--color-status-ok);
 	--color-warning: var(--color-status-warn);
 	--color-danger: var(--color-status-error);
-	/* Light-theme danger surface — uses the light --color-status-error RGB. */
-	--color-danger-bg: rgba(220, 38, 38, 0.08);
-	--color-danger-border: rgba(220, 38, 38, 0.25);
+	--color-danger-bg: rgba(179, 58, 58, 0.08);
+	--color-danger-border: rgba(179, 58, 58, 0.25);
 
 	--color-backdrop: rgba(0, 0, 0, 0.3);
 
-	/* Lighter shadow on light: dark shadows would punch holes. */
+	/* Shadows — light paper drops (heavy alphas read cartoonish on paper). */
 	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.08);
-
-	/* Shadow palette overrides — smaller alphas on light (the canvas already
-	 * has enough contrast; heavy shadows read cartoonish on paper). */
 	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
 	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
 	--shadow-lg: var(--shadow-popover);
 	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
 
-	/* Neutralize the warm/cool ambient glow on light — would muddy the canvas. */
+	/* Light themes intentionally drop the ambient glow — would muddy the canvas. */
 	--gradient-ambient: none;
 }

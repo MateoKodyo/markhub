@@ -1,0 +1,66 @@
+/* Plum — pale lavender greys + sober violet accent.
+ *
+ * PLAN-LIGHT-THEMES §STEP 1. Background carries a 1-point hue shift
+ * toward violet (`#FBFAFC` vs neutral `#FBFBFB`) so the whole UI breathes
+ * plum without anyone consciously noticing. Sophisticated / rare mood —
+ * the "designer's light theme" that pairs well with all-day reading
+ * without screaming for attention.
+ */
+
+:root[data-theme='plum'],
+[data-theme='plum'] {
+	/* Canvas — pale lavender */
+	--color-bg-sidebar: #f0eef4;
+	--color-bg: #fbfafc;
+	--color-bg-raised: #f0eef4;
+
+	/* Surfaces — violet-tinted veils */
+	--color-surface-veil: rgba(118, 82, 144, 0.035);
+	--color-surface-active: rgba(118, 82, 144, 0.11);
+	--color-surface-hover: rgba(118, 82, 144, 0.07);
+	--color-surface-strong: rgba(118, 82, 144, 0);
+
+	/* Borders */
+	--color-border-strong: rgba(31, 27, 38, 0.14);
+	--color-border: rgba(31, 27, 38, 0.06);
+	--color-border-subtle: rgba(31, 27, 38, 0.04);
+
+	/* Text — near-black with a subtle violet bias */
+	--color-text-primary: #1f1b26;
+	--color-text-body: #4a4456;
+	--color-text-secondary: #8a8597;
+	--color-text-muted: #a8a3b9;
+	--color-text-disabled: #bab6c5;
+
+	/* Buttons */
+	--color-button-bg: #e3e0ea;
+	--color-button-text: #1f1b26;
+	--color-button-bg-hover: #d6d2de;
+
+	/* Accent — sober violet */
+	--color-accent: #765290;
+	--color-accent-hover: #654178;
+	--color-accent-text: #fbfafc;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(118, 82, 144, 0.18);
+
+	/* Status — close to the violet hue family so signals don't clash */
+	--color-status-ok: #4e7a6b;
+	--color-status-warn: #b07a1f;
+	--color-status-error: #a04060;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(160, 64, 96, 0.08);
+	--color-danger-border: rgba(160, 64, 96, 0.25);
+
+	--color-backdrop: rgba(31, 27, 38, 0.3);
+
+	--shadow-popover: 0 4px 16px rgba(31, 27, 38, 0.1);
+	--shadow-sm: 0 1px 2px rgba(31, 27, 38, 0.05);
+	--shadow-md: 0 1px 2px rgba(31, 27, 38, 0.05), 0 4px 12px rgba(31, 27, 38, 0.08);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(31, 27, 38, 0.14), 0 2px 4px rgba(31, 27, 38, 0.06);
+
+	--gradient-ambient: none;
+}

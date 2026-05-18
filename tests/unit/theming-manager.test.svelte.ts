@@ -115,8 +115,8 @@ describe('theming manager — applyTheme', () => {
 	// ------ TM.A2 — applyTheme caches the id to localStorage (anti-flash) ------
 	it('caches the applied theme to localStorage for the pre-hydration script', () => {
 		localStorage.removeItem('markhub.theme.cache');
-		applyTheme('cocoa');
-		expect(localStorage.getItem('markhub.theme.cache')).toBe('cocoa');
+		applyTheme('terracotta');
+		expect(localStorage.getItem('markhub.theme.cache')).toBe('terracotta');
 		applyTheme('forest');
 		expect(localStorage.getItem('markhub.theme.cache')).toBe('forest');
 	});

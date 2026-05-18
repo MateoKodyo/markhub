@@ -232,7 +232,7 @@
 	}
 
 	.settings-status.is-error {
-		background: color-mix(in oklab, #ff4d4f 14%, transparent);
+		background: color-mix(in oklab, var(--color-status-error) 14%, transparent);
 		color: var(--color-text-primary);
 	}
 </style>

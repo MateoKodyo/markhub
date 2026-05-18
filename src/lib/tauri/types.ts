@@ -52,12 +52,16 @@ export type FollowMode = 'system' | 'always-light' | 'always-dark';
 export type ThemeId =
 	| 'markhub-light'
 	| 'markhub-dark'
-	| 'cocoa'
 	| 'forest'
 	| 'kodyo'
 	| 'markus'
 	| 'terminal'
-	| 'editor';
+	| 'editor'
+	| 'terracotta'
+	| 'rose'
+	| 'amber'
+	| 'ink'
+	| 'plum';
 
 export interface ThemePreference {
 	mode: FollowMode;

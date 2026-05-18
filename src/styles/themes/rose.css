@@ -1,0 +1,65 @@
+/* Rosé — Rosé Pine Dawn lineage. Dusty pink paper, plum text, muted rose.
+ *
+ * PLAN-LIGHT-THEMES §STEP 1. All hex values from the official Rosé Pine
+ * Dawn palette (verified). The signature move: primary text is plum
+ * `#575279`, NOT black — this is what makes the whole UI breathe rose.
+ * Soft-literary mood.
+ */
+
+:root[data-theme='rose'],
+[data-theme='rose'] {
+	/* Canvas — dusty pink paper */
+	--color-bg-sidebar: #f2e9e1;
+	--color-bg: #faf4ed;
+	--color-bg-raised: #f2e9e1;
+
+	/* Surfaces — rose-tinted veils */
+	--color-surface-veil: rgba(180, 99, 122, 0.04);
+	--color-surface-active: rgba(180, 99, 122, 0.12);
+	--color-surface-hover: rgba(180, 99, 122, 0.08);
+	--color-surface-strong: rgba(180, 99, 122, 0);
+
+	/* Borders — plum at low alpha */
+	--color-border-strong: rgba(87, 82, 121, 0.16);
+	--color-border: rgba(87, 82, 121, 0.08);
+	--color-border-subtle: rgba(87, 82, 121, 0.05);
+
+	/* Text — plum primary (theme identity), warm-gray scale */
+	--color-text-primary: #575279;
+	--color-text-body: #6e6991;
+	--color-text-secondary: #9893a5;
+	--color-text-muted: #b0acbb;
+	--color-text-disabled: #c5c1d1;
+
+	/* Buttons */
+	--color-button-bg: #ebe0d7;
+	--color-button-text: #575279;
+	--color-button-bg-hover: #e0d3c8;
+
+	/* Accent — muted rose */
+	--color-accent: #b4637a;
+	--color-accent-hover: #9d5269;
+	--color-accent-text: #faf4ed;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(180, 99, 122, 0.2);
+
+	/* Status — Rosé Pine Dawn palette */
+	--color-status-ok: #56949f;
+	--color-status-warn: #ea9d34;
+	--color-status-error: #b4637a;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(180, 99, 122, 0.1);
+	--color-danger-border: rgba(180, 99, 122, 0.28);
+
+	--color-backdrop: rgba(87, 82, 121, 0.3);
+
+	--shadow-popover: 0 4px 16px rgba(87, 82, 121, 0.1);
+	--shadow-sm: 0 1px 2px rgba(87, 82, 121, 0.05);
+	--shadow-md: 0 1px 2px rgba(87, 82, 121, 0.05), 0 4px 12px rgba(87, 82, 121, 0.08);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(87, 82, 121, 0.14), 0 2px 4px rgba(87, 82, 121, 0.06);
+
+	--gradient-ambient: none;
+}

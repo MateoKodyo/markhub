@@ -1,0 +1,68 @@
+/* Amber — Solarized Light cream with amber accent.
+ *
+ * PLAN-LIGHT-THEMES §STEP 1. Background `#FDF6E3` and surface `#EEE8D5`
+ * are Solarized Light's official `base3` and `base2` (Ethan Schoonover).
+ * Primary text upgraded to `base02` `#073642` so we clear AAA (Solarized's
+ * recommended `base00` only hits borderline AA).
+ *
+ * Mood: warm/literary, long-form writing — sits next to Markhub Light
+ * (Sage) and Terracotta as the third writing-focused light theme.
+ */
+
+:root[data-theme='amber'],
+[data-theme='amber'] {
+	/* Canvas — Solarized Light base3 / base2 */
+	--color-bg-sidebar: #eee8d5;
+	--color-bg: #fdf6e3;
+	--color-bg-raised: #eee8d5;
+
+	/* Surfaces — amber-tinted veils */
+	--color-surface-veil: rgba(181, 137, 0, 0.04);
+	--color-surface-active: rgba(181, 137, 0, 0.12);
+	--color-surface-hover: rgba(181, 137, 0, 0.08);
+	--color-surface-strong: rgba(181, 137, 0, 0);
+
+	/* Borders — Solarized base02 at low alpha */
+	--color-border-strong: rgba(7, 54, 66, 0.16);
+	--color-border: rgba(7, 54, 66, 0.08);
+	--color-border-subtle: rgba(7, 54, 66, 0.05);
+
+	/* Text — Solarized scale, primary lifted to base02 for AAA */
+	--color-text-primary: #073642;
+	--color-text-body: #586e75;
+	--color-text-secondary: #93a1a1;
+	--color-text-muted: #afbcbc;
+	--color-text-disabled: #c5cece;
+
+	/* Buttons */
+	--color-button-bg: #e2dcc8;
+	--color-button-text: #073642;
+	--color-button-bg-hover: #d5cfbb;
+
+	/* Accent — Solarized amber */
+	--color-accent: #b58900;
+	--color-accent-hover: #9a7400;
+	--color-accent-text: #fdf6e3;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(181, 137, 0, 0.2);
+
+	/* Status — Solarized palette */
+	--color-status-ok: #859900;
+	--color-status-warn: #cb4b16;
+	--color-status-error: #dc322f;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(220, 50, 47, 0.1);
+	--color-danger-border: rgba(220, 50, 47, 0.28);
+
+	--color-backdrop: rgba(7, 54, 66, 0.3);
+
+	--shadow-popover: 0 4px 16px rgba(7, 54, 66, 0.1);
+	--shadow-sm: 0 1px 2px rgba(7, 54, 66, 0.05);
+	--shadow-md: 0 1px 2px rgba(7, 54, 66, 0.05), 0 4px 12px rgba(7, 54, 66, 0.08);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(7, 54, 66, 0.14), 0 2px 4px rgba(7, 54, 66, 0.06);
+
+	--gradient-ambient: none;
+}

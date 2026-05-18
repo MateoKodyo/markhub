@@ -12,15 +12,15 @@ import { expect, type Page } from '@playwright/test';
 export async function gotoFixture(
 	page: Page,
 	fixture: string,
-	theme?: 'light' | 'dark' | 'markhub-light' | 'markhub-dark' | 'cocoa' | 'forest'
+	theme?: 'light' | 'dark' | 'markhub-light' | 'markhub-dark' | 'terracotta' | 'forest'
 ): Promise<void> {
 	// Resolve to a catalog id. The legacy `light`/`dark` shortcuts map to the
 	// Markhub defaults so older specs keep working without edits.
 	const themeId =
 		theme === 'light' || theme === 'markhub-light'
 			? 'markhub-light'
-			: theme === 'cocoa'
-				? 'cocoa'
+			: theme === 'terracotta'
+				? 'terracotta'
 				: theme === 'forest'
 					? 'forest'
 					: 'markhub-dark';

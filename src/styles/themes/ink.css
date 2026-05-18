@@ -1,0 +1,69 @@
+/* Ink — bone white + deep editorial red. Newspaper / high-contrast prose.
+ *
+ * PLAN-LIGHT-THEMES §STEP 1. Maximum contrast for long-form reading
+ * (15.6:1 text-primary on bg, AAA). The accent is a deep editorial red
+ * `#A82831` — used as signal (links, focus rings, active states), never
+ * for body copy. Success and danger are intentionally close to the warm
+ * palette so signal colors don't clash with the editorial mood.
+ *
+ * Note the surface tinting: ink uses neutral black-alpha veils (not
+ * accent-tinted) — bone paper looks cleanest under neutral hover/active.
+ */
+
+:root[data-theme='ink'],
+[data-theme='ink'] {
+	/* Canvas — bone white */
+	--color-bg-sidebar: #efeeea;
+	--color-bg: #f8f6f1;
+	--color-bg-raised: #efeeea;
+
+	/* Surfaces — neutral black veils (bone paper reads cleanest this way) */
+	--color-surface-veil: rgba(26, 25, 22, 0.02);
+	--color-surface-active: rgba(26, 25, 22, 0.07);
+	--color-surface-hover: rgba(26, 25, 22, 0.04);
+	--color-surface-strong: rgba(26, 25, 22, 0);
+
+	/* Borders */
+	--color-border-strong: rgba(26, 25, 22, 0.16);
+	--color-border: rgba(26, 25, 22, 0.08);
+	--color-border-subtle: rgba(26, 25, 22, 0.05);
+
+	/* Text — near-black, maximum contrast */
+	--color-text-primary: #1a1916;
+	--color-text-body: #44423d;
+	--color-text-secondary: #807e76;
+	--color-text-muted: #9c9a92;
+	--color-text-disabled: #b5b3ac;
+
+	/* Buttons */
+	--color-button-bg: #e2e0db;
+	--color-button-text: #1a1916;
+	--color-button-bg-hover: #d5d3ce;
+
+	/* Accent — deep editorial red */
+	--color-accent: #a82831;
+	--color-accent-hover: #921f27;
+	--color-accent-text: #f8f6f1;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(168, 40, 49, 0.18);
+
+	/* Status — close to warm palette to harmonize with the editorial mood */
+	--color-status-ok: #4e7a3f;
+	--color-status-warn: #b07a1f;
+	--color-status-error: #a82831;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(168, 40, 49, 0.08);
+	--color-danger-border: rgba(168, 40, 49, 0.25);
+
+	--color-backdrop: rgba(0, 0, 0, 0.3);
+
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.08);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+
+	--gradient-ambient: none;
+}

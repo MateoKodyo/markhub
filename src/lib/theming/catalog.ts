@@ -13,12 +13,16 @@
 export type ThemeId =
 	| 'markhub-light'
 	| 'markhub-dark'
-	| 'cocoa'
 	| 'forest'
 	| 'kodyo'
 	| 'markus'
 	| 'terminal'
-	| 'editor';
+	| 'editor'
+	| 'terracotta'
+	| 'rose'
+	| 'amber'
+	| 'ink'
+	| 'plum';
 
 export type ThemeFamily = 'light' | 'dark';
 
@@ -39,8 +43,8 @@ export const THEMES: readonly ThemeMeta[] = [
 		id: 'markhub-light',
 		name: 'Markhub Light',
 		family: 'light',
-		description: 'Warm parchment with a calm indigo accent.',
-		accentName: 'Indigo'
+		description: 'Sage signature — Markhub\'s canonical day theme.',
+		accentName: 'Sage'
 	},
 	{
 		id: 'markhub-dark',
@@ -48,13 +52,6 @@ export const THEMES: readonly ThemeMeta[] = [
 		family: 'dark',
 		description: 'Warm near-black canvas, IDE-friendly density.',
 		accentName: 'Blue'
-	},
-	{
-		id: 'cocoa',
-		name: 'Cocoa',
-		family: 'light',
-		description: 'Warm ivory parchment with a soft terracotta accent.',
-		accentName: 'Terracotta'
 	},
 	{
 		id: 'forest',
@@ -90,6 +87,41 @@ export const THEMES: readonly ThemeMeta[] = [
 		family: 'dark',
 		description: 'Cursor-inspired: flat near-pure-black with a cool blue accent.',
 		accentName: 'Cursor Blue'
+	},
+	{
+		id: 'terracotta',
+		name: 'Terracotta',
+		family: 'light',
+		description: 'Anthropic-inspired cream with a warm terracotta accent.',
+		accentName: 'Terracotta'
+	},
+	{
+		id: 'rose',
+		name: 'Rosé',
+		family: 'light',
+		description: 'Rosé Pine Dawn lineage: dusty pink paper, plum text, muted rose.',
+		accentName: 'Rose'
+	},
+	{
+		id: 'amber',
+		name: 'Amber',
+		family: 'light',
+		description: 'Solarized Light cream with the signature amber accent.',
+		accentName: 'Amber'
+	},
+	{
+		id: 'ink',
+		name: 'Ink',
+		family: 'light',
+		description: 'Bone white with a deep editorial red — newspaper feel.',
+		accentName: 'Editorial Red'
+	},
+	{
+		id: 'plum',
+		name: 'Plum',
+		family: 'light',
+		description: 'Pale lavender greys with a sober violet accent.',
+		accentName: 'Violet'
 	}
 ] as const;
 

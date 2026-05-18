@@ -86,7 +86,7 @@ describe('SettingsAppearance', () => {
 		// With osPrefersDark=false and mode=system the active family is light,
 		// so only the light cards render.
 		expect(screen.getByTestId('theme-card-markhub-light')).toBeInTheDocument();
-		expect(screen.getByTestId('theme-card-cocoa')).toBeInTheDocument();
+		expect(screen.getByTestId('theme-card-terracotta')).toBeInTheDocument();
 		expect(screen.queryByTestId('theme-card-markhub-dark')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('theme-card-forest')).not.toBeInTheDocument();
 
@@ -113,7 +113,7 @@ describe('SettingsAppearance', () => {
 		expect(screen.getByTestId('theme-card-markhub-light').getAttribute('aria-pressed')).toBe(
 			'true'
 		);
-		expect(screen.getByTestId('theme-card-cocoa').getAttribute('aria-pressed')).toBe('false');
+		expect(screen.getByTestId('theme-card-terracotta').getAttribute('aria-pressed')).toBe('false');
 		expect(screen.getByTestId('appearance-font-geist').getAttribute('aria-checked')).toBe(
 			'true'
 		);
@@ -134,10 +134,10 @@ describe('SettingsAppearance', () => {
 	});
 
 	// ------ S4.3b — clicking a card writes to the matching family slot ------
-	it('clicking the Cocoa card writes lightTheme=cocoa without touching the dark slot', async () => {
+	it('clicking the Terracotta card writes lightTheme=terracotta without touching the dark slot', async () => {
 		render(SettingsAppearance);
-		await fireEvent.click(screen.getByTestId('theme-card-cocoa'));
-		expect(settingsStore.current.appearance.lightTheme).toBe('cocoa');
+		await fireEvent.click(screen.getByTestId('theme-card-terracotta'));
+		expect(settingsStore.current.appearance.lightTheme).toBe('terracotta');
 		expect(settingsStore.current.appearance.darkTheme).toBe('markhub-dark');
 		expect(settingsStore.current.appearance.themeMode).toBe('system');
 	});

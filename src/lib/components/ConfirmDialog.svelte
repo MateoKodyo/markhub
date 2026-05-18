@@ -119,6 +119,6 @@
 	}
 
 	.is-danger:hover:not(:disabled) {
-		background: #f55a5a;
+		background: color-mix(in oklab, var(--color-status-error) 88%, white);
 	}
 </style>

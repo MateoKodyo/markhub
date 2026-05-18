@@ -94,16 +94,16 @@
 	}
 
 	.toast-success .toast-icon {
-		color: #4ade80;
+		color: var(--color-status-ok);
 	}
 	.toast-info .toast-icon {
 		color: var(--color-accent);
 	}
 	.toast-warning .toast-icon {
-		color: #f59e0b;
+		color: var(--color-status-warn);
 	}
 	.toast-error .toast-icon {
-		color: #f87171;
+		color: var(--color-status-error);
 	}
 
 	.toast-body {

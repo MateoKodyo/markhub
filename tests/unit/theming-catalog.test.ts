@@ -10,17 +10,21 @@ import {
 
 describe('theming catalog', () => {
 	// ------ TC.1 — catalog growth tracking ------
-	it('exposes the 8 curated themes (originals + terminal + editor)', () => {
+	it('exposes the 12 curated themes (6 light from PLAN-LIGHT-THEMES + 6 dark)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
 		expect(ids).toEqual([
-			'cocoa',
+			'amber',
 			'editor',
 			'forest',
+			'ink',
 			'kodyo',
 			'markhub-dark',
 			'markhub-light',
 			'markus',
-			'terminal'
+			'plum',
+			'rose',
+			'terminal',
+			'terracotta'
 		]);
 	});
 
@@ -59,9 +63,17 @@ describe('theming catalog', () => {
 		const dark = getThemesByFamily('dark');
 		expect(light.every((t) => t.family === 'light')).toBe(true);
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
-		// Light family: 2 themes. Dark family: 6 themes (markhub-dark, forest,
+		// Light family: 6 themes (PLAN-LIGHT-THEMES STEP 1 — markhub-light
+		// sage + 5 siblings). Dark family: 6 themes (markhub-dark, forest,
 		// kodyo, markus, terminal, editor).
-		expect(light.map((t) => t.id).sort()).toEqual(['cocoa', 'markhub-light']);
+		expect(light.map((t) => t.id).sort()).toEqual([
+			'amber',
+			'ink',
+			'markhub-light',
+			'plum',
+			'rose',
+			'terracotta'
+		]);
 		expect(dark.map((t) => t.id).sort()).toEqual([
 			'editor',
 			'forest',
@@ -76,12 +88,17 @@ describe('theming catalog', () => {
 	it('isThemeId returns true for catalog ids, false otherwise', () => {
 		expect(isThemeId('markhub-light')).toBe(true);
 		expect(isThemeId('markhub-dark')).toBe(true);
-		expect(isThemeId('cocoa')).toBe(true); // added in STEP 2
-		expect(isThemeId('forest')).toBe(true); // added in STEP 3
-		expect(isThemeId('kodyo')).toBe(true); // PLAN-THEMES-V2
-		expect(isThemeId('markus')).toBe(true); // PLAN-THEMES-V2
-		expect(isThemeId('terminal')).toBe(true); // Warp-inspired
-		expect(isThemeId('editor')).toBe(true); // Cursor-inspired
+		expect(isThemeId('forest')).toBe(true);
+		expect(isThemeId('kodyo')).toBe(true);
+		expect(isThemeId('markus')).toBe(true);
+		expect(isThemeId('terminal')).toBe(true);
+		expect(isThemeId('editor')).toBe(true);
+		expect(isThemeId('terracotta')).toBe(true); // PLAN-LIGHT-THEMES STEP 1
+		expect(isThemeId('rose')).toBe(true); // PLAN-LIGHT-THEMES STEP 1
+		expect(isThemeId('amber')).toBe(true); // PLAN-LIGHT-THEMES STEP 1
+		expect(isThemeId('ink')).toBe(true); // PLAN-LIGHT-THEMES STEP 1
+		expect(isThemeId('plum')).toBe(true); // PLAN-LIGHT-THEMES STEP 1
+		expect(isThemeId('cocoa')).toBe(false); // dropped in PLAN-LIGHT-THEMES STEP 1
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);
 		expect(isThemeId('nonsense')).toBe(false);

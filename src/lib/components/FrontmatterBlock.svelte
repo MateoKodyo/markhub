@@ -896,8 +896,8 @@
 	/* ---------- Error state ---------- */
 
 	.frontmatter--error {
-		background: color-mix(in oklab, #f87171 14%, transparent);
-		border-color: color-mix(in oklab, #f87171 36%, transparent);
+		background: color-mix(in oklab, var(--color-status-error) 14%, transparent);
+		border-color: color-mix(in oklab, var(--color-status-error) 36%, transparent);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
