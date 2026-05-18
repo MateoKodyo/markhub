@@ -1,0 +1,339 @@
+<script lang="ts">
+	/**
+	 * FloatingBar — Figma-style centered pill that sticks to the bottom of
+	 * the editor area while a document is open. Bundles the most common
+	 * doc-scoped actions (search, export, copy, view mode, outline) into
+	 * one always-visible chrome surface.
+	 *
+	 * Mounting: lives inside `<div class="content-body">` in +page.svelte,
+	 * positioned absolutely so it floats over the editor regardless of
+	 * scroll. The parent controls visibility by mounting it only when a
+	 * file is active.
+	 *
+	 * Design source: figma.com/design/HJoUa0vEBSev5Fljvpe9iv (node 245:275).
+	 * Tokens follow the active theme — never hardcoded color literals.
+	 */
+	import {
+		Code2,
+		Copy,
+		Download,
+		Eye,
+		List,
+		Search,
+		SquareSplitHorizontal
+	} from 'lucide-svelte';
+	import { findStore } from '$lib/stores/find.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
+	import type { EditorMode } from './Editor.svelte';
+
+	let {
+		mode,
+		onSetMode,
+		onExport,
+		onCopy
+	}: {
+		mode: EditorMode;
+		onSetMode: (next: EditorMode) => void;
+		onExport: () => void;
+		onCopy: () => void;
+	} = $props();
+
+	function openFind(): void {
+		findStore.open();
+	}
+
+	// Active segment position for the sliding indicator (0/1/2 across
+	// preview / split / source). Split is never an active mode in code
+	// today, but the indicator can still rest there if we ever wire it.
+	const segIndex = $derived(
+		mode === 'preview' ? 0 : mode === 'source' ? 2 : 1
+	);
+</script>
+
+<div class="floating-bar" data-testid="floating-bar">
+	<!-- Search input — click to open the in-doc find bar (Cmd+F). The
+	     placeholder is the only affordance; the actual query lives in the
+	     find bar that opens. -->
+	<button
+		type="button"
+		class="filter-row"
+		onclick={openFind}
+		data-testid="floating-bar-search"
+		aria-label="Rechercher dans le document"
+		title="Rechercher dans le document (⌘F)"
+	>
+		<Search size={12} aria-hidden="true" focusable="false" />
+		<span class="filter-placeholder">Search in doc</span>
+	</button>
+
+	<!-- Export current doc as markdown. Duplicates the StatusBar action —
+	     same handler, two surfaces. -->
+	<button
+		type="button"
+		class="single-btn"
+		onclick={onExport}
+		data-testid="floating-bar-export"
+		aria-label="Exporter le document en Markdown"
+		title="Exporter en Markdown"
+	>
+		<Download size={12} aria-hidden="true" focusable="false" />
+	</button>
+
+	<!-- Copy doc body to clipboard. -->
+	<button
+		type="button"
+		class="single-btn"
+		onclick={onCopy}
+		data-testid="floating-bar-copy"
+		aria-label="Copier le contenu du document"
+		title="Copier le document"
+	>
+		<Copy size={12} aria-hidden="true" focusable="false" />
+	</button>
+
+	<!-- View mode picker — 3 segments. Split is shown but disabled (the
+	     side-by-side mode isn't implemented yet, surfaced visually so the
+	     final layout is anticipated). The active background is a single
+	     absolute-positioned `.seg-indicator` that slides between segments
+	     on mode change (Apple-style segmented control), driven by the
+	     `--seg-index` custom property. -->
+	<div
+		class="mode-picker"
+		role="radiogroup"
+		aria-label="Mode d'affichage du document"
+		style="--seg-index: {segIndex}"
+	>
+		<span class="seg-indicator" aria-hidden="true"></span>
+		<button
+			type="button"
+			class="seg"
+			class:active={mode === 'preview'}
+			role="radio"
+			aria-checked={mode === 'preview'}
+			onclick={() => onSetMode('preview')}
+			data-testid="floating-bar-mode-preview"
+			aria-label="Mode rendu"
+			title="Mode rendu"
+		>
+			<Eye size={14} aria-hidden="true" focusable="false" />
+		</button>
+		<button
+			type="button"
+			class="seg"
+			role="radio"
+			aria-checked="false"
+			aria-disabled="true"
+			disabled
+			data-testid="floating-bar-mode-split"
+			aria-label="Mode split (à venir)"
+			title="Split view — à venir"
+		>
+			<SquareSplitHorizontal size={14} aria-hidden="true" focusable="false" />
+		</button>
+		<button
+			type="button"
+			class="seg"
+			class:active={mode === 'source'}
+			role="radio"
+			aria-checked={mode === 'source'}
+			onclick={() => onSetMode('source')}
+			data-testid="floating-bar-mode-source"
+			aria-label="Mode source markdown"
+			title="Mode source Markdown"
+		>
+			<Code2 size={14} aria-hidden="true" focusable="false" />
+		</button>
+	</div>
+
+	<!-- Outline panel toggle. -->
+	<button
+		type="button"
+		class="single-btn"
+		class:active={uiStateStore.outlineOpen}
+		onclick={() => uiStateStore.toggleOutline()}
+		data-testid="floating-bar-outline"
+		aria-label="Afficher le plan du document"
+		aria-pressed={uiStateStore.outlineOpen}
+		title="Sommaire (⌘\)"
+	>
+		<List size={12} aria-hidden="true" focusable="false" />
+	</button>
+</div>
+
+<style>
+	/* Container — sticky bottom-centered pill. Positioned absolutely so it
+	   floats over the editor canvas without participating in scroll. The
+	   parent `.content-body` provides the `position: relative` context. */
+	.floating-bar {
+		position: absolute;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 10;
+
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		height: 42px;
+		padding: 6px 8px;
+
+		background: var(--color-bg-raised);
+		border: 1px solid var(--color-border);
+		border-radius: 11px;
+		box-shadow: var(--shadow-popover);
+
+		font-family: var(--font-ui);
+	}
+
+	/* Search input — looks like an input, behaves like a button (opens
+	   the find bar). 180×24 per Figma. */
+	.filter-row {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		width: 180px;
+		height: 24px;
+		padding: 6px 12px;
+
+		background: var(--color-surface-veil);
+		border: 1px solid var(--color-border-subtle);
+		border-radius: 6px;
+
+		color: var(--color-text-secondary);
+		font-family: inherit;
+		font-size: 13px;
+		text-align: left;
+		cursor: text;
+		transition:
+			background var(--duration-base) var(--easing-standard),
+			border-color var(--duration-base) var(--easing-standard);
+	}
+
+	.filter-row:hover {
+		background: var(--color-surface-hover);
+		border-color: var(--color-border);
+	}
+
+	.filter-row:focus-visible {
+		outline: none;
+		border-color: var(--color-accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
+	}
+
+	.filter-placeholder {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Single icon button — download / copy / list. 30×24 outer, 20px inner
+	   visual via the inner gradient. Active state for the outline list
+	   uses the same accent-tinted pill as segment-active. */
+	.single-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 24px;
+		padding: 1px;
+
+		background: var(--color-surface-veil);
+		border: none;
+		border-radius: 4px;
+
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition:
+			background var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
+	}
+
+	.single-btn:hover {
+		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	.single-btn:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
+	}
+
+	.single-btn.active {
+		background: var(--color-button-bg);
+		color: var(--color-text-primary);
+	}
+
+	/* Mode picker — 3 segments laid out in 90×24 container. 1px outer
+	   padding, 1px gap so inner segments are 20px tall and ~28.6px wide.
+	   `position: relative` anchors the absolute `.seg-indicator`. */
+	.mode-picker {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 1px;
+		width: 90px;
+		height: 24px;
+		padding: 1px;
+
+		background: var(--color-surface-veil);
+		border-radius: 4px;
+	}
+
+	/* Sliding active-state indicator. Width = one segment slot (inner
+	   width minus 2 gaps, divided by 3). Translates by (own width + gap)
+	   per index step driven by `--seg-index` from the parent. */
+	.seg-indicator {
+		position: absolute;
+		top: 1px;
+		left: 1px;
+		width: calc((100% - 4px) / 3);
+		height: 20px;
+		background: var(--color-button-bg);
+		border-radius: 4px;
+		pointer-events: none;
+		transform: translateX(calc(var(--seg-index, 0) * (100% + 1px)));
+		transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.seg {
+		/* Sit above the indicator so the icon stays visible during the
+		   slide. Removed the per-segment .active background since the
+		   indicator now paints that surface. */
+		position: relative;
+		z-index: 1;
+
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1 0 0;
+		min-width: 0;
+		height: 20px;
+		padding: 0;
+
+		background: transparent;
+		border: none;
+		border-radius: 4px;
+
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition: color var(--duration-base) var(--easing-standard);
+	}
+
+	.seg:hover:not(:disabled):not(.active) {
+		color: var(--color-text-primary);
+	}
+
+	.seg.active {
+		color: var(--color-text-primary);
+	}
+
+	.seg:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
+	}
+
+	.seg:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
+	}
+</style>

@@ -884,24 +884,59 @@
 		flex: 1;
 		min-height: 0;
 		overflow: auto;
+		/* Fade text content under the FloatingBar so paragraphs don't read
+		   through the floating pill at the bottom. The fade spans the
+		   FloatingBar's vertical footprint: it sits at bottom: 24px,
+		   42px tall + 1px border ≈ 67px. The mask starts opaque and goes
+		   transparent right at the top edge of the FloatingBar zone. */
+		--floating-bar-zone: 72px;
+		mask-image: linear-gradient(
+			to bottom,
+			black 0,
+			black calc(100% - var(--floating-bar-zone)),
+			transparent calc(100% - 16px)
+		);
+		-webkit-mask-image: linear-gradient(
+			to bottom,
+			black 0,
+			black calc(100% - var(--floating-bar-zone)),
+			transparent calc(100% - 16px)
+		);
 	}
 
 	.canvas {
 		max-width: var(--content-max-width);
 		margin: 0 auto;
-		padding: var(--space-6) var(--content-padding-x);
+		/* padding-bottom buffer so the last block can scroll past the
+		   FloatingBar zone (otherwise the last block lives in the masked
+		   area and reads as cut off). Source mode overrides this below —
+		   the textarea owns its own internal bottom padding instead. */
+		padding: var(--space-6) var(--content-padding-x) 96px;
 		min-height: 100%;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
 	}
 
+	/* Source mode: drop the canvas bottom padding so the textarea spans
+	   the full available height. The 96px buffer for the typing cursor
+	   is provided by `.source`'s own padding-bottom — that keeps the
+	   blank space INSIDE the textarea (clickable, type-able) rather than
+	   as a non-interactive gap below it. */
+	.canvas:has(.source) {
+		padding-bottom: 0;
+	}
+
 	.source {
 		flex: 1;
 		width: 100%;
-		min-height: 60vh;
 		margin: 0;
-		padding: 0;
+		/* Internal bottom padding gives the typing cursor a 96px buffer
+		   above the FloatingBar zone (matches what `.canvas` does in
+		   preview mode for the last block). This space is INSIDE the
+		   textarea: clickable, the cursor can rest there as the user
+		   types past the last visible line. */
+		padding: 0 0 96px;
 		background: transparent;
 		border: 0;
 		color: var(--color-text-primary);

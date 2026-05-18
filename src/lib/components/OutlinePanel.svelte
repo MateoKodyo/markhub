@@ -110,6 +110,15 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
+		/* Without min-width: 0, a flex child's default min-width is `auto`
+		   (its content's intrinsic min-content width). Long heading text
+		   in the TOC then forces the panel to expand beyond its flex
+		   basis — visible bug where the panel rendered 700px+ when the
+		   stored width was 260px. Combined with `overflow: hidden`, the
+		   panel now honors its width and `.outline-text` truncates with
+		   the ellipsis as intended. */
+		min-width: 0;
+		overflow: hidden;
 		background: var(--color-bg);
 		border-left: 1px solid var(--color-border);
 		font-size: var(--text-ui);

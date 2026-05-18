@@ -9,6 +9,7 @@
 	import OutlinePanel from '$lib/components/OutlinePanel.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import FindBar from '$lib/components/FindBar.svelte';
+	import FloatingBar from '$lib/components/FloatingBar.svelte';
 	import ResizeHandle from '$lib/components/ResizeHandle.svelte';
 	import { findStore } from '$lib/stores/find.svelte';
 	import InputDialog from '$lib/components/InputDialog.svelte';
@@ -97,15 +98,16 @@
 	 * global CSS variables that the editor consumes. Same one-effect-no-prop
 	 * pattern as the mono font bridge.
 	 *
-	 * `--font-editor`        → consumed by editor-blocknote.css for the
-	 *                          editor surface + heading scale (heading
-	 *                          family changes live).
-	 * `--content-max-width`  → consumed by Editor.svelte's `.canvas` for
-	 *                          the writing measure (live).
+	 * `--font-editor`              → consumed by editor-blocknote.css for
+	 *                                the editor surface + heading scale.
+	 * `--content-max-width`        → consumed by Editor.svelte's `.canvas`
+	 *                                for the writing measure.
+	 * `--editor-body-font-size`    → consumed by editor-blocknote.css for
+	 *                                `.bn-editor` + body `p, li` rules.
+	 * `--editor-body-line-height`  → same as above.
 	 *
-	 * Body font-size + line-height are intentionally NOT wired here. The
-	 * BlockNote cascade owns the body typography internally and overriding
-	 * it cleanly needs BlockNote's theming API — tracked in BACKLOG.md.
+	 * Updates are pushed only when the appearance settings change (Apply
+	 * button in SettingsAppearance — typography is no longer live-applied).
 	 */
 	const EDITOR_FAMILY_BY_ID: Record<string, string> = {
 		geist: "'Geist Variable', system-ui, -apple-system, 'Helvetica Neue', sans-serif",
@@ -122,6 +124,16 @@
 		// (was px before 2026-05-14). The CSS consumer `Editor .canvas`
 		// reads `--content-max-width` directly as a width value.
 		root.setProperty('--content-max-width', `${a.editorContentWidth}%`);
+		root.setProperty('--editor-body-font-size', `${a.editorFontSize}px`);
+		root.setProperty('--editor-body-line-height', String(a.editorLineHeight));
+		// TEMP diagnostic — remove once typography apply is confirmed working.
+		console.log('[appearance bridge]', {
+			editorFontSize: a.editorFontSize,
+			editorLineHeight: a.editorLineHeight,
+			rootFontSize: getComputedStyle(document.documentElement).getPropertyValue(
+				'--editor-body-font-size'
+			)
+		});
 	});
 
 	// --- Command palette wiring -------------------------------------------
@@ -351,6 +363,28 @@
 		);
 	}
 
+	async function copyActiveFileContent() {
+		const f = activeFileStore.activeFile;
+		if (!f) return;
+		try {
+			await navigator.clipboard.writeText(activeFileStore.content);
+			toast.success('Document copié');
+		} catch (e) {
+			console.warn('[clipboard] copy doc failed', e);
+			toast.error('Copie impossible', { details: String(e) });
+		}
+	}
+
+	/**
+	 * Set the editor mode explicitly (used by the FloatingBar's mode
+	 * picker, which has a per-mode button rather than a toggle).
+	 * Setting to the same mode is a no-op.
+	 */
+	function setEditorMode(next: EditorMode) {
+		if (editorMode === next) return;
+		editorMode = next;
+	}
+
 	// Re-key on tab switch so the BlockNote instance is fully reset.
 	// Tab id is unique per open even on the same (vault, path), so
 	// closing and re-opening a tab also triggers a clean remount.
@@ -494,6 +528,12 @@
 				{#if findStore.isOpen}
 					<FindBar />
 				{/if}
+				<FloatingBar
+					mode={editorMode}
+					onSetMode={setEditorMode}
+					onExport={exportActiveFile}
+					onCopy={copyActiveFileContent}
+				/>
 			</div>
 		{:else}
 			<EmptyState

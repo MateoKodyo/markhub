@@ -322,7 +322,18 @@
 	.pill-icon {
 		padding: 0;
 		width: var(--pill-height);
+		height: var(--pill-height);
+		flex-shrink: 0;
 		justify-content: center;
+	}
+
+	/* Lock the inline SVG to a fixed visual size regardless of which
+	   Lucide glyph is used — without this each icon renders at its own
+	   intrinsic width and the buttons read as different sizes. */
+	.pill-icon :global(svg) {
+		width: 12px;
+		height: 12px;
+		flex-shrink: 0;
 	}
 
 	/* Compact content-width slider in the right zone. The native range

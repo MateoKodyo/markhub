@@ -92,9 +92,6 @@
 <div class="settings-row">
 	<div class="settings-row-info">
 		<span class="settings-row-label">Mode</span>
-		<span class="settings-row-desc">
-			Suivre l'apparence du système, ou verrouiller sur clair / sombre.
-		</span>
 	</div>
 	<div
 		class="settings-segmented theme-mode-segmented"
@@ -149,12 +146,8 @@
 				data-testid={`theme-card-${meta.id}`}
 			>
 				<div class="theme-card-preview">
-					<div class="preview-heading">Titre</div>
+					<div class="preview-heading">{meta.name}</div>
 					<div class="preview-para">Une ligne courte pour l'aperçu.</div>
-				</div>
-				<div class="theme-card-footer">
-					<span class="theme-card-name">{meta.name}</span>
-					<span class="theme-card-accent">{meta.accentName}</span>
 				</div>
 				{#if isSelected}
 					<span class="theme-card-check" aria-hidden="true">
@@ -175,7 +168,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		padding-top: 16px;
+		padding-top: 32px;
 	}
 
 	.theme-slot-header {
@@ -227,9 +220,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
-		padding: 14px 16px 12px;
+		padding: 14px 16px;
 		background: var(--color-bg);
-		border-bottom: 1px solid var(--color-border-subtle);
 		min-height: 64px;
 	}
 
@@ -246,26 +238,6 @@
 		font-size: 12px;
 		line-height: 1.5;
 		color: var(--color-text-body);
-	}
-
-	.theme-card-footer {
-		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		padding: 8px 14px 10px;
-		background: var(--color-bg-raised);
-	}
-
-	.theme-card-name {
-		font-size: var(--text-ui);
-		font-weight: var(--weight-medium);
-		color: var(--color-text-primary);
-	}
-
-	.theme-card-accent {
-		font-size: var(--text-caption);
-		color: var(--color-text-secondary);
-		letter-spacing: var(--tracking-caption);
 	}
 
 	.theme-card-check {

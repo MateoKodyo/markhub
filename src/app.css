@@ -163,6 +163,13 @@
 	--content-max-width: 60%;
 	--content-padding-x: 64px;
 
+	/* Editor body typography — overridden at runtime by +page.svelte's
+	   appearance bridge from settings.appearance.editorFontSize /
+	   editorLineHeight. Defaults match the original hardcoded baseline
+	   (15px / 1.6) so first paint is identical before the effect runs. */
+	--editor-body-font-size: 15px;
+	--editor-body-line-height: 1.6;
+
 	/* === Pills (status bar items, segmented controls) ===
 	 * Compact button-like surfaces with their own background, used in the
 	 * status bar and any inline IDE-style chips. Tokens reuse the existing

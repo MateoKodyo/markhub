@@ -95,9 +95,9 @@ describe('SettingsAppearance', () => {
 		expect(screen.getByTestId('appearance-font-serif')).toBeInTheDocument();
 		expect(screen.getByTestId('appearance-font-mono')).toBeInTheDocument();
 
-		expect(screen.getByTestId('appearance-slider-fontsize')).toBeInTheDocument();
-		expect(screen.getByTestId('appearance-slider-lineheight')).toBeInTheDocument();
-		expect(screen.getByTestId('appearance-slider-contentwidth')).toBeInTheDocument();
+		expect(screen.getByTestId('appearance-field-fontsize')).toBeInTheDocument();
+		expect(screen.getByTestId('appearance-field-lineheight')).toBeInTheDocument();
+		expect(screen.getByTestId('appearance-field-contentwidth')).toBeInTheDocument();
 
 		expect(screen.getByTestId('appearance-preview')).toBeInTheDocument();
 	});
@@ -142,44 +142,61 @@ describe('SettingsAppearance', () => {
 		expect(settingsStore.current.appearance.themeMode).toBe('system');
 	});
 
-	// ------ S4.4 — clicking a font card updates editorFont ------
-	it('clicking a font card updates editorFont in the store', async () => {
+	// ------ S4.4 — clicking a font card stages it in the draft (not the store) ------
+	it('clicking a font card stages it in the draft (aria-checked) without writing to the store', async () => {
 		render(SettingsAppearance);
 		await fireEvent.click(screen.getByTestId('appearance-font-serif'));
-		expect(settingsStore.current.appearance.editorFont).toBe('serif');
+		// Draft reflects the choice (aria-checked flips), but the stored
+		// value stays at the default until Apply is clicked.
 		expect(screen.getByTestId('appearance-font-serif').getAttribute('aria-checked')).toBe(
 			'true'
 		);
+		expect(settingsStore.current.appearance.editorFont).toBe('geist');
 	});
 
-	// ------ S4.5 — sliders update their fields ------
-	it('moving the fontSize slider updates editorFontSize', async () => {
+	// ------ S4.5 — typography fields only update the draft; Apply commits ------
+	it('changing fields updates only the draft, Apply writes the batch to the store', async () => {
 		render(SettingsAppearance);
-		const slider = screen.getByTestId('appearance-slider-fontsize') as HTMLInputElement;
-		await fireEvent.input(slider, { target: { value: '18' } });
+		const fontField = screen.getByTestId('appearance-field-fontsize') as HTMLInputElement;
+		const lineField = screen.getByTestId('appearance-field-lineheight') as HTMLInputElement;
+		const widthField = screen.getByTestId('appearance-field-contentwidth') as HTMLInputElement;
+
+		await fireEvent.input(fontField, { target: { value: '18' } });
+		await fireEvent.input(lineField, { target: { value: '1.75' } });
+		await fireEvent.input(widthField, { target: { value: '80' } });
+
+		// Store is still on the defaults — no live writes.
+		expect(settingsStore.current.appearance.editorFontSize).toBe(16);
+		expect(settingsStore.current.appearance.editorLineHeight).toBe(1.6);
+		expect(settingsStore.current.appearance.editorContentWidth).toBe(60);
+
+		await fireEvent.click(screen.getByTestId('appearance-apply'));
+
+		// Apply commits the whole draft atomically.
 		expect(settingsStore.current.appearance.editorFontSize).toBe(18);
-	});
-
-	it('moving the lineHeight slider updates editorLineHeight', async () => {
-		render(SettingsAppearance);
-		const slider = screen.getByTestId(
-			'appearance-slider-lineheight'
-		) as HTMLInputElement;
-		await fireEvent.input(slider, { target: { value: '1.75' } });
 		expect(settingsStore.current.appearance.editorLineHeight).toBe(1.75);
-	});
-
-	it('moving the contentWidth slider updates editorContentWidth', async () => {
-		render(SettingsAppearance);
-		const slider = screen.getByTestId(
-			'appearance-slider-contentwidth'
-		) as HTMLInputElement;
-		await fireEvent.input(slider, { target: { value: '80' } });
 		expect(settingsStore.current.appearance.editorContentWidth).toBe(80);
 	});
 
-	// ------ S4.6 — live preview reflects current settings ------
-	it('the live preview reflects font size / line height / max-width', async () => {
+	// ------ S4.5b — Apply is disabled until the draft diverges from stored ------
+	it('Apply is disabled when draft === stored, enabled once a field changes', async () => {
+		render(SettingsAppearance);
+		const apply = screen.getByTestId('appearance-apply') as HTMLButtonElement;
+		expect(apply.disabled).toBe(true);
+
+		await fireEvent.input(
+			screen.getByTestId('appearance-field-fontsize'),
+			{ target: { value: '18' } }
+		);
+		expect(apply.disabled).toBe(false);
+
+		// After committing, draft === stored again → disabled again.
+		await fireEvent.click(apply);
+		expect(apply.disabled).toBe(true);
+	});
+
+	// ------ S4.6 — modal preview reflects the draft (not the stored value) ------
+	it('the in-modal preview reflects the draft so users can see the result before Apply', async () => {
 		render(SettingsAppearance);
 		const preview = screen.getByTestId('appearance-preview') as HTMLElement;
 
@@ -187,12 +204,13 @@ describe('SettingsAppearance', () => {
 		expect(preview.style.fontSize).toBe('16px');
 		expect(preview.style.maxWidth).toBe('60%');
 
-		// Drag fontSize → 20 and verify the preview moves with it.
+		// Change the field — preview moves with the draft, store stays put.
 		await fireEvent.input(
-			screen.getByTestId('appearance-slider-fontsize'),
+			screen.getByTestId('appearance-field-fontsize'),
 			{ target: { value: '20' } }
 		);
 		expect(preview.style.fontSize).toBe('20px');
+		expect(settingsStore.current.appearance.editorFontSize).toBe(16);
 	});
 
 	// ------ S4.7 — font card label is rendered in its own typeface ------
@@ -202,14 +220,13 @@ describe('SettingsAppearance', () => {
 		expect(serifCard.style.fontFamily).toContain('Iowan');
 	});
 
-	// ------ S4.8 — current-value chips reflect store ------
-	it('renders the current numeric value next to each slider', async () => {
+	// ------ S4.8 — current value lives in the number field ------
+	it('the number field reflects the current value', async () => {
 		render(SettingsAppearance);
-		const slider = screen.getByTestId(
-			'appearance-slider-fontsize'
+		const field = screen.getByTestId(
+			'appearance-field-fontsize'
 		) as HTMLInputElement;
-		await fireEvent.input(slider, { target: { value: '19' } });
-		// The chip is the only element rendering "19" near the fontsize control.
-		expect(screen.getByText('19')).toBeInTheDocument();
+		await fireEvent.input(field, { target: { value: '19' } });
+		expect(field.value).toBe('19');
 	});
 });

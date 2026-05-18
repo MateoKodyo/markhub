@@ -3073,3 +3073,140 @@ Quick dev demandé en fin de journée par Matheo, exécuté en automode (overrid
 - Ouvrir l'app, smoke test du toggle dans les 4 thèmes (vérifier que `--opacity-muted: 0.4` est confortable, ajuster si besoin entre 0.35–0.5).
 - Inspecter les 3 modifs non-staged restantes côté `src-tauri/` (Cargo.lock / Cargo.toml / tauri.conf.json) — héritées du début de session, à juger / commit / revert.
 - Reprendre PLAN-UI-PAPER STEP 9 (export PNG) si budget MCP frais, ou retourner sur `feat/editor-polish`.
+
+---
+
+# Session 2026-05-18 — Themes Terminal/Editor + refonte Apparence + investigation BlockNote typography (BLOQUÉ)
+
+> Mission : ajouter deux thèmes dark (Warp/Cursor) → polir l'écran Apparence → enfin faire marcher les réglages de taille de police / line-height dans l'éditeur, sujet déjà tenté plusieurs sessions sans succès.
+
+## État au démarrage
+
+- `main` à `22d241b` (Kodyo theme closure), 3 commits d'avance sur `origin/main`.
+- 6 thèmes : `markhub-light`, `markhub-dark`, `cocoa`, `forest`, `kodyo`, `markus` (4 dark / 2 light).
+- Réglages typo dans Settings → Apparence : sliders (taille / line-height / largeur) + segmented control police. `editorFont` et `editorContentWidth` câblés via `+page.svelte` $effect → `--font-editor` / `--content-max-width`. `editorFontSize` et `editorLineHeight` **explicitement non câblés** avec commentaire de désistement dans le code (BACKLOG : "BlockNote's internal cascade owns body typography").
+- `src-tauri/{Cargo.lock,Cargo.toml,tauri.conf.json}` non-staged hérités des sessions antérieures. `screenshots-ui/` untracked.
+
+## Livré et committé
+
+### Themes Terminal + Editor — commit `66c22de feat(theming): add Terminal (Warp) + Editor (Cursor) dark themes`
+
+- **`src/styles/themes/terminal.css`** — Warp-inspired. Cool-neutral, lighter que markhub-dark, bg `#1e1f22` / sidebar `#1b1c1f` / raised `#2a2b2e`. Texte cool-white `#ececec`. Accent indigo `#505ace` = `hsla(235, 56%, 56%)` (choisi par Matheo après comparaison côte-à-côte avec une vraie fenêtre Warp). Selection `rgba(80, 90, 206, 0.32)`. Status colors classiques (vert ok / amber warn / rouge error). Description catalog : "Warp-inspired: cool-neutral dark with indigo tonic accent".
+- **`src/styles/themes/editor.css`** — Cursor-inspired. Plat, neutre, noir presque pur `#0f0f0f` / sidebar `#0c0c0c` / raised `#1a1a1a`. Texte neutre `#e8e8e8`. Accent bleu cool Cursor `#7da3d9` (matche le lien "Settings" + pill "Agents Window" de la welcome screen). Le plus flat de la série, zéro chaleur, zéro décoration. Description : "Cursor-inspired: flat near-pure-black with a cool blue accent".
+- **Fix theme picker preview** — Auparavant chaque mini-preview dans Settings → Apparence montrait les couleurs du **thème actif** au lieu des couleurs du thème de la carte. Cause : tokens scopés `:root[data-theme='X']` only, donc le `data-theme={meta.id}` posé sur chaque `<button>` carte ne pouvait pas redéfinir les vars pour son sous-arbre. Fix mécanique : pour les 8 thèmes, dupliquer le sélecteur en `:root[data-theme='X'], [data-theme='X']`. Les CSS custom properties héritent maintenant correctement via inheritance du bouton vers ses descendants. Pattern réutilisable pour d'autres usages futurs (onboarding, etc.).
+- Whitelist pre-hydration `app.html` étendue aux 8 thèmes (kodyo et markus étaient déjà manquants — fix bonus).
+- `catalog.ts` + `tauri/types.ts` : `ThemeId` étendu, entrées catalog ajoutées avec `description` et `accentName`.
+- Tests : `tests/unit/theming-catalog.test.ts` étendu à 8 thèmes (TC.1 + TC.5 + TC.6). Frontend **544/544 → 543/543** verts.
+
+## Livré mais NON committé (working tree dirty)
+
+### UI polish Apparence
+
+Tout ça fonctionne, c'est juste pas committé parce que la session a été bloquée sur l'item suivant :
+
+- **ThemePicker.svelte** — Carte de preview : "Titre" placeholder remplacé par `{meta.name}`, footer (name + accentName) supprimé entièrement. CSS `.theme-card-footer` / `.theme-card-name` / `.theme-card-accent` retirés. `border-bottom: 1px solid var(--color-border-subtle)` du preview-block retiré aussi (plus de footer à séparer).
+- **ThemePicker.svelte** — `.theme-slot { padding-top }` : 16px → 32px (titre "Thème sombre actif" descendu pour respirer sous la ligne Mode).
+- **ThemePicker.svelte** — Sous-phrase "Suivre l'apparence du système, ou verrouiller sur clair / sombre" supprimée du row Mode (juste "Mode" à gauche maintenant).
+- **SettingsAppearance.svelte** — Sliders typo (Taille / Hauteur / Largeur) remplacés par `<input type="number">` alignés à droite. Largeur fixe 64px, padding 4px 8px, `font-variant-numeric: tabular-nums`, focus ring sur l'accent du thème actif, spinners natifs WebKit + Firefox masqués. Labels intègrent l'unité ("Taille de police (px)", "Largeur de contenu (%)") — pas de suffix unit séparé, plus propre, alignement parfait des 3 fields.
+- **SettingsAppearance.svelte** — Desc police : "Famille typographique appliquée…" → "Typographie appliquée au texte du document." (ma première version "Typographique appliquée…" cassait la grammaire — Matheo a flaggé, corrigé).
+- **5 testids renommés** : `appearance-slider-*` → `appearance-field-*`. Test S4.8 mis à jour (chip text gone, on assert sur `input.value`). Tests **544/544 verts** après cette série.
+
+### Bouton "Appliquer" pour la typo — draft + commit pattern
+
+Refonte de `SettingsAppearance.svelte` pour passer d'un live-update (chaque input → settingsStore.set immédiat) à un pattern draft + Apply :
+
+- 4 `$state` locaux (`draftFont`, `draftFontSize`, `draftLineHeight`, `draftContentWidth`) initialisés depuis `settingsStore.current.appearance` au mount.
+- `stored = $derived(...)` lit la valeur appliquée live.
+- `isDirty = $derived(...)` compare les 4 paires.
+- `applyTypography()` push le draft entier en un seul `settingsStore.set({...})`.
+- Bouton "Appliquer" placé dans le header du bloc Aperçu (top-right), accent-tinted, `disabled={!isDirty}`, hover sur `--color-accent-hover`, focus ring 2px à 40% de l'accent.
+- Aperçu intra-modale (paragraphe lorem) reflète le **draft** (live dans la modale — l'utilisateur voit ce qu'il va commit avant de cliquer).
+- 5 anciens tests "input → store updates" remplacés par : 1 test batch (input → draft, Apply → store), 1 test sur le disable du bouton (isDirty toggle), 1 test confirmant que le preview suit le draft sans toucher le store. **543/543 verts**, svelte-check 0 warning.
+
+### Câblage typo body — TENTÉ MAIS NE MARCHE PAS — l'objectif principal de la session
+
+**Le problème historique** : Matheo a fait plusieurs sessions sur ce sujet, jamais résolu. Les réglages "Taille de police" / "Hauteur de ligne" écrivent dans `settings.json` mais l'éditeur ne change pas visuellement.
+
+**Tentatives de cette session** :
+
+1. **Première approche (naïve)** : ajouter 2 CSS vars `--editor-body-font-size` / `--editor-body-line-height` dans `app.css` (defaults `15px` / `1.6`), remplacer les littéraux dans les 2 règles existantes `.preview .bn-editor` et `.preview .bn-editor p, .preview .bn-editor li` de `editor-blocknote.css` par `var(...)`, brancher l'écriture des vars sur `:root` dans le `$effect` de `+page.svelte`. **Test manuel de Matheo : "change rien"**. Mêmes symptômes qu'avant.
+
+2. **Investigation BlockNote (audit délégué)** : audit profond de `node_modules/@blocknote/core` v0.50.0. Findings réels :
+    - BlockNote utilisé en **headless** (que `@blocknote/core`, pas de wrapper React/Svelte/Mantine).
+    - Mount via `BlockNoteEditor.create({ setIdAttribute: true })` puis `editor.mount(root)` dans `Editor.svelte:418`. Le `defaultStyles` n'est **pas** passé → reste à `true` par défaut.
+    - DOM rendu réel pour un paragraphe (confirmé via `node_modules/@blocknote/core/src/blocks/Paragraph/block.ts` + `schema/blocks/internal.ts:160`) :
+      ```
+      <div class="bn-block-content" data-content-type="paragraph">
+        <p class="bn-inline-content">...texte...</p>
+      </div>
+      ```
+    - BlockNote `style.css` applique `.bn-default-styles { font-size: 16px }` sur `.bn-editor` (root) et `.bn-default-styles p { font-size: inherit }` pour que les `<p>` héritent. Cascade : `.bn-editor` 16px → `.bn-block-content` inherit → `<p>` inherit.
+    - Mes règles `.preview .bn-editor p` (spécificité 0,2,1) battent `.bn-default-styles p` (0,1,1) sur la spécificité **et** sur le source order (BlockNote CSS chargé en premier dans Editor.svelte:21).
+
+3. **Deuxième approche (chirurgicale)** : sélecteur deep targetant le vrai DOM rendu :
+    ```css
+    .preview .bn-editor .bn-block-content[data-content-type='paragraph'] .bn-inline-content,
+    .preview .bn-editor .bn-block-content[data-content-type='bulletListItem'] .bn-inline-content,
+    .preview .bn-editor .bn-block-content[data-content-type='numberedListItem'] .bn-inline-content,
+    .preview .bn-editor .bn-block-content[data-content-type='checkListItem'] .bn-inline-content {
+      font-size: var(--editor-body-font-size);
+      line-height: var(--editor-body-line-height);
+    }
+    ```
+    Spécificité (0,5,0). Headings exclus (data-content-type='heading' pas dans la liste, donc leur scale 26/21/18px tient). **Test manuel de Matheo : "change rien"** à nouveau.
+
+4. **Troisième approche (brutale)** : `!important` sur les 3 props (font-family / font-size / line-height) du sélecteur ci-dessus + ajout d'un `console.log` temporaire dans le `$effect` de `+page.svelte` qui logge `editorFontSize`, `editorLineHeight` et la valeur computée de `--editor-body-font-size` sur `:root`. Goal : déterminer le scénario A (vars posées + texte change), B (vars posées mais CSS rate sa cible) ou C ($effect ne fire pas). **Test manuel de Matheo après relance complète de l'app : "rien"**. Interprétation littérale : **pas même de log dans la console**. Soit le `$effect` ne s'exécute pas, soit la console n'était pas ouverte sur la bonne fenêtre, soit autre.
+
+**État de blocage en fin de session** : impossible de discriminer A/B/C avec les infos actuelles. Tests automatiques (543/543) prouvent que la chaîne `input → draft → Apply → settingsStore.set → settingsStore.current.appearance` est saine. Le `$effect` qui pousse les vars est syntactiquement correct. La règle CSS avec !important devrait être imbattable. Et pourtant : aucun feedback visuel, et selon le rapport utilisateur, pas même le diagnostic log.
+
+## Tests automatiques
+
+| Suite | Avant | Après | Δ |
+|---|---|---|---|
+| cargo test | 156 | 156 | 0 (non touché) |
+| vitest | 530 | 543 | +13 (théming +1 + settings refonte fields/Apply +12 net après remplacements) |
+| svelte-check | 0 / 0 | 0 / 0 | inchangé |
+
+## Décisions prises (en autonomie)
+
+- **Naming des 2 nouveaux thèmes** : "Terminal" et "Editor" (suggérés par Matheo). Pas "Warp" / "Cursor" — plus générique, moins lié à un produit tiers nommé.
+- **Couleur exacte du Terminal** : itéré en 3 passes basées sur captures côte-à-côte. Première version warm trop sombre. Deuxième cool-neutre meilleure mais accent vert Warp imprécis. Troisième : Matheo a fourni l'HSL exacte `hsla(235, 56%, 56%)` → converti en `#505ace`. Pixel-perfect demandé, pas atteint au premier essai (Read d'image ≠ color picker), nécessité d'aller-retour.
+- **Fix du picker preview via dual selector** : choix entre (a) `:root[data-theme='X'], [data-theme='X']` qui permet la cascade à tout sous-arbre, ou (b) reading per-card et inlining les vars en `style:`. Option (a) plus simple, plus performante (CSS pur), généralisable. Vérifié zéro régression : seul `<html>` portait `data-theme` jusqu'ici, donc pas de collision.
+- **`!important` ajouté** : choix défensif assumé. Justifié par l'opacité de l'ordre de chargement BlockNote `style.css` vs notre `editor-blocknote.css` quand passés par le bundler Vite. Si le sélecteur est correct, l'!important garantit le win quoi qu'il arrive.
+- **Bouton Apply scopé à la typo uniquement** : Themes et mode picker restent live (changement de thème instantané = bon UX, c'est ce que les utilisateurs attendent). Le draft+Apply ne concerne que les 4 réglages typo (font / size / line-height / width).
+
+## Hors-scope / différé
+
+- **Tests Playwright E2E** sur le pixel-perfect des thèmes côte-à-côte Warp/Cursor : non écrits. Verification = oeil de Matheo en superposant des fenêtres.
+- **Désactiver `defaultStyles: false` de BlockNote** : recommandation initiale de l'audit mais blast radius énorme (reprise de toute la baseline de marges/paddings/listes/tables/blockquotes/code blocks/drop cursor — ~150 lignes de CSS qui dépendent implicitement). Évité au profit du sélecteur deep + !important. Reste comme dernier recours si l'approche actuelle est définitivement morte.
+- **Diagnostic plus poussé** : on n'est pas allé jusqu'à inspecter le DOM dans devtools en live (`document.querySelector('.bn-inline-content').computedStyle.fontSize`) ni à mettre un breakpoint dans le `$effect`. Bloqué à "rien" sans plus de détail. **Prochaine session : commencer par ça.**
+
+## Fichiers touchés
+
+- **commités (`66c22de`)** : `src/styles/themes/{terminal,editor}.css` (créés), `src/styles/themes/{cocoa,forest,kodyo,markhub-dark,markhub-light,markus}.css` (sélecteur dual), `src/app.css`, `src/app.html`, `src/lib/tauri/types.ts`, `src/lib/theming/catalog.ts`, `tests/unit/theming-catalog.test.ts`.
+- **non commités (en working tree)** :
+  - `src/lib/components/ThemePicker.svelte` — preview card refonte + Mode sub-phrase removed + padding-top
+  - `src/lib/components/SettingsAppearance.svelte` — fields + Apply button + draft state + desc fix
+  - `src/lib/styles/editor-blocknote.css` — deep selector + !important pour body typography
+  - `src/routes/+page.svelte` — $effect étendu (vars body) + console.log diagnostic à retirer
+  - `src/app.css` — defaults `--editor-body-font-size` / `--editor-body-line-height`
+  - `tests/component/SettingsAppearance.test.svelte.ts` — 5 testids renommés + tests draft/Apply
+- **non touchés mais toujours dirty depuis le début** : `src-tauri/{Cargo.lock,Cargo.toml,tauri.conf.json}`. `screenshots-ui/` toujours untracked.
+
+## État repo en fin de session
+
+- `main` à **`66c22de`**, 4 commits d'avance sur `origin/main`.
+- Working tree : 6 fichiers modifiés (cf. liste ci-dessus), Apparence UI **utilisable et propre** mais réglages typo body **toujours sans effet**. Décider la prochaine session si on commit l'UI polish séparément avant de revenir sur le bug, ou si on tient tout dans un seul commit "feat(typography): wire body font-size/line-height + Apply pattern" une fois le bug résolu.
+- Dev server en cours d'exécution (task `btjpkjeoo`) — peut être tué la prochaine session.
+
+## Prochaine session — checklist de reprise
+
+1. **Tuer le dev server background** (task `btjpkjeoo`) si encore vivant.
+2. **Confirmer scénario A/B/C** du diagnostic typo :
+    - Ouvrir l'app, F12 → Console, **bien vérifier que la console est ouverte sur la fenêtre Tauri** (pas sur Safari ou autre).
+    - Si même au chargement initial pas de log `[appearance bridge] {...}` → le `$effect` ne se déclenche pas. Vérifier que `+page.svelte` est bien la route mountée. Vérifier que `settingsStore.current.appearance` est bien lu (peut-être un destructuring ailleurs qui casse la trace ?).
+    - Si le log apparaît mais `rootFontSize` est vide → le `setProperty` rate ou est écrasé. Vérifier qu'il n'y a pas un autre code qui clear `:root`.
+    - Si le log apparaît avec la bonne valeur mais le texte ne change pas → la règle CSS rate sa cible. Devtools → inspecter un `<p>` dans l'éditeur → onglet Computed pour `font-size` → voir quelle règle gagne. Le DOM réel pourrait différer de ce que la source de BlockNote suggère (parsing wrapper additionnel ?).
+3. **Possible piste alternative** : peut-être que `defaultStyles` peut être désactivé sur l'instance, et on reprend manuellement uniquement les règles qui nous concernent. Plus risqué mais plus propre.
+4. **Une fois résolu** : retirer le `console.log` diagnostic dans `+page.svelte`, retirer le `!important` si plus nécessaire, commit tout l'ensemble en un ou deux commits propres.
+5. **Refresh STATE.md** avec l'état final.

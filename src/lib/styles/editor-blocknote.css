@@ -56,20 +56,17 @@
  * ──────────────────────────────────────────────────────────── */
 .preview .bn-editor {
 	font-family: var(--font-editor);
-	font-size: 15px;
-	line-height: 1.6;
+	font-size: var(--editor-body-font-size);
+	line-height: var(--editor-body-line-height);
 	color: var(--color-text-primary);
 	background: transparent;
 }
 
-/* Editor body typography overrides (font family / size / line-height) are
-   currently deferred — BlockNote's internal cascade applies styles at
-   multiple levels (`.bn-default-styles`, `.bn-block-outer`, per-content-type
-   block-content rules) that our overrides could not reach without invasive
-   `!important` + JS-driven DOM mutations, which deteriorated into the
-   editor freezing on every keystroke. The clean path forward is BlockNote's
-   own theming/styling API — tracked in BACKLOG.md. Until then, the editor
-   body keeps the baseline above (15px / 1.6 / Geist via --font-editor). */
+/* Body typography (size + line-height) is parameterized via the CSS vars
+   above. Wiring lives in +page.svelte's appearance bridge ($effect that
+   reads settingsStore.appearance.editorFontSize / editorLineHeight and
+   writes the vars on :root). Headings keep their explicit scale below;
+   only the body is user-tunable. */
 
 .preview .bn-editor h1,
 .preview .bn-editor h2,
@@ -108,11 +105,21 @@
 	color: var(--color-text-body);
 }
 
-.preview .bn-editor p,
-.preview .bn-editor li {
-	font-family: var(--font-editor);
-	font-size: 15px;
-	line-height: 1.6;
+/* Body text — targets BlockNote's actual rendered `.bn-inline-content`
+   element scoped to body block types (paragraph + 4 list kinds; headings
+   are excluded — they have `data-content-type="heading"` and keep their
+   own scale below). `!important` is used here defensively: BlockNote's
+   internal stylesheet drives font-size on `.bn-block-content` via heading
+   helper vars (`--prev-level`, `--level`), and the build-order in which
+   their stylesheet vs ours load is opaque. Forcing the override
+   eliminates the cascade as a variable in this debug iteration. */
+.preview .bn-editor .bn-block-content[data-content-type='paragraph'] .bn-inline-content,
+.preview .bn-editor .bn-block-content[data-content-type='bulletListItem'] .bn-inline-content,
+.preview .bn-editor .bn-block-content[data-content-type='numberedListItem'] .bn-inline-content,
+.preview .bn-editor .bn-block-content[data-content-type='checkListItem'] .bn-inline-content {
+	font-family: var(--font-editor) !important;
+	font-size: var(--editor-body-font-size) !important;
+	line-height: var(--editor-body-line-height) !important;
 	color: var(--color-text-body);
 }
 
