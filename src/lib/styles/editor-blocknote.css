@@ -129,6 +129,15 @@
 	text-underline-offset: 2px;
 }
 
+/* Text selection — low-alpha accent so the highlight reads as a theme
+ * signal instead of the OS default sky blue (clashes badly with warm
+ * themes like Ink and Amber). `--color-selection` is set per theme as
+ * the accent at ~18-30% alpha. The rule also covers the contenteditable
+ * Prosemirror surface that BlockNote mounts. */
+.preview .bn-editor ::selection {
+	background: var(--color-selection);
+}
+
 /* Inline code (not a code block — that's its own rule below). */
 .preview .bn-editor code {
 	font-family: var(--font-mono);
@@ -148,9 +157,12 @@
  * ──────────────────────────────────────────────────────────── */
 
 /* Code block — BN default is #161616 bg / #fff text (Notion dark vibe).
- * Mark with !important because BN's own rule has the same specificity. */
+ * PLAN-LIGHT-THEMES STEP 2 spec: use --color-bg-raised so the code block
+ * reads as an elevated/recessed card surface, matching the rest of the
+ * theme's raised-surface treatment. !important required because BN's own
+ * rule has the same specificity. */
 .preview .bn-block-content[data-content-type='codeBlock'] {
-	background-color: var(--color-surface-veil) !important;
+	background-color: var(--color-bg-raised) !important;
 	color: var(--color-text-primary) !important;
 	border: 1px solid var(--color-border-subtle);
 	border-radius: var(--radius-md);
@@ -289,19 +301,10 @@
 	background: var(--color-surface-hover) !important;
 }
 
-/* ────────────────────────────────────────────────────────────
- *  6. Light-mode-specific tweaks.
- *  Most things auto-invert via Markhub tokens (the !important
- *  overrides above use --color-* vars that already flip in light).
- *  Only thing left: BN's code-block `<select>` default color (#fff)
- *  is set directly and doesn't pick up our override correctly when
- *  the option dropdown opens on the page (native control). The
- *  rule below ensures the on-page picker text reads on light.
- * ──────────────────────────────────────────────────────────── */
-:root[data-theme='light']
-	.preview
-	.bn-block-content[data-content-type='codeBlock']
-	> div
-	> select {
-	color: var(--color-text-muted) !important;
-}
+/* (Prior section 6 — light-mode `<select>` color tweak — removed: the
+ * selector `:root[data-theme='light']` targets an id that no longer
+ * exists in the catalog after PLAN-LIGHT-THEMES STEP 1, and the rule it
+ * carried is already covered by the generic per-language picker rule in
+ * section 3 above, which uses --color-text-muted via the same
+ * !important. All light themes inherit the fix through the generic
+ * rule. Dead code dropped 2026-05-18.) */
