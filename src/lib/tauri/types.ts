@@ -54,7 +54,7 @@ export type ThemeId =
 	| 'markhub-dark'
 	| 'cocoa'
 	| 'forest'
-	| 'toxic-orange'
+	| 'kodyo'
 	| 'markus';
 
 export interface ThemePreference {

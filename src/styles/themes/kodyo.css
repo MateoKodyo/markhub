@@ -1,0 +1,71 @@
+/* Kodyo — Velours Bordeaux: deep mahogany canvas + Kodyo orange accent.
+ *
+ * Mood: brand-faithful skin of the Kodyo design system. Bordeaux/mahogany
+ * base (hue 12–28, warm red-brown), Kodyo orange (#ff4f00) as the single
+ * vivid color.
+ *
+ * Palette source: kodyo-klip src/routes/layout.css (.dark "Velours Bordeaux"
+ * tokens), OKLCH converted to sRGB hex for consistency with other Markhub
+ * themes.
+ */
+
+:root[data-theme='kodyo'] {
+	/* Canvas — Velours Bordeaux scale (sidebar darkest, warmer hue 28) */
+	--color-bg-sidebar: #1c0b09;
+	--color-bg: #231517;
+	--color-bg-raised: #352728;
+
+	/* Surfaces — Kodyo orange at very low alpha for interactive states */
+	--color-surface-veil: rgba(255, 79, 0, 0.04);
+	--color-surface-active: rgba(255, 79, 0, 0.1);
+	--color-surface-hover: rgba(255, 79, 0, 0.06);
+	--color-surface-strong: rgba(255, 79, 0, 0);
+
+	/* Borders — neutral white alphas (Kodyo --border = 12% white) */
+	--color-border-strong: rgba(255, 255, 255, 0.14);
+	--color-border: rgba(255, 255, 255, 0.1);
+	--color-border-subtle: rgba(255, 255, 255, 0.06);
+
+	/* Text — Kodyo warm-cream primary, mauve-plum muted (--muted-foreground) */
+	--color-text-primary: #efeae6;
+	--color-text-body: #d8d2c9;
+	--color-text-secondary: #a89ea0;
+	--color-text-muted: #8c8388;
+	--color-text-disabled: #5e5256;
+
+	/* Interactive — secondary scale pill (matches Kodyo --secondary) */
+	--color-button-bg: #2a1e1e;
+	--color-button-text: #efeae6;
+	--color-button-bg-hover: #352929;
+
+	/* Accent — Kodyo Orange #ff4f00 (brand constant, oklch 0.670 0.223 37.5) */
+	--color-accent: #ff4f00;
+	--color-accent-hover: #ff652c;
+	--color-accent-text: #1c0b09;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(255, 79, 0, 0.32);
+
+	/* Status — kept distinct from the orange accent */
+	--color-status-ok: #a0c9cb;
+	--color-status-warn: #ffb84d;
+	--color-status-error: #e85c5e;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(232, 92, 94, 0.12);
+	--color-danger-border: rgba(232, 92, 94, 0.3);
+
+	--color-backdrop: rgba(28, 11, 9, 0.55);
+
+	/* Shadows — warm-black drops */
+	--shadow-popover: 0 4px 16px rgba(28, 11, 9, 0.5);
+	--shadow-sm: 0 1px 2px rgba(28, 11, 9, 0.25);
+	--shadow-md: 0 1px 2px rgba(28, 11, 9, 0.22), 0 4px 12px rgba(28, 11, 9, 0.3);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(28, 11, 9, 0.55), 0 2px 4px rgba(28, 11, 9, 0.32);
+
+	/* Ambient — Kodyo orange ember top, deep bordeaux wash bottom-right */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(255, 79, 0, 0.08), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(53, 39, 40, 0.45), transparent 55%);
+}

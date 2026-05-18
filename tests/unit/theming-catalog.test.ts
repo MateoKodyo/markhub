@@ -10,16 +10,9 @@ import {
 
 describe('theming catalog', () => {
 	// ------ TC.1 — catalog growth tracking ------
-	it('exposes the 6 curated themes (4 originals + toxic-orange + markus)', () => {
+	it('exposes the 6 curated themes (4 originals + kodyo + markus)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
-		expect(ids).toEqual([
-			'cocoa',
-			'forest',
-			'markhub-dark',
-			'markhub-light',
-			'markus',
-			'toxic-orange'
-		]);
+		expect(ids).toEqual(['cocoa', 'forest', 'kodyo', 'markhub-dark', 'markhub-light', 'markus']);
 	});
 
 	// ------ TC.2 — every theme entry carries the full metadata shape ------
@@ -59,12 +52,7 @@ describe('theming catalog', () => {
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
 		// Light family: 2 themes. Dark family: 4 themes (2 originals + 2 new).
 		expect(light.map((t) => t.id).sort()).toEqual(['cocoa', 'markhub-light']);
-		expect(dark.map((t) => t.id).sort()).toEqual([
-			'forest',
-			'markhub-dark',
-			'markus',
-			'toxic-orange'
-		]);
+		expect(dark.map((t) => t.id).sort()).toEqual(['forest', 'kodyo', 'markhub-dark', 'markus']);
 	});
 
 	// ------ TC.6 — isThemeId narrows arbitrary strings ------
@@ -73,7 +61,7 @@ describe('theming catalog', () => {
 		expect(isThemeId('markhub-dark')).toBe(true);
 		expect(isThemeId('cocoa')).toBe(true); // added in STEP 2
 		expect(isThemeId('forest')).toBe(true); // added in STEP 3
-		expect(isThemeId('toxic-orange')).toBe(true); // PLAN-THEMES-V2
+		expect(isThemeId('kodyo')).toBe(true); // PLAN-THEMES-V2
 		expect(isThemeId('markus')).toBe(true); // PLAN-THEMES-V2
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);

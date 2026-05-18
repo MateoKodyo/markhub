@@ -15,7 +15,7 @@ export type ThemeId =
 	| 'markhub-dark'
 	| 'cocoa'
 	| 'forest'
-	| 'toxic-orange'
+	| 'kodyo'
 	| 'markus';
 
 export type ThemeFamily = 'light' | 'dark';
@@ -62,11 +62,11 @@ export const THEMES: readonly ThemeMeta[] = [
 		accentName: 'Khaki'
 	},
 	{
-		id: 'toxic-orange',
-		name: 'Toxic Orange',
+		id: 'kodyo',
+		name: 'Kodyo',
 		family: 'dark',
-		description: 'Black-kite canvas with a punchy burnt-orange accent.',
-		accentName: 'Orange'
+		description: 'Velours Bordeaux palette from Kodyo brand — mahogany with signature orange.',
+		accentName: 'Kodyo Orange'
 	},
 	{
 		id: 'markus',
