@@ -49,19 +49,12 @@ export type Settings = {
  */
 export type FollowMode = 'system' | 'always-light' | 'always-dark';
 
-export type ThemeId =
-	| 'markhub-light'
-	| 'markhub-dark'
-	| 'forest'
-	| 'kodyo'
-	| 'markus'
-	| 'terminal'
-	| 'editor'
-	| 'terracotta'
-	| 'rose'
-	| 'amber'
-	| 'ink'
-	| 'plum';
+/* `ThemeId` is the catalog's single source of truth — re-exported here so
+ * the tauri-facing types stay in one place but the union itself is only
+ * declared once. Adding a theme to catalog.ts now propagates automatically
+ * to every consumer of this module (no parallel-list drift). */
+export type { ThemeId } from '$lib/theming/catalog';
+import type { ThemeId } from '$lib/theming/catalog';
 
 export interface ThemePreference {
 	mode: FollowMode;

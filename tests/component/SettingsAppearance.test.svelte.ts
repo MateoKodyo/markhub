@@ -60,7 +60,8 @@ vi.mock('../../src/lib/theming/manager.svelte', () => ({
 		},
 		// The picker derives the active family from osPrefersDark when in
 		// mode=system. The component test fixture pins this to "light" so
-		// the default render lands on the light slot (markhub-light + Cocoa).
+		// the default render lands on the light slot (6 light cards from
+		// PLAN-LIGHT-THEMES: markhub-light, terracotta, rose, amber, ink, plum).
 		get osPrefersDark() {
 			return false;
 		}

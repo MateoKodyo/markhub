@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 import { gotoFixture, snap } from './_helpers';
 
 // Light-mode regression coverage. Re-snapshots the same key fixtures that
-// the dark-mode specs cover, served with `?theme=light` so app.css applies
-// the `:root[data-theme="light"]` palette. Captured under separate baselines.
+// the dark-mode specs cover, served with `?theme=light` (the helper resolves
+// the legacy 'light' shortcut to the current default light theme id,
+// 'markhub-light'). Captured under separate baselines.
 
 test('app shell — light theme', async ({ page }) => {
 	await gotoFixture(page, 'app-shell', 'light');
@@ -85,8 +86,9 @@ test('grayscale hierarchy — light theme keeps sidebar darker than canvas', asy
 	});
 
 	// Sanity: data-theme must be on the html element and the var must resolve
-	// to the warm-light parchment, not the dark one.
-	expect(samples.theme).toBe('light');
+	// to a light-family theme. The helper resolves the 'light' shortcut to
+	// the catalog id 'markhub-light' (the canonical default light theme).
+	expect(samples.theme).toBe('markhub-light');
 	expect(samples.sidebar).not.toBeNull();
 
 	const parseRgb = (s: string): [number, number, number] => {

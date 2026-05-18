@@ -117,9 +117,9 @@ function migrateAppearance(input: LegacyAppearance): AppearanceSettings {
 
 	// Validate slot ids against the current catalog. A previously-valid id
 	// can become orphaned when the catalog changes between releases (e.g.,
-	// `solar` → `cocoa`, `tokyo` → `forest`). Orphaned ids fall back to the
-	// family default; the picker will then show the default selection and
-	// the user can re-pick from the new catalog.
+	// retired themes like `cocoa` from PLAN-LIGHT-THEMES STEP 1). Orphaned
+	// ids fall back to the family default; the picker will then show the
+	// default selection and the user can re-pick from the new catalog.
 	if (!isThemeId(merged.lightTheme) || getThemeMeta(merged.lightTheme).family !== 'light') {
 		merged.lightTheme = DEFAULT_LIGHT_THEME;
 	}
@@ -179,13 +179,33 @@ class SettingsStore {
 		if (this.#initialized) return;
 		this.#initialized = true;
 		let migrated = false;
+		let normalized = false;
 		try {
 			const loaded = await api.settingsRead();
 			// Detect migration: the loaded payload had a legacy `theme` field.
 			migrated =
 				(loaded as { appearance?: { theme?: unknown } })?.appearance?.theme !==
 				undefined;
+			// Detect normalization: a slot id present on disk got rewritten by
+			// `mergeWithDefaults` (e.g., an orphaned `cocoa` rebated to
+			// `markhub-light`). Without this check the orphan stays on disk
+			// forever, silently in-memory-rewritten on every cold start.
+			const loadedAppearance = (loaded as { appearance?: { lightTheme?: unknown; darkTheme?: unknown } })?.appearance;
 			this.current = mergeWithDefaults(loaded);
+			if (loadedAppearance) {
+				if (
+					typeof loadedAppearance.lightTheme === 'string' &&
+					loadedAppearance.lightTheme !== this.current.appearance.lightTheme
+				) {
+					normalized = true;
+				}
+				if (
+					typeof loadedAppearance.darkTheme === 'string' &&
+					loadedAppearance.darkTheme !== this.current.appearance.darkTheme
+				) {
+					normalized = true;
+				}
+			}
 		} catch (e) {
 			console.warn('[settings] failed to load — using defaults', e);
 			this.current = structuredClone(DEFAULT_USER_SETTINGS);
@@ -194,9 +214,9 @@ class SettingsStore {
 		// Bridge the persisted theme preference into the runtime theme manager.
 		themeManager.init(asPreference(this.current.appearance));
 
-		// If we just migrated v1 → v2, write the cleaned shape back to disk so
-		// the legacy `theme` scalar is gone for good.
-		if (migrated) {
+		// If we migrated v1 → v2 OR normalized an orphan slot id, write the
+		// cleaned shape back to disk so the next reader sees a coherent file.
+		if (migrated || normalized) {
 			this.#schedulePersist();
 		}
 	}

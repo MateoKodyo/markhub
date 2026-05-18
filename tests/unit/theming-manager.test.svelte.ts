@@ -202,15 +202,15 @@ describe('theming manager — singleton + OS subscription', () => {
 		themeManager.init(DEFAULT_PREFS);
 		expect(themeManager.effective).toBe('markhub-light');
 
-		// Imagine a future where Solar is in the catalog — for STEP 1 we only
-		// have the 2 defaults, so this test re-asserts the same id but still
-		// proves the path is wired (the manager re-resolves on setPreference).
+		// Light family today: markhub-light, terracotta, rose, amber, ink,
+		// plum. Flipping `lightTheme` between two of them while keeping the
+		// rest of the prefs constant should re-resolve the active theme.
 		themeManager.setPreference({
 			mode: 'system',
-			lightTheme: 'markhub-light',
+			lightTheme: 'terracotta',
 			darkTheme: 'markhub-dark'
 		});
-		expect(themeManager.effective).toBe('markhub-light');
+		expect(themeManager.effective).toBe('terracotta');
 	});
 
 	// ------ TM.S7 — teardown removes the OS listener ------

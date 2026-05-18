@@ -182,11 +182,10 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 				: 'appearance';
 			settingsStore.open(startSection);
 		}
-		// Theme URL param — accepts any catalog id (markhub-light, markhub-dark,
-		// cocoa, forest, ...) and the legacy 'light' / 'dark' shortcuts so
-		// existing Playwright URLs keep working. We set the attribute directly
-		// (no themeManager.init required) since these fixtures don't boot the
-		// full app shell.
+		// Theme URL param — accepts any catalog id (see catalog.ts) and the
+		// legacy 'light' / 'dark' shortcuts so existing Playwright URLs keep
+		// working. We set the attribute directly (no themeManager.init
+		// required) since these fixtures don't boot the full app shell.
 		const t = params.get('theme');
 		const themeAttr =
 			t === 'light' ? 'markhub-light' : t === 'dark' || !t ? 'markhub-dark' : t;

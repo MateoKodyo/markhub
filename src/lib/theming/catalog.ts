@@ -1,13 +1,19 @@
 /**
- * Theme catalog — the curated-and-closed set of Markhub themes.
+ * Theme catalog — the curated set of Markhub themes (12 total: 6 light + 6 dark).
  *
- * STEP 1 ships only the 2 default themes routed through the new
- * infrastructure. STEP 2 adds Solar, STEP 3 adds Tokyo. Beyond that, the
- * scope is locked (see PLAN-THEMING §SCOPE).
+ * Light family (PLAN-LIGHT-THEMES STEP 1, May 2026):
+ *   markhub-light (sage signature), terracotta, rose, amber, ink, plum.
+ * Dark family:
+ *   markhub-dark, forest, kodyo, markus, terminal, editor.
  *
  * The CSS for each theme lives in `src/styles/themes/<id>.css`, scoped to
- * `[data-theme="<id>"]`. The manager (`./manager.svelte`) is what writes
- * that attribute on `<html>` — this module just describes WHAT exists.
+ * `[data-theme="<id>"]`. The manager (`./manager.svelte`) writes the
+ * attribute on `<html>` — this module just describes WHAT exists.
+ *
+ * Adding a theme: drop in `src/styles/themes/<id>.css`, add an `@import`
+ * to `src/app.css`, extend the pre-hydration whitelist in `src/app.html`,
+ * register the entry below. The `ThemeId` union below is re-exported by
+ * `src/lib/tauri/types.ts` (single source of truth — no parallel list).
  */
 
 export type ThemeId =
