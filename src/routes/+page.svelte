@@ -293,6 +293,26 @@
 		}
 	});
 
+	// PLAN-LIGHT-THEMES STEP 3 — dev-only light-theme cycle shortcut.
+	// Gated on import.meta.env.DEV so Vite tree-shakes the module from
+	// the production bundle. `$effect` is the right lifecycle here:
+	// onMount can't return a teardown from an async path, but $effect's
+	// cleanup-return contract handles the dynamic-import + teardown
+	// pattern natively.
+	$effect(() => {
+		if (!import.meta.env.DEV) return;
+		let teardown: (() => void) | null = null;
+		let cancelled = false;
+		void import('$lib/dev/themeCycler').then((mod) => {
+			if (cancelled) return;
+			teardown = mod.installThemeCycler();
+		});
+		return () => {
+			cancelled = true;
+			teardown?.();
+		};
+	});
+
 	function onContentChange(newContent: string) {
 		activeFileStore.updateContent(newContent);
 	}
