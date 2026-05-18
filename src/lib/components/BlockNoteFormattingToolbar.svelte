@@ -21,12 +21,14 @@
 		Bold,
 		Check,
 		Code,
+		Copy,
 		ExternalLink,
 		Italic,
 		Link,
 		Strikethrough,
 		X
 	} from 'lucide-svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	export type FormattingMark = 'bold' | 'italic' | 'strike' | 'code';
 
@@ -167,18 +169,44 @@
 		e.preventDefault();
 		onOpenLink();
 	}
+
+	// Copy current selection to clipboard. Uses `document.execCommand('copy')`
+	// (officially deprecated but still the reliable cross-browser path inside
+	// a contenteditable) — preserves both HTML and plain text in the clipboard,
+	// matching the native Cmd+C behavior. The synchronous handler keeps the
+	// selection alive between mousedown and the copy command.
+	function handleCopyMouseDown(e: MouseEvent) {
+		e.preventDefault();
+		const sel = window.getSelection();
+		if (!sel || sel.isCollapsed) return;
+		try {
+			const ok = document.execCommand('copy');
+			if (ok) {
+				toast.success('Sélection copiée');
+			} else {
+				toast.error('Copie impossible');
+			}
+		} catch (err) {
+			console.warn('[formatting-toolbar] copy failed', err);
+			toast.error('Copie impossible');
+		}
+	}
 </script>
 
 {#if visible && referencePos}
 	<div
 		bind:this={toolbarEl}
-		class="bn-formatting-toolbar"
-		role="toolbar"
-		aria-label="Formatting"
-		data-testid="bn-formatting-toolbar"
+		class="bn-toolbar-wrapper"
+		data-testid="bn-toolbar-wrapper"
 		style="position: fixed; left: {left}px; top: {top}px;"
 	>
-		{#if editingLink}
+		<div
+			class="bn-formatting-toolbar"
+			role="toolbar"
+			aria-label="Formatting"
+			data-testid="bn-formatting-toolbar"
+		>
+			{#if editingLink}
 			<input
 				bind:this={urlInput}
 				class="bn-ft-input"
@@ -244,13 +272,46 @@
 				</button>
 			{/if}
 		{/if}
+		</div>
+		<!-- Actions pill — visually separated from the formatting pill
+		     because copy is a different category of action (not a mark).
+		     Hidden during link-edit mode (the URL input owns the surface). -->
+		{#if !editingLink}
+			<div
+				class="bn-actions-toolbar"
+				role="toolbar"
+				aria-label="Actions"
+				data-testid="bn-actions-toolbar"
+			>
+				<button
+					type="button"
+					class="bn-ft-btn"
+					aria-label="Copier la sélection"
+					title="Copier la sélection"
+					onmousedown={handleCopyMouseDown}
+					data-testid="bn-actions-copy"
+				>
+					<Copy size={14} />
+				</button>
+			</div>
+		{/if}
 	</div>
 {/if}
 
 <style>
-	/* Step-2.5 minimal styling on Markhub tokens. Polish lands at step 3. */
-	.bn-formatting-toolbar {
+	/* Wrapper holds the two pills side-by-side. The position-fixed
+	   sticks here so the pair moves as one block under the selection. */
+	.bn-toolbar-wrapper {
 		z-index: 80;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-family: var(--font-ui);
+	}
+
+	/* Step-2.5 minimal styling on Markhub tokens. Polish lands at step 3. */
+	.bn-formatting-toolbar,
+	.bn-actions-toolbar {
 		display: inline-flex;
 		align-items: center;
 		gap: 2px;
@@ -259,7 +320,6 @@
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		box-shadow: var(--shadow-popover);
-		font-family: var(--font-ui);
 		color: var(--color-text-body);
 	}
 

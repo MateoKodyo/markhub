@@ -185,15 +185,14 @@ describe('BlockNoteFormattingToolbar', () => {
 			activeStyles: {},
 			hasLink: false
 		});
-		const tb = screen.getByTestId('bn-formatting-toolbar') as HTMLElement;
-		// Inline style must contain a `top` and `left` derived from referencePos.
-		// We don't pin a pixel value (toolbar height varies), but we assert the
-		// rule is set and that `left` matches the anchor's left.
-		expect(tb.style.position).toBe('fixed');
-		expect(tb.style.left).toBe('100px');
-		// `top` is computed from referencePos.top - toolbarHeight - margin; in
-		// jsdom the toolbar has no measurable height, so the host falls back to
+		// Position is carried by the wrapper (which holds the formatting
+		// pill + the actions pill side-by-side as one floating block).
+		const wrapper = screen.getByTestId('bn-toolbar-wrapper') as HTMLElement;
+		expect(wrapper.style.position).toBe('fixed');
+		expect(wrapper.style.left).toBe('100px');
+		// `top` is computed from referencePos.top - wrapperHeight - margin; in
+		// jsdom the wrapper has no measurable height, so the host falls back to
 		// referencePos.top - 40 (default offset). Just check it's a px value.
-		expect(tb.style.top).toMatch(/-?\d+px$/);
+		expect(wrapper.style.top).toMatch(/-?\d+px$/);
 	});
 });
