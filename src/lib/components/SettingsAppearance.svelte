@@ -70,6 +70,20 @@
 			}
 		});
 	}
+
+	// Floating-bar position — instant-apply (no draft / no Apply button).
+	// Cosmetic toggle, identical pattern to the theme picker: click a
+	// segment, the editor chrome rearranges immediately.
+	const floatingBarPosition = $derived(stored.editorFloatingBarPosition);
+
+	function setFloatingBarPosition(next: 'bottom' | 'right'): void {
+		const cur = settingsStore.current;
+		if (cur.appearance.editorFloatingBarPosition === next) return;
+		settingsStore.set({
+			...cur,
+			appearance: { ...cur.appearance, editorFloatingBarPosition: next }
+		});
+	}
 </script>
 
 <div class="settings-section">
@@ -173,6 +187,50 @@
 					oninput={(e) => (draftContentWidth = +e.currentTarget.value)}
 					data-testid="appearance-field-contentwidth"
 				/>
+			</div>
+		</div>
+	</section>
+
+	<!-- Interface group — cosmetic layout choices that don't go through
+	     the typography draft/Apply flow. Position of the floating
+	     action bar (bottom or right edge). -->
+	<section class="settings-group" aria-labelledby="group-interface">
+		<h4 class="settings-group-label" id="group-interface">Interface</h4>
+
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<span class="settings-row-label">Position de la barre flottante</span>
+				<span class="settings-row-desc">
+					Pill horizontale en bas, ou icône de recherche verticale à droite.
+				</span>
+			</div>
+			<div
+				class="settings-segmented"
+				role="radiogroup"
+				aria-label="Position de la barre flottante"
+			>
+				<button
+					type="button"
+					class="settings-segment"
+					class:active={floatingBarPosition === 'bottom'}
+					role="radio"
+					aria-checked={floatingBarPosition === 'bottom'}
+					onclick={() => setFloatingBarPosition('bottom')}
+					data-testid="floating-bar-position-bottom"
+				>
+					<span>Bas</span>
+				</button>
+				<button
+					type="button"
+					class="settings-segment"
+					class:active={floatingBarPosition === 'right'}
+					role="radio"
+					aria-checked={floatingBarPosition === 'right'}
+					onclick={() => setFloatingBarPosition('right')}
+					data-testid="floating-bar-position-right"
+				>
+					<span>Droite</span>
+				</button>
 			</div>
 		</div>
 	</section>

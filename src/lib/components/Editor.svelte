@@ -805,7 +805,7 @@
 </script>
 
 {#if mode === 'source'}
-	<div class="canvas-scroll">
+	<div class="canvas-scroll" class:has-bottom-bar={settingsStore.current.appearance.editorFloatingBarPosition === 'bottom'}>
 		<div class="canvas">
 			<textarea
 				bind:this={sourceTextarea}
@@ -819,7 +819,7 @@
 		</div>
 	</div>
 {:else}
-	<div class="canvas-scroll">
+	<div class="canvas-scroll" class:has-bottom-bar={settingsStore.current.appearance.editorFloatingBarPosition === 'bottom'}>
 		<div class="canvas">
 			{#if parsedFrontmatter.data !== null || parsedFrontmatter.error !== null}
 				<FrontmatterBlock
@@ -884,11 +884,16 @@
 		flex: 1;
 		min-height: 0;
 		overflow: auto;
-		/* Fade text content under the FloatingBar so paragraphs don't read
-		   through the floating pill at the bottom. The fade spans the
-		   FloatingBar's vertical footprint: it sits at bottom: 24px,
-		   42px tall + 1px border ≈ 67px. The mask starts opaque and goes
-		   transparent right at the top edge of the FloatingBar zone. */
+	}
+
+	/* Fade text content under the FloatingBar so paragraphs don't read
+	   through the floating pill at the bottom. The fade spans the
+	   FloatingBar's vertical footprint: it sits at bottom: 24px,
+	   42px tall + 1px border ≈ 67px. The mask starts opaque and goes
+	   transparent right at the top edge of the FloatingBar zone.
+	   Scoped to `.has-bottom-bar` so it disappears entirely when the
+	   FloatingBar is in vertical/right mode (no content overlap there). */
+	.canvas-scroll.has-bottom-bar {
 		--floating-bar-zone: 72px;
 		mask-image: linear-gradient(
 			to bottom,
@@ -907,23 +912,31 @@
 	.canvas {
 		max-width: var(--content-max-width);
 		margin: 0 auto;
-		/* padding-bottom buffer so the last block can scroll past the
-		   FloatingBar zone (otherwise the last block lives in the masked
-		   area and reads as cut off). Source mode overrides this below —
-		   the textarea owns its own internal bottom padding instead. */
-		padding: var(--space-6) var(--content-padding-x) 96px;
+		padding: var(--space-6) var(--content-padding-x);
 		min-height: 100%;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
 	}
 
+	/* padding-bottom buffer so the last block can scroll past the
+	   FloatingBar zone (otherwise the last block lives in the masked
+	   area and reads as cut off). Scoped to `.has-bottom-bar` so the
+	   buffer disappears in vertical/right mode where there's no bottom
+	   bar to clear. Source mode overrides this below — the textarea
+	   owns its own internal bottom padding instead. */
+	.canvas-scroll.has-bottom-bar > .canvas {
+		padding-bottom: 96px;
+	}
+
 	/* Source mode: drop the canvas bottom padding so the textarea spans
 	   the full available height. The 96px buffer for the typing cursor
 	   is provided by `.source`'s own padding-bottom — that keeps the
 	   blank space INSIDE the textarea (clickable, type-able) rather than
-	   as a non-interactive gap below it. */
-	.canvas:has(.source) {
+	   as a non-interactive gap below it. Selector bumped to match the
+	   `.canvas-scroll.has-bottom-bar > .canvas` specificity above so it
+	   reliably overrides regardless of bar position. */
+	.canvas-scroll > .canvas:has(.source) {
 		padding-bottom: 0;
 	}
 

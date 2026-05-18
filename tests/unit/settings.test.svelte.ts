@@ -189,7 +189,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 20,
 				editorLineHeight: 1.6,
-				editorContentWidth: 60
+				editorContentWidth: 60,
+				editorFloatingBarPosition: 'bottom' as const
 			}
 		};
 		const merged = mergeWithDefaults(partial);
@@ -257,7 +258,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 16,
 				editorLineHeight: 1.6,
-				editorContentWidth: 60
+				editorContentWidth: 60,
+				editorFloatingBarPosition: 'bottom' as const
 			}
 		};
 		// `mergeWithDefaults` accepts unknown legacy shapes — cast for the call.
@@ -279,7 +281,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 16,
 				editorLineHeight: 1.6,
-				editorContentWidth: 60
+				editorContentWidth: 60,
+				editorFloatingBarPosition: 'bottom' as const
 			}
 		};
 		const merged = mergeWithDefaults(v1Payload as never);
@@ -297,7 +300,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 16,
 				editorLineHeight: 1.6,
-				editorContentWidth: 60
+				editorContentWidth: 60,
+				editorFloatingBarPosition: 'bottom' as const
 			}
 		};
 		const merged = mergeWithDefaults(v1Payload as never);
@@ -313,7 +317,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 16,
 				editorLineHeight: 1.6,
-				editorContentWidth: 60
+				editorContentWidth: 60,
+				editorFloatingBarPosition: 'bottom' as const
 			}
 		};
 		const merged = mergeWithDefaults(v1Payload as never);
@@ -333,7 +338,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 17,
 				editorLineHeight: 1.5,
-				editorContentWidth: 70
+				editorContentWidth: 70,
+				editorFloatingBarPosition: 'bottom' as const
 			}
 		};
 		const merged = mergeWithDefaults(v2Payload);
@@ -351,7 +357,8 @@ describe('settingsStore', () => {
 				editorFont: 'geist',
 				editorFontSize: 16,
 				editorLineHeight: 1.6,
-				editorContentWidth: 60
+				editorContentWidth: 60,
+				editorFloatingBarPosition: 'bottom' as const
 			},
 			editor: { autosaveDelayMs: 1500, spellCheck: true },
 			source: { monoFont: 'geist-mono' },

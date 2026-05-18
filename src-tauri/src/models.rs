@@ -104,6 +104,16 @@ pub struct AppearanceSettings {
     pub editor_font_size: u32,
     pub editor_line_height: f64,
     pub editor_content_width: u32,
+    /// Position of the floating action bar — `"bottom"` (default,
+    /// horizontal pill at the bottom) or `"right"` (vertical, single
+    /// search icon stuck to the right edge). New field; `#[serde(default)]`
+    /// so settings.json files without it deserialize cleanly.
+    #[serde(default = "default_floating_bar_position")]
+    pub editor_floating_bar_position: String,
+}
+
+fn default_floating_bar_position() -> String {
+    "bottom".to_string()
 }
 
 impl Default for AppearanceSettings {
@@ -119,6 +129,7 @@ impl Default for AppearanceSettings {
             editor_font_size: 16,
             editor_line_height: 1.6,
             editor_content_width: 720,
+            editor_floating_bar_position: default_floating_bar_position(),
         }
     }
 }

@@ -553,6 +553,7 @@
 					onSetMode={setEditorMode}
 					onExport={exportActiveFile}
 					onCopy={copyActiveFileContent}
+					position={settingsStore.current.appearance.editorFloatingBarPosition}
 				/>
 			</div>
 		{:else}

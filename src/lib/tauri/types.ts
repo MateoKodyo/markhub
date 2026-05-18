@@ -65,6 +65,8 @@ export interface ThemePreference {
 /** v1 theme value — kept for the migration path only. Do not use in new code. */
 export type LegacyThemePreference = 'dark' | 'light' | 'system';
 
+export type FloatingBarPosition = 'bottom' | 'right';
+
 export type AppearanceSettings = {
 	themeMode: FollowMode;
 	lightTheme: ThemeId;
@@ -76,6 +78,13 @@ export type AppearanceSettings = {
 	 *  a px value before 2026-05-14; `mergeWithDefaults` migrates any
 	 *  loaded value > 100 to the new default. */
 	editorContentWidth: number;
+	/** Where the FloatingBar (search + actions + mode picker + outline)
+	 *  docks in the editor. `bottom` is the default Figma layout (full
+	 *  horizontal pill centered at the bottom). `right` collapses the
+	 *  bar into a single search-icon button stuck to the right edge,
+	 *  vertically centered — minimal mode for users who want the editor
+	 *  to breathe and rely on the command palette for actions. */
+	editorFloatingBarPosition: FloatingBarPosition;
 };
 
 export type EditorSettings = {
@@ -125,7 +134,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 		editorFont: 'geist',
 		editorFontSize: 16,
 		editorLineHeight: 1.6,
-		editorContentWidth: 60
+		editorContentWidth: 60,
+		editorFloatingBarPosition: 'bottom'
 	},
 	editor: {
 		autosaveDelayMs: 1500,

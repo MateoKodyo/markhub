@@ -25,18 +25,23 @@
 	import { findStore } from '$lib/stores/find.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import type { EditorMode } from './Editor.svelte';
+	import type { FloatingBarPosition } from '$lib/tauri/types';
 
 	let {
 		mode,
 		onSetMode,
 		onExport,
-		onCopy
+		onCopy,
+		position = 'bottom'
 	}: {
 		mode: EditorMode;
 		onSetMode: (next: EditorMode) => void;
 		onExport: () => void;
 		onCopy: () => void;
+		position?: FloatingBarPosition;
 	} = $props();
+
+	const isVertical = $derived(position === 'right');
 
 	function openFind(): void {
 		findStore.open();
@@ -50,7 +55,27 @@
 	);
 </script>
 
-<div class="floating-bar" data-testid="floating-bar">
+<div
+	class="floating-bar"
+	class:is-vertical={isVertical}
+	data-testid="floating-bar"
+	data-position={position}
+>
+	{#if isVertical}
+		<!-- Vertical / right-edge mode — minimal: search only. The pop-up
+		     (in-doc find bar) covers any other action via the command
+		     palette path, so we keep the surface intentionally quiet. -->
+		<button
+			type="button"
+			class="icon-btn"
+			onclick={openFind}
+			data-testid="floating-bar-search"
+			aria-label="Rechercher dans le document"
+			title="Rechercher dans le document (⌘F)"
+		>
+			<Search size={14} aria-hidden="true" focusable="false" />
+		</button>
+	{:else}
 	<!-- Search input — click to open the in-doc find bar (Cmd+F). The
 	     placeholder is the only affordance; the actual query lives in the
 	     find bar that opens. -->
@@ -158,12 +183,14 @@
 	>
 		<List size={12} aria-hidden="true" focusable="false" />
 	</button>
+	{/if}
 </div>
 
 <style>
-	/* Container — sticky bottom-centered pill. Positioned absolutely so it
-	   floats over the editor canvas without participating in scroll. The
-	   parent `.content-body` provides the `position: relative` context. */
+	/* Container — sticky bottom-centered pill (default) or right-edge
+	   vertical icon (`.is-vertical`). Positioned absolutely so it floats
+	   over the editor canvas without participating in scroll. The parent
+	   `.content-body` provides the `position: relative` context. */
 	.floating-bar {
 		position: absolute;
 		bottom: 24px;
@@ -183,6 +210,58 @@
 		box-shadow: var(--shadow-popover);
 
 		font-family: var(--font-ui);
+	}
+
+	/* Vertical / right-edge mode — collapses the bar into a single
+	   search-icon pill stuck to the right side, vertically centered.
+	   Same tokens (raised bg, border, shadow), tighter geometry: a
+	   small square with rounded corners. The pill is minimal because
+	   power-users in this mode rely on the command palette + keyboard
+	   shortcuts; the icon is a single tactile affordance for the
+	   in-doc find that's the only feature really tied to mouse flow. */
+	.floating-bar.is-vertical {
+		bottom: auto;
+		left: auto;
+		right: 16px;
+		top: 50%;
+		transform: translateY(-50%);
+
+		flex-direction: column;
+		height: auto;
+		padding: 5px;
+		gap: 4px;
+	}
+
+	/* Icon-only button used in vertical mode (and reusable for any
+	   single-icon affordance the vertical bar grows later). Same look
+	   as the horizontal mode's segment slot, square geometry. */
+	.icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
+
+		background: transparent;
+		border: none;
+		border-radius: 7px;
+
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition:
+			background var(--duration-base) var(--easing-standard),
+			color var(--duration-base) var(--easing-standard);
+	}
+
+	.icon-btn:hover {
+		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	.icon-btn:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
 	}
 
 	/* Search input — looks like an input, behaves like a button (opens
