@@ -55,7 +55,9 @@ export type ThemeId =
 	| 'cocoa'
 	| 'forest'
 	| 'kodyo'
-	| 'markus';
+	| 'markus'
+	| 'terminal'
+	| 'editor';
 
 export interface ThemePreference {
 	mode: FollowMode;

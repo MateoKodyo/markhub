@@ -8,7 +8,8 @@
  * variables `color/*` et `border/*`).
  */
 
-:root[data-theme='markus'] {
+:root[data-theme='markus'],
+[data-theme='markus'] {
 	/* Canvas — neutral dark scale, floor at #181A1D (sidebar = darkest) */
 	--color-bg-sidebar: #181a1d;
 	--color-bg: #1d1f22;

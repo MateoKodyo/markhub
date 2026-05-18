@@ -26,6 +26,8 @@
 @import './styles/themes/forest.css';
 @import './styles/themes/kodyo.css';
 @import './styles/themes/markus.css';
+@import './styles/themes/terminal.css';
+@import './styles/themes/editor.css';
 
 :root {
 	/* ============================================================

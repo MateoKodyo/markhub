@@ -1,0 +1,73 @@
+/* Editor — Cursor-inspired dark theme.
+ *
+ * Goal: make Markhub feel native next to a Cursor window. The palette is
+ * keyed on the Cursor welcome screen: near-pure-black neutral canvas
+ * (zero hue), flat raised cards, light cool blue as the single accent
+ * (the "Settings" link and the Agents Window pill).
+ *
+ * Distinction from other dark themes: Editor is the flattest, coolest,
+ * least decorative of the set. No warm tint, no ambient glow color —
+ * just black, white, and a single cool-blue accent.
+ */
+
+:root[data-theme='editor'],
+[data-theme='editor'] {
+	/* Canvas — neutral near-pure-black, no hue */
+	--color-bg-sidebar: #0c0c0c;
+	--color-bg: #0f0f0f;
+	--color-bg-raised: #1a1a1a;
+
+	/* Surfaces — neutral white veils */
+	--color-surface-veil: rgba(255, 255, 255, 0.025);
+	--color-surface-active: rgba(255, 255, 255, 0.05);
+	--color-surface-hover: rgba(255, 255, 255, 0.03);
+	--color-surface-strong: rgba(255, 255, 255, 0);
+
+	/* Borders — slightly stronger than warm themes since flat bg has no depth */
+	--color-border-strong: rgba(255, 255, 255, 0.12);
+	--color-border: rgba(255, 255, 255, 0.07);
+	--color-border-subtle: rgba(255, 255, 255, 0.04);
+
+	/* Text — flat neutral gray scale, no warmth */
+	--color-text-primary: #e8e8e8;
+	--color-text-body: #b0b0b0;
+	--color-text-secondary: #888888;
+	--color-text-muted: #666666;
+	--color-text-disabled: #454545;
+
+	/* Interactive — flat dark pill */
+	--color-button-bg: #1f1f1f;
+	--color-button-text: #e8e8e8;
+	--color-button-bg-hover: #2a2a2a;
+
+	/* Accent — Cursor's signature light cool blue */
+	--color-accent: #7da3d9;
+	--color-accent-hover: #93b5e3;
+	--color-accent-text: #0f0f0f;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(125, 163, 217, 0.28);
+
+	/* Status */
+	--color-status-ok: #4ade80;
+	--color-status-warn: #fbbf24;
+	--color-status-error: #f87171;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(248, 113, 113, 0.08);
+	--color-danger-border: rgba(248, 113, 113, 0.25);
+
+	--color-backdrop: rgba(0, 0, 0, 0.6);
+
+	/* Shadows — deeper drops since the flat bg has no depth */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.45);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.28);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+	/* Ambient — minimal, just a faint blue corner glow */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(125, 163, 217, 0.03), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(125, 163, 217, 0.02), transparent 55%);
+}

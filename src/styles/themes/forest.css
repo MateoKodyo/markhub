@@ -6,7 +6,8 @@
  * The canvas is olive-tinted near-black, never pure gray, never green-loud.
  */
 
-:root[data-theme='forest'] {
+:root[data-theme='forest'],
+[data-theme='forest'] {
 	/* Canvas — deep moss / forest floor, slight olive warmth */
 	--color-bg-sidebar: #161a14;
 	--color-bg: #1c211b;

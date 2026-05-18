@@ -16,7 +16,9 @@ export type ThemeId =
 	| 'cocoa'
 	| 'forest'
 	| 'kodyo'
-	| 'markus';
+	| 'markus'
+	| 'terminal'
+	| 'editor';
 
 export type ThemeFamily = 'light' | 'dark';
 
@@ -74,6 +76,20 @@ export const THEMES: readonly ThemeMeta[] = [
 		family: 'dark',
 		description: 'Landing-page palette: neutral near-black with a sage accent.',
 		accentName: 'Sage'
+	},
+	{
+		id: 'terminal',
+		name: 'Terminal',
+		family: 'dark',
+		description: 'Warp-inspired: cool-neutral dark with indigo tonic accent.',
+		accentName: 'Indigo'
+	},
+	{
+		id: 'editor',
+		name: 'Editor',
+		family: 'dark',
+		description: 'Cursor-inspired: flat near-pure-black with a cool blue accent.',
+		accentName: 'Cursor Blue'
 	}
 ] as const;
 

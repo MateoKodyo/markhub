@@ -7,7 +7,8 @@
  * across every theme.
  */
 
-:root[data-theme='markhub-dark'] {
+:root[data-theme='markhub-dark'],
+[data-theme='markhub-dark'] {
 	/* Canvas — warm near-black, never blue-tinted.
 	 * Three-tier hierarchy (darkest → lightest):
 	 *   --color-bg-sidebar : sidebar / chrome (most recessed)

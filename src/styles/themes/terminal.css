@@ -1,0 +1,78 @@
+/* Terminal — Warp-inspired dark theme.
+ *
+ * Goal: make Markhub feel native next to a Warp window. The palette is
+ * keyed on the Warp default macOS dark theme: cool-neutral dark canvas
+ * (lighter than markhub-dark, faint blue-gray bias), near-white cool
+ * text scale, and an indigo tonic accent — hsla(235, 56%, 56%).
+ *
+ * Distinction from markhub-dark: markhub-dark is also Warp-inspired but
+ * runs a warm-near-black canvas with a brighter blue. Terminal stays
+ * cool, lighter, with a deeper indigo so it slots beside an actual Warp
+ * window without visual disagreement.
+ */
+
+:root[data-theme='terminal'],
+[data-theme='terminal'] {
+	/* Canvas — Warp default macOS palette: cool-neutral, lighter than
+	 * markhub-dark, with a tiny blue-gray bias (never warm). The sidebar
+	 * sits 2-3 units darker than main — the chrome reads as one surface
+	 * with a soft demarcation, not a hard contrast jump. */
+	--color-bg-sidebar: #1b1c1f;
+	--color-bg: #1e1f22;
+	--color-bg-raised: #2a2b2e;
+
+	/* Surfaces — neutral white veils, tuned to the lighter canvas so
+	 * active/hover states don't overshoot. */
+	--color-surface-veil: rgba(255, 255, 255, 0.03);
+	--color-surface-active: rgba(255, 255, 255, 0.05);
+	--color-surface-hover: rgba(255, 255, 255, 0.03);
+	--color-surface-strong: rgba(255, 255, 255, 0);
+
+	/* Borders */
+	--color-border-strong: rgba(255, 255, 255, 0.14);
+	--color-border: rgba(255, 255, 255, 0.08);
+	--color-border-subtle: rgba(255, 255, 255, 0.04);
+
+	/* Text — Warp's cool white scale (no warm parchment) */
+	--color-text-primary: #ececec;
+	--color-text-body: #c2c2c4;
+	--color-text-secondary: #8e8e90;
+	--color-text-muted: #6e6e70;
+	--color-text-disabled: #4a4a4c;
+
+	/* Interactive — dark pill matched to bg-raised */
+	--color-button-bg: #2f3033;
+	--color-button-text: #ececec;
+	--color-button-bg-hover: #3a3b3e;
+
+	/* Accent — Warp tonic indigo, hsla(235, 56%, 56%) */
+	--color-accent: #505ace;
+	--color-accent-hover: #7078d7;
+	--color-accent-text: #ffffff;
+	--color-accent-fg: var(--color-accent-text);
+	--color-selection: rgba(80, 90, 206, 0.32);
+
+	/* Status — bright green ok, amber warn, red error (Warp shell palette) */
+	--color-status-ok: #5dd68d;
+	--color-status-warn: #e6b800;
+	--color-status-error: #ed5a4a;
+	--color-success: var(--color-status-ok);
+	--color-warning: var(--color-status-warn);
+	--color-danger: var(--color-status-error);
+	--color-danger-bg: rgba(237, 90, 74, 0.1);
+	--color-danger-border: rgba(237, 90, 74, 0.28);
+
+	--color-backdrop: rgba(0, 0, 0, 0.55);
+
+	/* Shadows */
+	--shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.22);
+	--shadow-md: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.22);
+	--shadow-lg: var(--shadow-popover);
+	--shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.42), 0 2px 4px rgba(0, 0, 0, 0.25);
+
+	/* Ambient — soft indigo wash top, neutral fade bottom */
+	--gradient-ambient:
+		radial-gradient(ellipse 1200px 600px at 50% -20%, rgba(80, 90, 206, 0.05), transparent 60%),
+		radial-gradient(ellipse 800px 600px at 100% 110%, rgba(255, 255, 255, 0.02), transparent 55%);
+}

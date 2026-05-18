@@ -9,7 +9,8 @@
  * themes.
  */
 
-:root[data-theme='kodyo'] {
+:root[data-theme='kodyo'],
+[data-theme='kodyo'] {
 	/* Canvas — Velours Bordeaux scale (sidebar darkest, warmer hue 28) */
 	--color-bg-sidebar: #1c0b09;
 	--color-bg: #231517;

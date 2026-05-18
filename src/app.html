@@ -14,7 +14,16 @@
 			(function () {
 				try {
 					var cached = localStorage.getItem('markhub.theme.cache');
-					var known = ['markhub-light', 'markhub-dark', 'cocoa', 'forest'];
+					var known = [
+						'markhub-light',
+						'markhub-dark',
+						'cocoa',
+						'forest',
+						'kodyo',
+						'markus',
+						'terminal',
+						'editor'
+					];
 					if (cached && known.indexOf(cached) >= 0) {
 						document.documentElement.setAttribute('data-theme', cached);
 						return;

@@ -10,9 +10,18 @@ import {
 
 describe('theming catalog', () => {
 	// ------ TC.1 — catalog growth tracking ------
-	it('exposes the 6 curated themes (4 originals + kodyo + markus)', () => {
+	it('exposes the 8 curated themes (originals + terminal + editor)', () => {
 		const ids = THEMES.map((t) => t.id).sort();
-		expect(ids).toEqual(['cocoa', 'forest', 'kodyo', 'markhub-dark', 'markhub-light', 'markus']);
+		expect(ids).toEqual([
+			'cocoa',
+			'editor',
+			'forest',
+			'kodyo',
+			'markhub-dark',
+			'markhub-light',
+			'markus',
+			'terminal'
+		]);
 	});
 
 	// ------ TC.2 — every theme entry carries the full metadata shape ------
@@ -50,9 +59,17 @@ describe('theming catalog', () => {
 		const dark = getThemesByFamily('dark');
 		expect(light.every((t) => t.family === 'light')).toBe(true);
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
-		// Light family: 2 themes. Dark family: 4 themes (2 originals + 2 new).
+		// Light family: 2 themes. Dark family: 6 themes (markhub-dark, forest,
+		// kodyo, markus, terminal, editor).
 		expect(light.map((t) => t.id).sort()).toEqual(['cocoa', 'markhub-light']);
-		expect(dark.map((t) => t.id).sort()).toEqual(['forest', 'kodyo', 'markhub-dark', 'markus']);
+		expect(dark.map((t) => t.id).sort()).toEqual([
+			'editor',
+			'forest',
+			'kodyo',
+			'markhub-dark',
+			'markus',
+			'terminal'
+		]);
 	});
 
 	// ------ TC.6 — isThemeId narrows arbitrary strings ------
@@ -63,6 +80,8 @@ describe('theming catalog', () => {
 		expect(isThemeId('forest')).toBe(true); // added in STEP 3
 		expect(isThemeId('kodyo')).toBe(true); // PLAN-THEMES-V2
 		expect(isThemeId('markus')).toBe(true); // PLAN-THEMES-V2
+		expect(isThemeId('terminal')).toBe(true); // Warp-inspired
+		expect(isThemeId('editor')).toBe(true); // Cursor-inspired
 		expect(isThemeId('light')).toBe(false); // legacy value — must NOT match
 		expect(isThemeId('')).toBe(false);
 		expect(isThemeId('nonsense')).toBe(false);
