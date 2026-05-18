@@ -3210,3 +3210,129 @@ Refonte de `SettingsAppearance.svelte` pour passer d'un live-update (chaque inpu
 3. **Possible piste alternative** : peut-être que `defaultStyles` peut être désactivé sur l'instance, et on reprend manuellement uniquement les règles qui nous concernent. Plus risqué mais plus propre.
 4. **Une fois résolu** : retirer le `console.log` diagnostic dans `+page.svelte`, retirer le `!important` si plus nécessaire, commit tout l'ensemble en un ou deux commits propres.
 5. **Refresh STATE.md** avec l'état final.
+---
+
+# Session 2026-05-18 (soir, autonome yolo) — PLAN-LIGHT-THEMES STEPS 1-3 + Settings refonte + FloatingBar
+
+> Mission : 3 chantiers cumulés en une longue session. (1) Refonte UI Settings/Apparence avec bouton Apply pour la typo, (2) intégration de la FloatingBar Figma centrée en bas de l'éditeur, (3) attaque autonome de PLAN-LIGHT-THEMES (STEPS 1-3, STEP 4 Playwright différé).
+
+## État au démarrage
+
+- `main` à `66c22de` (commit Terminal + Editor themes shipped en début de session).
+- Tâche encore non résolue de la session précédente : taille de police / line-height de l'éditeur ne s'appliquent pas (commenté "deferred" dans le code).
+- 8 thèmes (6 dark + 2 light : `markhub-light`, `cocoa`).
+- `src-tauri/{Cargo.lock,Cargo.toml,tauri.conf.json}` non-staged hérités, `screenshots-ui/` untracked — pas touchés.
+
+## Livré et commité — 5 commits cette session
+
+### Commit `08306f6` — feat(editor): floating action bar + Settings Apparence refonte
+
+- **FloatingBar** : nouveau composant `src/lib/components/FloatingBar.svelte` qui matche le Figma `markus-app/floating-bar` (node 245:275). Pill centrée en bas de l'éditeur, sticky pendant que un doc est ouvert. Container 42px de haut, padding 6/8, border-radius 11px, bg `--color-bg-raised` + shadow popover. Contenu (gauche → droite) :
+  - Search input (180×24) — click → ouvre la FindBar (Cmd+F)
+  - Download → export markdown (réutilise `exportActiveFile`)
+  - Copy → nouvelle action `copyActiveFileContent` (presse-papier)
+  - **Mode picker 3 segments** : Eye (preview) / SquareSplitHorizontal (disabled, "à venir") / Code (source). Sliding indicator absolu qui glisse entre segments via transform translateX + var --seg-index, 220ms cubic-bezier(0.4,0,0.2,1). Pattern Apple-style.
+  - List → toggle outline (réutilise `uiStateStore.toggleOutline()`)
+- **Mask gradient** sur `.canvas-scroll` (Editor.svelte) : 72px de fade vers transparent au bas pour que le texte passe sous la pill sans clash visuel. Source mode obtient son `padding-bottom: 96px` interne au textarea (pas au canvas) pour ne pas créer un trou vide visible.
+- **Outline panel** : fix `min-width: 0; overflow: hidden;` sur `.outline-panel` — bug où le contenu (longues lignes "Drag-drop FROM Finder...") expandait le panel à ~700px au lieu de respecter le flex basis de 260px. Le `.outline-text` truncate correctement maintenant.
+- **StatusBar pill-icon** : strict 24×24 + `flex-shrink: 0` + `.pill-icon :global(svg) { width: 12px; height: 12px }` — uniformise les icônes Lucide qui ont chacune leur largeur intrinsèque variable.
+- **Settings Apparence** : sliders typo (Taille / Hauteur / Largeur) remplacés par `<input type="number">` alignés à droite, unités déplacées dans le label `(px)` / `(%)`, spinners natifs masqués, tabular-nums, focus ring sur accent du thème actif.
+- **Bouton "Appliquer" pour la typo** : refonte de `SettingsAppearance.svelte` avec pattern draft + commit. 4 `$state` locaux (draftFont, draftFontSize, draftLineHeight, draftContentWidth), `isDirty` derived, bouton Appliquer dans le header du bloc Aperçu, disabled tant que pas dirty. L'aperçu intra-modale reflète le draft live ; l'éditeur ne bouge que sur clic Appliquer.
+- **Câblage body typography** : ajout des vars `--editor-body-font-size` / `--editor-body-line-height` dans `app.css` + push depuis `+page.svelte` $effect + sélecteur deep dans `editor-blocknote.css` ciblant `.bn-block-content[data-content-type='paragraph'|'bulletListItem'|...] .bn-inline-content` avec `!important`. Sortie de l'impasse multi-sessions précédente : le bug n'était PAS la cascade BlockNote mais le sélecteur initial `.preview .bn-editor p` qui ne matchait pas le vrai DOM rendu (`p.bn-inline-content` enfoui à 5 niveaux dans `.bn-block-content`). Audit profond du code source `node_modules/@blocknote/core` qui a permis de comprendre. Diagnostic console.log temporaire laissé dans `+page.svelte` (à virer en STEP 2 ou prochain commit cosmétique).
+- **ThemePicker** : preview cards refactor — "Titre" placeholder remplacé par `{meta.name}`, footer (name + accentName) supprimé, padding-top de la slot bumpé à 32px pour respirer sous la ligne Mode. Sous-phrase Mode supprimée. Per-card cascade des tokens fix via dual sélecteur `:root[data-theme='X'], [data-theme='X']` ajouté aux 8 fichiers de thème — sans ça les mini-previews montraient les couleurs du thème actif au lieu de leur propre palette.
+
+### Commit `826f960` — feat(themes): PLAN-LIGHT-THEMES STEP 1 (six light themes)
+
+- **`markhub-light` réécrit** avec la palette sage du plan (accent `#567150`, bg `#F7F8F5`). Remplace l'ancien indigo `#2563EB`.
+- **5 nouveaux thèmes light** créés dans `src/styles/themes/` : `terracotta.css` (Anthropic cream + `#D97757`), `rose.css` (Rosé Pine Dawn dusty pink + plum primary text + `#B4637A`), `amber.css` (Solarized Light + `#B58900`), `ink.css` (bone white + editorial red `#A82831`), `plum.css` (lavender + violet `#765290`).
+- **`cocoa` supprimé** : son slot sémantique est remplacé par Terracotta (mood proche : cream + accent warm, mais palette officielle Anthropic). Migration users gratis : `mergeWithDefaults` rabat un `lightTheme: 'cocoa'` orphelin sur `markhub-light` au prochain launch.
+- **13 hex values par thème lockés** par le plan, calibrés pour WCAG AA/AAA. Tokens projet dérivés (sidebar, surface veils, body/muted text, buttons, status aliases, danger surface, shadows, ambient) suivent la convention existante des dark themes.
+- **Convention décidée** : `bg-sidebar = bg-raised` pour les light themes — le plan inverse la hiérarchie habituelle (bg-raised _plus sombre_ que bg en light) → bg-raised devient naturellement la surface du sidebar. Différent de la convention dark où sidebar < bg < bg-raised.
+- **Anti-hex audit** : 5 violations dans les composants corrigées — `ConfirmDialog.is-danger:hover`, `SettingsAdvanced.is-error`, `FrontmatterBlock.frontmatter--error` (bg + border), `Toast.toast-{success,warning,error}-icon` → toutes passent en `var(--color-status-*)` ou `color-mix()` du token. Les 3 `var(--color-X, #fff)` fallbacks défensifs dans FrontmatterBlock conservés (safety nets non déclenchés en pratique).
+- **Wiring** : `catalog.ts` + `tauri/types.ts` étendus à 12 thèmes, `app.css` ajoute 5 imports, `app.html` whitelist pre-hydration mise à jour aux 12 IDs. Description `markhub-light` passe de "Indigo" à "Sage".
+- **Tests catalog** étendus : 12 thèmes au total (6 light + 6 dark), assertions per-family complètes, isThemeId vérifie l'absence de 'cocoa' explicitement.
+- **Tests visuels** : `tests/visual/_helpers.ts` rename `cocoa` → `terracotta` dans le type union. `tests/visual/light-mode.spec.ts` à fixer plus tard (cf commit cleanup).
+
+### Commit `bf9bc1f` — chore(themes): post-review cleanup
+
+Suivi du code review senior dispatché après `826f960`. 5 issues "Important" identifiés, 4 traités ici (le 5e — sélecteur mort BlockNote — folded dans STEP 2) :
+
+- **`ThemeId` dédupliqué** : `src/lib/tauri/types.ts` ne porte plus la union en parallèle, il re-export depuis `$lib/theming/catalog`. Single source of truth — ajouter/retirer un thème propage automatiquement.
+- **`tests/visual/light-mode.spec.ts:89`** fix assert cassé silencieusement (`samples.theme` est `'markhub-light'`, pas `'light'`).
+- **5 commentaires obsolètes** scrubbed : catalog header (refs Solar/Tokyo STEPs), settings.svelte.ts (solar→cocoa mapping), `_visual/+page.svelte` (cocoa example), SettingsAppearance test (Cocoa default), theming-manager test (Solar future-tense).
+- **`settings.svelte.ts::load()`** persist quand `mergeWithDefaults` normalise un orphan id (avant : `cocoa` était rabattu en mémoire mais restait sur disque indéfiniment, in-memory-rewritten à chaque cold start).
+
+### Commit `70a4317` — feat(themes): PLAN-LIGHT-THEMES STEP 2 (BlockNote bridging)
+
+Audit complet de l'état du bridge `editor-blocknote.css`. La majorité du travail était déjà fait dans les sessions antérieures (drop indicator → accent ✅, link color → accent ✅, code block bg ✅, blockquote, tables, selected node, etc.). 3 fix nécessaires :
+
+- **Code block bg** : switch `--color-surface-veil` → `--color-bg-raised` per plan spec. Sur les light themes, ça lit comme un panneau de code recessed (matche le mood "carte papier"). Sur les dark themes, le code block lift visiblement au-dessus du canvas.
+- **`::selection` styling** : ajout d'une règle scopée `.preview .bn-editor ::selection { background: var(--color-selection) }`. Avant, c'était le bleu OS par défaut qui clashait franchement sur les warm themes (Ink, Amber, Terracotta). `--color-selection` = accent à 18-30% alpha par thème.
+- **Sélecteur mort** `:root[data-theme='light']` (anciennes lignes 301-307) supprimé : l'id n'existe plus dans le catalog, et la règle code-block `<select>` qu'il portait est déjà couverte par le générique de section 3.
+
+Audit BlockNote source confirme : v0.50 expose seulement **6 vars `--bn-*`** (`--bn-colors-editor-text`, `--bn-colors-hovered-background`, `--bn-colors-side-menu`, `--bn-border-radius-small`, `--bn-table-handle-size`, `--bn-table-widget-size`) — les 4 premières sont mappées sur tokens Markhub. Les variables `--N800` / `--N40` declared sur `.bn-editor` sont des reliquats Atlassian non utilisés (vérifié par grep dans le dist) — safe à ignorer.
+
+### Commit `e891e22` — feat(dev): debug shortcut Cmd+Shift+T
+
+PLAN-LIGHT-THEMES STEP 3. Press Cmd+Shift+T (Ctrl+Shift+T elsewhere) pour avancer dans la light family en palette order (markhub-light → terracotta → rose → amber → ink → plum → wrap).
+
+- Nouveau `src/lib/dev/themeCycler.ts` : table CYCLE + fonction pure `nextThemeId()` + handler keydown
+- **Strictement ephemeral** : écrit seulement `<html data-theme="...">`, ne touche pas le settings store ni le theme manager. Refresh → reset à la pref persistée. Plan-conforme.
+- Toast info 1.5s avec le nom du thème actif comme feedback.
+- **Production safety** : `if (import.meta.env.DEV)` dans `+page.svelte` + import dynamique `import('$lib/dev/themeCycler')` → Vite tree-shake le module du bundle production. Gated au niveau du `$effect` plutôt que dans le module pour que tout call-site lifecycle (incluant cleanup) reste typé propre.
+- Implémenté avec `$effect` plutôt que onMount parce que onMount Svelte ne supporte pas le return d'un teardown depuis un path async — `$effect`'s cleanup contract est natif.
+
+## Tests automatiques
+
+| Suite | Avant | Après | Δ |
+|---|---|---|---|
+| cargo test | 156 | 156 | 0 (Rust non touché) |
+| vitest | 544 | 543 | -1 (regroupement test SettingsAppearance — 3 anciens "input → store" → 1 batch + 1 disable test = -1 net) |
+| svelte-check | 0/0 | 0/0 | inchangé |
+| `npm run build` | OK | OK | inchangé |
+
+## Décisions prises (en autonomie)
+
+- **Cocoa dropped** : option 1 du choix proposé (drop cocoa, Terracotta du plan le remplace). 6 light strict comme dans le plan. Migration users gérée par le fallback mergeWithDefaults existant.
+- **Convention `bg-sidebar = bg-raised` pour light themes** : naturelle vu que le plan inverse la hiérarchie de raised en light (bg-raised plus sombre que bg = surface recessed). Sidebar prend la même valeur.
+- **6 fichiers individuels** dans `src/styles/themes/` plutôt qu'un seul `themes-light.css` comme suggéré par le plan : cohérence avec la convention des 6 dark themes. Plan deviation assumée et documentée.
+- **`!important` conservé sur le sélecteur deep body typography** : défensif vu l'opacité de l'ordre de chargement BN vs nôtre dans Vite. Bug historique trop coûteux à risker un retour. Commentaire explicite dans le CSS.
+- **Branch `feat/light-themes` du plan ignorée** : memory override "Matheo commit direct sur main".
+- **STEP 4 Playwright SKIPPÉ pour cette session yolo** : trop risqué sans supervision (snapshots flakeux, dev server à orchestrer, screenshots × 24 baselines, debug d'échecs visuels nécessite œil humain). À reprendre demain avec Matheo en supervision.
+
+## Hors-scope / différé
+
+- **STEP 4 (Playwright baselines)** : 6 thèmes × ~3-4 états = ~18-24 screenshots à générer + commit dans `tests/visual/light-themes/`. Plan-compatible, à attaquer en session supervisée.
+- **Diagnostic console.log** dans `+page.svelte` ($effect appearance bridge) : laissé en place — vrai test du wiring body typography reste à faire en live. Si le smoke test confirme que la taille s'applique maintenant, retirer le log au prochain commit cosmétique.
+- **PLAN-THEMING-UDPATE.md** (la version sage signature pour 4 thèmes initialement présentée) : reste untracked dans le working tree, contradictoire avec PLAN-LIGHT-THEMES qui est la version définitive. À archiver dans `plan-110526/` ou supprimer.
+- **Cocoa migration côté code** : pas de migration explicite (orphan fallback fait le job). Si tu veux un message toast "votre thème Cocoa a été remplacé par Markhub Light (Sage)", c'est une feature en plus à faire.
+- **Settings round-trip persist** : la détection d'orphan ne couvre que `lightTheme` / `darkTheme`. Si un futur `themeMode` invalide apparaissait il ne serait pas détecté (mais `mergeWithDefaults` ne re-normalise pas themeMode aujourd'hui, donc c'est cohérent).
+
+## Fichiers touchés
+
+- **créés** : `PLAN-LIGHT-THEMES.md` (plan source), `src/styles/themes/{terracotta,rose,amber,ink,plum}.css`, `src/lib/components/FloatingBar.svelte`, `src/lib/dev/themeCycler.ts`
+- **supprimés** : `src/styles/themes/cocoa.css`
+- **modifiés** : `src/styles/themes/{markhub-light,markhub-dark,cocoa,forest,kodyo,markus,terminal,editor}.css` (dual sélecteur), `src/lib/styles/editor-blocknote.css` (3 fix STEP 2), `src/lib/components/{ThemePicker,SettingsAppearance,Editor,OutlinePanel,StatusBar,ConfirmDialog,FrontmatterBlock,SettingsAdvanced,Toast}.svelte`, `src/routes/+page.svelte` (FloatingBar wiring + body typography $effect + setEditorMode + copyContent + dev cycler + diagnostic log), `src/app.css` (defaults vars + imports), `src/app.html` (whitelist), `src/lib/tauri/types.ts` (re-export), `src/lib/theming/catalog.ts` (+5 entrées light + descriptions), `src/lib/stores/settings.svelte.ts` (normalize-persist)
+- **tests** : `tests/unit/{theming-catalog,theming-manager}.test.svelte.ts`, `tests/component/SettingsAppearance.test.svelte.ts`, `tests/visual/{light-mode.spec.ts,_helpers.ts}`
+- **non touchés mais toujours dirty depuis le début** : `BACKLOG.md` (typo accidentel "BAl¨KLOG"), `src-tauri/{Cargo.lock,Cargo.toml,tauri.conf.json}`, `screenshots-ui/` (untracked), `PLAN-THEMING-UDPATE.md` (untracked, plan obsolète)
+
+## État repo en fin de session
+
+- `main` à **`e891e22`**, **9 commits d'avance** sur `origin/main`. Push à Matheo.
+- Working tree propre côté theming, dirty seulement sur les fichiers pré-existants non touchés (cf. plus haut).
+- Branche unique `main`, plus de feature branch.
+
+## Prochaine session — checklist de reprise (smoke test Matheo)
+
+1. **Lancer l'app** (`npm run tauri dev`). Au boot, doit utiliser le thème persisté (probablement `markhub-light` sage si tu étais en light, ou ton dark theme actuel).
+2. **FloatingBar** : ouvrir un .md → vérifier la pill centrée en bas avec les 7 éléments. Tester chaque (search, download, copy, mode picker avec slide, list).
+3. **Settings → Apparence** :
+    - Slot light affiche 6 cartes : Markhub Light (sage) / Terracotta / Rosé / Amber / Ink / Plum
+    - Slot dark inchangé (6 cartes : markhub-dark, forest, kodyo, markus, terminal, editor)
+    - Mini-previews dans chaque carte respectent les couleurs propres du thème
+    - Cliquer chaque light card → confirmer que l'app change correctement
+    - Réglages typo (font/size/lineheight/width) → modifier → cliquer "Appliquer" → vérifier que l'éditeur change ENFIN (cf. bug historique multi-sessions). Si oui, retirer le diagnostic console.log dans `+page.svelte` au prochain commit.
+4. **Debug shortcut** : Cmd+Shift+T → doit cycler les 6 light themes en ordre avec un toast à chaque pression. Cmd+Shift+T plusieurs fois → wrap. Refresh → reset au theme settings.
+5. **STEP 4 (Playwright baselines)** à attaquer en session supervisée — 18-24 screenshots × 6 themes.
+6. **Cocoa migration smoke** : si tu avais `lightTheme: 'cocoa'` dans ton settings.json avant cette session, vérifie que le launch a écrit `'markhub-light'` à disque (et pas juste in-memory).
+7. **Hygiène** : décider du sort des fichiers untracked (`PLAN-THEMING-UDPATE.md` à archiver/supprimer, `screenshots-ui/` à committer ou .gitignore, `src-tauri/*` dirty depuis longtemps à juger).
