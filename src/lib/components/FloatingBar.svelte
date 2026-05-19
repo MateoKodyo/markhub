@@ -61,10 +61,10 @@
 	data-testid="floating-bar"
 	data-position={position}
 >
+	<!-- Search — full input with placeholder in horizontal mode (180×24),
+	     collapses to a square icon button in vertical (the placeholder
+	     text would be too wide for the right-edge column). -->
 	{#if isVertical}
-		<!-- Vertical / right-edge mode — minimal: search only. The pop-up
-		     (in-doc find bar) covers any other action via the command
-		     palette path, so we keep the surface intentionally quiet. -->
 		<button
 			type="button"
 			class="icon-btn"
@@ -76,20 +76,18 @@
 			<Search size={14} aria-hidden="true" focusable="false" />
 		</button>
 	{:else}
-	<!-- Search input — click to open the in-doc find bar (Cmd+F). The
-	     placeholder is the only affordance; the actual query lives in the
-	     find bar that opens. -->
-	<button
-		type="button"
-		class="filter-row"
-		onclick={openFind}
-		data-testid="floating-bar-search"
-		aria-label="Rechercher dans le document"
-		title="Rechercher dans le document (⌘F)"
-	>
-		<Search size={12} aria-hidden="true" focusable="false" />
-		<span class="filter-placeholder">Search in doc</span>
-	</button>
+		<button
+			type="button"
+			class="filter-row"
+			onclick={openFind}
+			data-testid="floating-bar-search"
+			aria-label="Rechercher dans le document"
+			title="Rechercher dans le document (⌘F)"
+		>
+			<Search size={12} aria-hidden="true" focusable="false" />
+			<span class="filter-placeholder">Search in doc</span>
+		</button>
+	{/if}
 
 	<!-- Export current doc as markdown. Duplicates the StatusBar action —
 	     same handler, two surfaces. -->
@@ -124,6 +122,7 @@
 	     `--seg-index` custom property. -->
 	<div
 		class="mode-picker"
+		class:is-vertical={isVertical}
 		role="radiogroup"
 		aria-label="Mode d'affichage du document"
 		style="--seg-index: {segIndex}"
@@ -183,7 +182,6 @@
 	>
 		<List size={12} aria-hidden="true" focusable="false" />
 	</button>
-	{/if}
 </div>
 
 <style>
@@ -212,13 +210,13 @@
 		font-family: var(--font-ui);
 	}
 
-	/* Vertical / right-edge mode — collapses the bar into a single
-	   search-icon pill stuck to the right side, vertically centered.
-	   Same tokens (raised bg, border, shadow), tighter geometry: a
-	   small square with rounded corners. The pill is minimal because
-	   power-users in this mode rely on the command palette + keyboard
-	   shortcuts; the icon is a single tactile affordance for the
-	   in-doc find that's the only feature really tied to mouse flow. */
+	/* Vertical / right-edge mode — full set of actions stacked, stuck
+	   to the right side, vertically centered. Same tokens (raised bg,
+	   border, shadow), tighter geometry: 30px-wide column with the
+	   search compacted to an icon (the input placeholder would be too
+	   wide for the column). Download, copy, mode picker (rotated to a
+	   3-segment vertical stack), and outline all retained — the user
+	   keeps every horizontal-mode action, just laid out vertically. */
 	.floating-bar.is-vertical {
 		bottom: auto;
 		left: auto;
@@ -414,5 +412,28 @@
 	.seg:focus-visible {
 		outline: none;
 		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
+	}
+
+	/* Vertical mode picker — same 3 segments but stacked. Width becomes
+	   30px (single-icon column), height becomes ~90px (3 × 28 + gaps).
+	   The sliding indicator's transform flips from translateX to
+	   translateY, with width/height swapped on the indicator itself. */
+	.mode-picker.is-vertical {
+		flex-direction: column;
+		width: 30px;
+		height: auto;
+		padding: 1px;
+	}
+
+	.mode-picker.is-vertical .seg-indicator {
+		width: calc(100% - 2px);
+		height: calc((100% - 4px) / 3);
+		transform: translateY(calc(var(--seg-index, 0) * (100% + 1px)));
+	}
+
+	.mode-picker.is-vertical .seg {
+		width: 100%;
+		height: 28px;
+		flex: 0 0 28px;
 	}
 </style>
