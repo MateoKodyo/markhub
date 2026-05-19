@@ -19,8 +19,7 @@
 		Download,
 		Eye,
 		List,
-		Search,
-		SquareSplitHorizontal
+		Search
 	} from 'lucide-svelte';
 	import { findStore } from '$lib/stores/find.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
@@ -47,12 +46,12 @@
 		findStore.open();
 	}
 
-	// Active segment position for the sliding indicator (0/1/2 across
-	// preview / split / source). Split is never an active mode in code
-	// today, but the indicator can still rest there if we ever wire it.
-	const segIndex = $derived(
-		mode === 'preview' ? 0 : mode === 'source' ? 2 : 1
-	);
+	// Active segment position for the sliding indicator (0/1 across
+	// preview / source). The split-view third segment was removed —
+	// the feature isn't slated yet and the placeholder kept reading
+	// as "broken" rather than "anticipated". Re-add at index 1 when
+	// split lands, bumping source to index 2.
+	const segIndex = $derived(mode === 'preview' ? 0 : 1);
 </script>
 
 <div
@@ -114,12 +113,12 @@
 		<Copy size={12} aria-hidden="true" focusable="false" />
 	</button>
 
-	<!-- View mode picker — 3 segments. Split is shown but disabled (the
-	     side-by-side mode isn't implemented yet, surfaced visually so the
-	     final layout is anticipated). The active background is a single
-	     absolute-positioned `.seg-indicator` that slides between segments
-	     on mode change (Apple-style segmented control), driven by the
-	     `--seg-index` custom property. -->
+	<!-- View mode picker — 2 segments (preview rendered / source
+	     markdown). The split-view third segment was removed for now,
+	     to be re-added when the feature lands. The active background
+	     is a single absolute-positioned `.seg-indicator` that slides
+	     between segments on mode change (Apple-style segmented
+	     control), driven by the `--seg-index` custom property. -->
 	<div
 		class="mode-picker"
 		class:is-vertical={isVertical}
@@ -140,19 +139,6 @@
 			title="Mode rendu"
 		>
 			<Eye size={14} aria-hidden="true" focusable="false" />
-		</button>
-		<button
-			type="button"
-			class="seg"
-			role="radio"
-			aria-checked="false"
-			aria-disabled="true"
-			disabled
-			data-testid="floating-bar-mode-split"
-			aria-label="Mode split (à venir)"
-			title="Split view — à venir"
-		>
-			<SquareSplitHorizontal size={14} aria-hidden="true" focusable="false" />
 		</button>
 		<button
 			type="button"
@@ -224,10 +210,22 @@
 		top: 50%;
 		transform: translateY(-50%);
 
-		flex-direction: column;
+		/* `column-reverse` flips the visual order so the search icon
+		   (first in DOM, so it stays first for tab/screen-reader order)
+		   appears at the BOTTOM of the column. Outline ends up at the
+		   top, then mode picker / copy / download / search at the
+		   bottom — matches the editorial mental model of "the search is
+		   where my hand rests". */
+		flex-direction: column-reverse;
 		height: auto;
 		padding: 5px;
 		gap: 4px;
+
+		/* Discreet treatment: same bg as the editor canvas, no shadow.
+		   The bar reads as part of the chrome instead of a floating
+		   element — the user's eye doesn't need to dodge it. */
+		background: var(--color-bg);
+		box-shadow: none;
 	}
 
 	/* Icon-only button used in vertical mode (and reusable for any
@@ -340,15 +338,15 @@
 		color: var(--color-text-primary);
 	}
 
-	/* Mode picker — 3 segments laid out in 90×24 container. 1px outer
-	   padding, 1px gap so inner segments are 20px tall and ~28.6px wide.
+	/* Mode picker — 2 segments laid out in a ~60×24 container. 1px outer
+	   padding, 1px gap so inner segments are 20px tall and ~28.5px wide.
 	   `position: relative` anchors the absolute `.seg-indicator`. */
 	.mode-picker {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
 		gap: 1px;
-		width: 90px;
+		width: 60px;
 		height: 24px;
 		padding: 1px;
 
@@ -357,13 +355,13 @@
 	}
 
 	/* Sliding active-state indicator. Width = one segment slot (inner
-	   width minus 2 gaps, divided by 3). Translates by (own width + gap)
+	   width minus 1 gap, divided by 2). Translates by (own width + gap)
 	   per index step driven by `--seg-index` from the parent. */
 	.seg-indicator {
 		position: absolute;
 		top: 1px;
 		left: 1px;
-		width: calc((100% - 4px) / 3);
+		width: calc((100% - 3px) / 2);
 		height: 20px;
 		background: var(--color-button-bg);
 		border-radius: 4px;
@@ -427,7 +425,7 @@
 
 	.mode-picker.is-vertical .seg-indicator {
 		width: calc(100% - 2px);
-		height: calc((100% - 4px) / 3);
+		height: calc((100% - 3px) / 2);
 		transform: translateY(calc(var(--seg-index, 0) * (100% + 1px)));
 	}
 
