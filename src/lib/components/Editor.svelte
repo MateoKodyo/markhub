@@ -542,7 +542,23 @@
 				const off = thExt.store.subscribe(
 					(payload: { currentVal: unknown }) => {
 						const s = payload.currentVal as TableHandlesState | undefined;
-						tableHandlesState = s && s.show ? s : null;
+						if (!s || !s.show) {
+							tableHandlesState = null;
+							return;
+						}
+						// BN ships a "show: true" state with rowIndex/colIndex
+						// `undefined` when the cursor leaves a cell but is still
+						// below/right of the table (the moment the user moves
+						// from the hovered last cell toward the `+` button,
+						// which lives outside the table). Carry forward the
+						// last-known indices so a click on the `+` still has
+						// the row/col to operate on. Reset to fresh BN values
+						// when defined; only fall back when undefined.
+						tableHandlesState = {
+							...s,
+							rowIndex: s.rowIndex ?? tableHandlesState?.rowIndex,
+							colIndex: s.colIndex ?? tableHandlesState?.colIndex
+						};
 					}
 				);
 				if (typeof off === 'function') unsubscribers.push(off);
