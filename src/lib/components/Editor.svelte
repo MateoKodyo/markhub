@@ -554,10 +554,21 @@
 						// last-known indices so a click on the `+` still has
 						// the row/col to operate on. Reset to fresh BN values
 						// when defined; only fall back when undefined.
+						//
+						// Defensive: drop the shadow when BN reports a different
+						// table block than the previous tick — protects against
+						// a cursor that crosses directly from one table into the
+						// wrapper-below of another without visiting a cell of
+						// the second table (would otherwise carry stale indices
+						// across tables and silently no-op `addRowOrColumn`).
+						const prev =
+							tableHandlesState?.block?.id === s.block?.id
+								? tableHandlesState
+								: null;
 						tableHandlesState = {
 							...s,
-							rowIndex: s.rowIndex ?? tableHandlesState?.rowIndex,
-							colIndex: s.colIndex ?? tableHandlesState?.colIndex
+							rowIndex: s.rowIndex ?? prev?.rowIndex,
+							colIndex: s.colIndex ?? prev?.colIndex
 						};
 					}
 				);
@@ -763,6 +774,11 @@
 		tableHandlesExt.unfreezeHandles?.();
 	}
 
+	// Note on `tableHandlesState.rowIndex` / `.colIndex` reads below: these
+	// may carry the value from a previous tick (shadow), not BN's current
+	// truth. See the subscribe-coalesce block above. Required because BN
+	// nulls them out the moment the cursor leaves the cell, even though
+	// the `+` buttons are still rendered and clickable.
 	function onTableAddRow(side: 'above' | 'below') {
 		if (!tableHandlesExt || tableHandlesState?.rowIndex == null) return;
 		tableHandlesExt.addRowOrColumn?.(tableHandlesState.rowIndex, {
