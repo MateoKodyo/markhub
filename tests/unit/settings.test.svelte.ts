@@ -191,7 +191,8 @@ describe('settingsStore', () => {
 				editorLineHeight: 1.6,
 				editorContentWidth: 60,
 				editorFloatingBarPosition: 'bottom' as const,
-				highlightAiAware: true
+				highlightAiAware: true,
+				colorFolders: false
 			}
 		};
 		const merged = mergeWithDefaults(partial);
@@ -341,7 +342,8 @@ describe('settingsStore', () => {
 				editorLineHeight: 1.5,
 				editorContentWidth: 70,
 				editorFloatingBarPosition: 'bottom' as const,
-				highlightAiAware: true
+				highlightAiAware: true,
+				colorFolders: false
 			}
 		};
 		const merged = mergeWithDefaults(currentPayload);

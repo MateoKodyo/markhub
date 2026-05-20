@@ -116,6 +116,10 @@ pub struct AppearanceSettings {
     /// cleanly — the v2 → v3 upgrade is purely additive.
     #[serde(default = "default_highlight_ai_aware")]
     pub highlight_ai_aware: bool,
+    /// When true, sidebar folder icons are tinted with the theme accent.
+    /// `#[serde(default)]` → false for settings.json files without it.
+    #[serde(default)]
+    pub color_folders: bool,
 }
 
 fn default_floating_bar_position() -> String {
@@ -141,6 +145,7 @@ impl Default for AppearanceSettings {
             editor_content_width: 720,
             editor_floating_bar_position: default_floating_bar_position(),
             highlight_ai_aware: default_highlight_ai_aware(),
+            color_folders: false,
         }
     }
 }

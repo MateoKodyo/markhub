@@ -10,6 +10,7 @@
 	import { collectAncestors } from '$lib/utils/tree';
 	import { isMarkdownFile } from '$lib/utils/fileType';
 	import { aiAwareStore } from '$lib/stores/aiAware.svelte';
+	import { settingsStore } from '$lib/stores/settings.svelte';
 	import InlineInput from './InlineInput.svelte';
 	import AiAwareBadge from './AiAwareBadge.svelte';
 	import type { FileEntry } from '$lib/tauri/types';
@@ -182,6 +183,8 @@
 		return null;
 	}
 
+	const colorFolders = $derived(settingsStore.current.appearance.colorFolders);
+
 	const displayRoot = $derived(root ? filterTree(root, filter) : null);
 	const isEmpty = $derived(
 		!displayRoot || !displayRoot.children || displayRoot.children.length === 0
@@ -305,6 +308,7 @@
 <div
 	class="tree-wrap"
 	class:is-root-drop-target={rootDropActive}
+	class:color-folders={colorFolders}
 	oncontextmenu={onRootContextMenu}
 	onclick={onEmptyAreaClick}
 	ondragover={handleRootDragOver}
@@ -581,6 +585,12 @@
 
 	.directory.is-expanded > .row > .icon-folder {
 		color: var(--color-text-primary);
+	}
+
+	/* "Colored folders" appearance setting — tint every folder icon with
+	   the theme accent. Selector outranks the two rules above. */
+	.tree-wrap.color-folders .directory > .row > .icon-folder {
+		color: var(--color-accent);
 	}
 
 	.directory > .row > .name {

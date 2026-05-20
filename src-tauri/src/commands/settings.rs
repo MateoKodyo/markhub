@@ -274,6 +274,7 @@ mod tests {
         assert!((s.appearance.editor_line_height - 1.6).abs() < f64::EPSILON);
         assert_eq!(s.appearance.editor_content_width, 720);
         assert!(s.appearance.highlight_ai_aware);
+        assert!(!s.appearance.color_folders);
         assert_eq!(s.editor.autosave_delay_ms, 1500);
         assert!(s.editor.spell_check);
         assert_eq!(s.source.mono_font, "geist-mono");

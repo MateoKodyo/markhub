@@ -98,6 +98,9 @@ export type AppearanceSettings = {
 	 *  When false those hints are hidden — the AI Context panel stays
 	 *  available regardless (PLAN-AI-READY). */
 	highlightAiAware: boolean;
+	/** When true, sidebar folder icons are tinted with the theme accent
+	 *  colour. Default false (folders stay neutral). */
+	colorFolders: boolean;
 };
 
 export type EditorSettings = {
@@ -149,7 +152,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 		editorLineHeight: 1.6,
 		editorContentWidth: 60,
 		editorFloatingBarPosition: 'bottom',
-		highlightAiAware: true
+		highlightAiAware: true,
+		colorFolders: false
 	},
 	editor: {
 		autosaveDelayMs: 1500,

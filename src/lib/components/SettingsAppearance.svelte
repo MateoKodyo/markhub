@@ -96,6 +96,18 @@
 			appearance: { ...cur.appearance, highlightAiAware: next }
 		});
 	}
+
+	// Colored folders — instant-apply boolean.
+	const colorFolders = $derived(stored.colorFolders);
+
+	function setColorFolders(next: boolean): void {
+		const cur = settingsStore.current;
+		if (cur.appearance.colorFolders === next) return;
+		settingsStore.set({
+			...cur,
+			appearance: { ...cur.appearance, colorFolders: next }
+		});
+	}
 </script>
 
 <div class="settings-section">
@@ -278,6 +290,43 @@
 					aria-checked={!highlightAiAware}
 					onclick={() => setHighlightAiAware(false)}
 					data-testid="highlight-ai-aware-off"
+				>
+					<span>Désactivé</span>
+				</button>
+			</div>
+		</div>
+
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<span class="settings-row-label">Dossiers colorés</span>
+				<span class="settings-row-desc">
+					Teinte les icônes de dossier avec la couleur d'accent du thème.
+				</span>
+			</div>
+			<div
+				class="settings-segmented"
+				role="radiogroup"
+				aria-label="Coloration des dossiers"
+			>
+				<button
+					type="button"
+					class="settings-segment"
+					class:active={colorFolders}
+					role="radio"
+					aria-checked={colorFolders}
+					onclick={() => setColorFolders(true)}
+					data-testid="color-folders-on"
+				>
+					<span>Activé</span>
+				</button>
+				<button
+					type="button"
+					class="settings-segment"
+					class:active={!colorFolders}
+					role="radio"
+					aria-checked={!colorFolders}
+					onclick={() => setColorFolders(false)}
+					data-testid="color-folders-off"
 				>
 					<span>Désactivé</span>
 				</button>
