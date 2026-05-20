@@ -24,6 +24,7 @@
 	import InputDialog from './InputDialog.svelte';
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import FolderPickerDialog from './FolderPickerDialog.svelte';
+	import AiContextPanel from './AiContextPanel.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
@@ -46,6 +47,7 @@
 	import { defaultExportFilename, runExportWithToast } from '$lib/utils/export';
 	import { joinPath, getFileName, getParentPath } from '$lib/utils/path';
 	import { isMarkdownFile, filterTreeToMarkdown } from '$lib/utils/fileType';
+	import { createClaudeMd } from '$lib/ai-ready/claudeMd';
 	import {
 		findInsertionTarget,
 		pruneExpandedFolders
@@ -206,6 +208,20 @@
 		const id = vaultsStore.activeVaultId;
 		if (!id) return;
 		void vaultsStore.toggleFolderExpansion(id, relativePath);
+	}
+
+	// AI Context panel — empty-state "Create CLAUDE.md" affordance.
+	async function handleCreateClaudeMd() {
+		const id = vaultsStore.activeVaultId;
+		if (!id || vaultsStore.isActiveVaultReadonly) return;
+		try {
+			const rel = await createClaudeMd(id);
+			await refreshScan();
+			void activeFileStore.openFile(id, rel);
+			toast.success('CLAUDE.md créé');
+		} catch (e) {
+			toast.error('Création CLAUDE.md impossible', { details: String(e) });
+		}
 	}
 
 	// ----- File-tree creation flow -----
@@ -1031,6 +1047,10 @@
 				/>
 			{/if}
 		</section>
+		<AiContextPanel
+			onOpenFile={handleOpenFile}
+			onCreateClaudeMd={handleCreateClaudeMd}
+		/>
 	{/if}
 </aside>
 

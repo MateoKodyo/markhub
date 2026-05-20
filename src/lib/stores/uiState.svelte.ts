@@ -15,6 +15,8 @@ const LS_OUTLINE_KEY = 'markus.ui.outlineOpen.v1';
 const LS_SIDEBAR_W_KEY = 'markus.ui.sidebarWidth.v1';
 const LS_OUTLINE_W_KEY = 'markus.ui.outlineWidth.v1';
 const LS_VAULTS_H_KEY = 'markus.ui.vaultsHeight.v1';
+// AI Context panel expand state — per vault, default collapsed (PLAN-AI-READY).
+const LS_AI_CONTEXT_KEY = 'markus.ui.aiContextExpanded.v1';
 
 // Markhub → Markus rename (2026-05-20): pull the persisted UI state
 // forward from the legacy `markhub.ui.*` keys before the first read.
@@ -39,6 +41,18 @@ function readOutlineInitial(): boolean {
 	return localStorage.getItem(LS_OUTLINE_KEY) === 'true';
 }
 
+function readAiContextMap(): Record<string, boolean> {
+	if (typeof localStorage === 'undefined') return {};
+	const raw = localStorage.getItem(LS_AI_CONTEXT_KEY);
+	if (!raw) return {};
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		return parsed && typeof parsed === 'object' ? (parsed as Record<string, boolean>) : {};
+	} catch {
+		return {};
+	}
+}
+
 function readWidth(key: string, defaultValue: number, min: number, max: number): number {
 	if (typeof localStorage === 'undefined') return defaultValue;
 	const raw = localStorage.getItem(key);
@@ -60,9 +74,25 @@ class UiStateStore {
 	vaultsHeight = $state<number>(
 		readWidth(LS_VAULTS_H_KEY, DEFAULT_VAULTS_HEIGHT, VAULTS_MIN_HEIGHT, VAULTS_MAX_HEIGHT)
 	);
+	/** AI Context panel expand state, keyed by vault id. Absent = collapsed. */
+	#aiContextExpanded = $state<Record<string, boolean>>(readAiContextMap());
 
 	toggleSidebar(): void {
 		this.sidebarCollapsed = !this.sidebarCollapsed;
+	}
+
+	isAiContextExpanded(vaultId: string): boolean {
+		return this.#aiContextExpanded[vaultId] ?? false;
+	}
+
+	toggleAiContext(vaultId: string): void {
+		this.#aiContextExpanded = {
+			...this.#aiContextExpanded,
+			[vaultId]: !this.isAiContextExpanded(vaultId)
+		};
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(LS_AI_CONTEXT_KEY, JSON.stringify(this.#aiContextExpanded));
+		}
 	}
 
 	toggleOutline(): void {
