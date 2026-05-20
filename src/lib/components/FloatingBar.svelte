@@ -191,7 +191,6 @@
 		background: var(--color-bg-raised);
 		border: 1px solid var(--color-border);
 		border-radius: 11px;
-		box-shadow: var(--shadow-popover);
 
 		font-family: var(--font-ui);
 	}
