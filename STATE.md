@@ -125,17 +125,32 @@ filtrés selon `sidebar.hideNonMarkdown`.
   (sélecteur deep `.bn-block-content[data-content-type] .bn-inline-content`
   + `!important` + vars `--editor-body-*` câblées dans `+page.svelte`).
   **Statut réel incertain** — pas de confirmation explicite que la taille
-  s'applique en live. Un **diagnostic `console.log('[appearance bridge]')`
-  reste dans `src/routes/+page.svelte:129-136`** — à retirer une fois le
-  fix confirmé (ou à exploiter pour finir le diagnostic). `BACKLOG.md` le
-  liste encore comme non résolu.
+  s'applique en live. Le diagnostic `console.log` a été retiré (commit
+  `9daf73e`). `BACKLOG.md` le liste encore comme non résolu.
 - **`feat/editor-polish`** : 2 bugs CSS cascade (H1 serif, blockquote
   color). Branche pausée.
 - **Split view BlockNote** : non développé. Segment retiré du FloatingBar
   mode picker. Estimé 2-3 sessions si repris.
-- **DMG stylé** : `bundle_dmg.sh` de Tauri échoue (styling AppleScript
-  sans accès GUI). Les DMG de test sont packagés via `hdiutil` (pas de
-  background/lien Applications). Suffisant pour test-builds.
+
+## Distribution / DMG
+
+- **DMG release** : `Test-Builds/Markus_0.1.0-alpha.1_aarch64.dmg`
+  (Apple Silicon). Commité dans le repo (`git add -f` — le dossier
+  `Test-Builds/` est sinon gitignoré ; ce DMG alpha est épinglé comme
+  artefact de référence).
+- **Build** : `bundle_dmg.sh` de Tauri échoue (styling AppleScript sans
+  accès GUI) → le DMG est packagé via `hdiutil` depuis le `.app`. Le
+  bundle `.app` est ensuite codesigné adhoc proprement
+  (`codesign --deep --force --sign -`, ressources scellées).
+- **Pas notarisé** : `spctl --assess` → `rejected`. Les destinataires
+  doivent faire `xattr -cr /Applications/Markus.app` après installation
+  (retire le flag quarantine, sinon macOS affiche un faux "endommagé").
+- **Vraie solution en attente** : notarization Apple. Compte Apple
+  Developer disponible, mais le certificat *Developer ID Application*
+  n'est PAS installé (`security find-identity` → 0 identity) et aucun
+  credential `notarytool` n'est stocké. Setup à faire : cert via Xcode +
+  app-specific password + Team ID, puis câbler signature + notarization
+  dans `tauri.conf.json`.
 
 ## Hors-scope / à faire hors session
 
