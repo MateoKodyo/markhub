@@ -188,7 +188,10 @@
 		height: 42px;
 		padding: 6px 8px;
 
-		background: var(--color-bg-raised);
+		/* Discreet treatment — same canvas-coloured surface as the vertical
+		   mode, defined by its border alone. The bar reads as chrome, not a
+		   floating panel. */
+		background: var(--color-bg);
 		border: 1px solid var(--color-border);
 		border-radius: 11px;
 
@@ -196,12 +199,11 @@
 	}
 
 	/* Vertical / right-edge mode — full set of actions stacked, stuck
-	   to the right side, vertically centered. Same tokens (raised bg,
-	   border, shadow), tighter geometry: 30px-wide column with the
-	   search compacted to an icon (the input placeholder would be too
-	   wide for the column). Download, copy, mode picker (rotated to a
-	   3-segment vertical stack), and outline all retained — the user
-	   keeps every horizontal-mode action, just laid out vertically. */
+	   to the right side, vertically centered. Shares the base surface
+	   (canvas bg, border) — only geometry differs: a 30px-wide column
+	   with the search compacted to an icon. Download, copy, mode picker
+	   (rotated to a vertical stack) and outline are all retained — every
+	   horizontal-mode action, just laid out vertically. */
 	.floating-bar.is-vertical {
 		bottom: auto;
 		left: auto;
@@ -219,12 +221,6 @@
 		height: auto;
 		padding: 5px;
 		gap: 4px;
-
-		/* Discreet treatment: same bg as the editor canvas, no shadow.
-		   The bar reads as part of the chrome instead of a floating
-		   element — the user's eye doesn't need to dodge it. */
-		background: var(--color-bg);
-		box-shadow: none;
 	}
 
 	/* Icon-only button used in vertical mode (and reusable for any
