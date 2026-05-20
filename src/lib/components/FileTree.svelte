@@ -9,7 +9,9 @@
 	} from 'lucide-svelte';
 	import { collectAncestors } from '$lib/utils/tree';
 	import { isMarkdownFile } from '$lib/utils/fileType';
+	import { aiAwareStore } from '$lib/stores/aiAware.svelte';
 	import InlineInput from './InlineInput.svelte';
+	import AiAwareBadge from './AiAwareBadge.svelte';
 	import type { FileEntry } from '$lib/tauri/types';
 
 	export type TreeContext =
@@ -425,6 +427,7 @@
 		{@const isRenaming = renamingPath === entry.relativePath}
 		{@const isDragSource = dragSourcePath === entry.relativePath}
 		{@const isMd = isMarkdownFile(entry.name)}
+		{@const aiInfo = aiAwareStore.getForFile(entry.relativePath)}
 		<li
 			data-testid="file-tree-entry"
 			data-kind="file"
@@ -473,6 +476,9 @@
 						{/if}
 					</span>
 					<span class="name">{entry.name}</span>
+					{#if aiInfo}
+						<AiAwareBadge info={aiInfo} />
+					{/if}
 				</button>
 			{/if}
 		</li>

@@ -181,7 +181,7 @@ describe('settingsStore', () => {
 	// ------ S2.10 — mergeWithDefaults tolerates partial payloads ------
 	it('mergeWithDefaults fills missing sections from defaults', () => {
 		const partial = {
-			version: 2 as const,
+			version: 3 as const,
 			appearance: {
 				themeMode: 'always-dark' as const,
 				lightTheme: 'markhub-light' as const,
@@ -190,11 +190,12 @@ describe('settingsStore', () => {
 				editorFontSize: 20,
 				editorLineHeight: 1.6,
 				editorContentWidth: 60,
-				editorFloatingBarPosition: 'bottom' as const
+				editorFloatingBarPosition: 'bottom' as const,
+				highlightAiAware: true
 			}
 		};
 		const merged = mergeWithDefaults(partial);
-		expect(merged.version).toBe(2);
+		expect(merged.version).toBe(3);
 		expect(merged.appearance.themeMode).toBe('always-dark');
 		expect(merged.appearance.editorFontSize).toBe(20);
 		expect(merged.editor).toEqual(DEFAULT_USER_SETTINGS.editor);
@@ -264,11 +265,11 @@ describe('settingsStore', () => {
 		};
 		// `mergeWithDefaults` accepts unknown legacy shapes — cast for the call.
 		const merged = mergeWithDefaults(v1Payload as never);
-		expect(merged.version).toBe(2);
+		expect(merged.version).toBe(3);
 		expect(merged.appearance.themeMode).toBe('system');
 		expect(merged.appearance.lightTheme).toBe('markhub-light');
 		expect(merged.appearance.darkTheme).toBe('markhub-dark');
-		// The legacy field must not survive into v2.
+		// The legacy field must not survive the migration.
 		expect((merged.appearance as unknown as { theme?: string }).theme).toBeUndefined();
 	});
 
@@ -327,9 +328,9 @@ describe('settingsStore', () => {
 		expect(merged.appearance.darkTheme).toBe('markhub-dark');
 	});
 
-	// ------ S2.M5 — v2 payload passes through untouched ------
-	it('passes v2 payloads through without re-migrating', () => {
-		const v2Payload: UserSettings = {
+	// ------ S2.M5 — current-schema payload passes through untouched ------
+	it('passes a current-schema payload through without re-migrating', () => {
+		const currentPayload: UserSettings = {
 			...DEFAULT_USER_SETTINGS,
 			appearance: {
 				themeMode: 'always-dark',
@@ -339,17 +340,18 @@ describe('settingsStore', () => {
 				editorFontSize: 17,
 				editorLineHeight: 1.5,
 				editorContentWidth: 70,
-				editorFloatingBarPosition: 'bottom' as const
+				editorFloatingBarPosition: 'bottom' as const,
+				highlightAiAware: true
 			}
 		};
-		const merged = mergeWithDefaults(v2Payload);
-		expect(merged.version).toBe(2);
+		const merged = mergeWithDefaults(currentPayload);
+		expect(merged.version).toBe(3);
 		expect(merged.appearance.themeMode).toBe('always-dark');
 		expect(merged.appearance.editorFontSize).toBe(17);
 	});
 
-	// ------ S2.M6 — load() persists the migrated v2 payload back to disk ------
-	it('load() of a v1 file schedules a v2 persist (migration on first read)', async () => {
+	// ------ S2.M6 — load() persists the migrated payload back to disk ------
+	it('load() of a v1 file schedules a current-schema persist (migration on first read)', async () => {
 		const v1OnDisk = {
 			version: 1,
 			appearance: {
@@ -366,13 +368,13 @@ describe('settingsStore', () => {
 		};
 		settingsReadMock.mockResolvedValue(v1OnDisk as never);
 		await settingsStore.load();
-		expect(settingsStore.current.version).toBe(2);
+		expect(settingsStore.current.version).toBe(3);
 		expect(settingsStore.current.appearance.themeMode).toBe('system');
 		// And the migration writes back to disk after the debounce.
 		await settingsStore.flushForTest();
 		expect(settingsWriteMock).toHaveBeenCalled();
 		const written = settingsWriteMock.mock.calls.at(-1)?.[0] as UserSettings;
-		expect(written.version).toBe(2);
+		expect(written.version).toBe(3);
 		expect(
 			(written.appearance as unknown as { theme?: string }).theme
 		).toBeUndefined();

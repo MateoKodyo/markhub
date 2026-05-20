@@ -92,6 +92,12 @@ export type AppearanceSettings = {
 	 *  vertically centered — minimal mode for users who want the editor
 	 *  to breathe and rely on the command palette for actions. */
 	editorFloatingBarPosition: FloatingBarPosition;
+	/** When true (default), files recognized as AI-collaboration files
+	 *  (`CLAUDE.md`, `AGENTS.md`, `audience: ai` frontmatter, …) get a
+	 *  discreet badge in the sidebar and a chip in the editor header.
+	 *  When false those hints are hidden — the AI Context panel stays
+	 *  available regardless (PLAN-AI-READY). */
+	highlightAiAware: boolean;
 };
 
 export type EditorSettings = {
@@ -122,7 +128,7 @@ export type SidebarSettings = {
  * working without it on the TS side. */
 
 export type UserSettings = {
-	version: 2;
+	version: 3;
 	appearance: AppearanceSettings;
 	editor: EditorSettings;
 	source: SourceSettings;
@@ -131,7 +137,7 @@ export type UserSettings = {
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
-	version: 2,
+	version: 3,
 	appearance: {
 		themeMode: 'system',
 		lightTheme: 'markhub-light',
@@ -142,7 +148,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 		editorFontSize: 16,
 		editorLineHeight: 1.6,
 		editorContentWidth: 60,
-		editorFloatingBarPosition: 'bottom'
+		editorFloatingBarPosition: 'bottom',
+		highlightAiAware: true
 	},
 	editor: {
 		autosaveDelayMs: 1500,

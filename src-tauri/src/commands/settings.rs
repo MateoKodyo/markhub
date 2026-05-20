@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn defaults_match_documented_schema() {
         let s = UserSettings::default();
-        assert_eq!(s.version, 2);
+        assert_eq!(s.version, 3);
         assert_eq!(s.appearance.theme_mode, "system");
         assert_eq!(s.appearance.light_theme, "markhub-light");
         assert_eq!(s.appearance.dark_theme, "markhub-dark");
@@ -273,6 +273,7 @@ mod tests {
         assert_eq!(s.appearance.editor_font_size, 16);
         assert!((s.appearance.editor_line_height - 1.6).abs() < f64::EPSILON);
         assert_eq!(s.appearance.editor_content_width, 720);
+        assert!(s.appearance.highlight_ai_aware);
         assert_eq!(s.editor.autosave_delay_ms, 1500);
         assert!(s.editor.spell_check);
         assert_eq!(s.source.mono_font, "geist-mono");

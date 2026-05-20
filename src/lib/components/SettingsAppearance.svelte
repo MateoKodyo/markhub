@@ -84,6 +84,18 @@
 			appearance: { ...cur.appearance, editorFloatingBarPosition: next }
 		});
 	}
+
+	// AI-aware highlighting — instant-apply boolean (PLAN-AI-READY STEP 3).
+	const highlightAiAware = $derived(stored.highlightAiAware);
+
+	function setHighlightAiAware(next: boolean): void {
+		const cur = settingsStore.current;
+		if (cur.appearance.highlightAiAware === next) return;
+		settingsStore.set({
+			...cur,
+			appearance: { ...cur.appearance, highlightAiAware: next }
+		});
+	}
 </script>
 
 <div class="settings-section">
@@ -230,6 +242,44 @@
 					data-testid="floating-bar-position-right"
 				>
 					<span>Droite</span>
+				</button>
+			</div>
+		</div>
+
+		<div class="settings-row">
+			<div class="settings-row-info">
+				<span class="settings-row-label">Fichiers AI-aware</span>
+				<span class="settings-row-desc">
+					Badge discret sur les fichiers conçus pour la collaboration avec
+					l'IA (CLAUDE.md, AGENTS.md, frontmatter audience: ai).
+				</span>
+			</div>
+			<div
+				class="settings-segmented"
+				role="radiogroup"
+				aria-label="Mise en évidence des fichiers AI-aware"
+			>
+				<button
+					type="button"
+					class="settings-segment"
+					class:active={highlightAiAware}
+					role="radio"
+					aria-checked={highlightAiAware}
+					onclick={() => setHighlightAiAware(true)}
+					data-testid="highlight-ai-aware-on"
+				>
+					<span>Activé</span>
+				</button>
+				<button
+					type="button"
+					class="settings-segment"
+					class:active={!highlightAiAware}
+					role="radio"
+					aria-checked={!highlightAiAware}
+					onclick={() => setHighlightAiAware(false)}
+					data-testid="highlight-ai-aware-off"
+				>
+					<span>Désactivé</span>
 				</button>
 			</div>
 		</div>

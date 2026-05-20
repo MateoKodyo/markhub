@@ -15,6 +15,11 @@
  * scalar and rewrites it into the trio (mode='system' with default slots).
  * The migrated payload is persisted on the next debounced write, so a v1
  * settings.json is upgraded on first read.
+ *
+ * v2 → v3 (PLAN-AI-READY STEP 3): purely additive — `appearance.highlightAiAware`
+ * defaults to `true`. The per-section spread in `mergeWithDefaults` already
+ * fills it for any v2 file, so no dedicated migration code is needed; the
+ * file is rewritten to v3 on the next settings change.
  */
 
 import * as api from '$lib/tauri/api';
@@ -86,7 +91,7 @@ export function mergeWithDefaults(partial: Partial<UserSettings>): UserSettings 
 	}
 
 	return {
-		version: 2,
+		version: 3,
 		appearance,
 		editor: { ...DEFAULT_USER_SETTINGS.editor, ...(partial.editor ?? {}) },
 		source: { ...DEFAULT_USER_SETTINGS.source, ...(partial.source ?? {}) },

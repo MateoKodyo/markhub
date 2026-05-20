@@ -110,10 +110,20 @@ pub struct AppearanceSettings {
     /// so settings.json files without it deserialize cleanly.
     #[serde(default = "default_floating_bar_position")]
     pub editor_floating_bar_position: String,
+    /// When true (default), AI-collaboration files get a discreet badge in
+    /// the sidebar and a chip in the editor header (PLAN-AI-READY).
+    /// `#[serde(default)]` so v2 settings.json files without it deserialize
+    /// cleanly — the v2 → v3 upgrade is purely additive.
+    #[serde(default = "default_highlight_ai_aware")]
+    pub highlight_ai_aware: bool,
 }
 
 fn default_floating_bar_position() -> String {
     "bottom".to_string()
+}
+
+fn default_highlight_ai_aware() -> bool {
+    true
 }
 
 impl Default for AppearanceSettings {
@@ -130,6 +140,7 @@ impl Default for AppearanceSettings {
             editor_line_height: 1.6,
             editor_content_width: 720,
             editor_floating_bar_position: default_floating_bar_position(),
+            highlight_ai_aware: default_highlight_ai_aware(),
         }
     }
 }
@@ -210,7 +221,7 @@ pub struct UserSettings {
 impl Default for UserSettings {
     fn default() -> Self {
         Self {
-            version: 2,
+            version: 3,
             appearance: AppearanceSettings::default(),
             editor: EditorSettings::default(),
             source: SourceSettings::default(),
