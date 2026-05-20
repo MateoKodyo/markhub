@@ -10,12 +10,20 @@
 	 * stays visible even when the `highlightAiAware` setting is off (it's a
 	 * deliberate navigation surface, not a passive hint).
 	 */
-	import { ChevronDown, ChevronRight, FilePlus, Sparkles } from 'lucide-svelte';
+	import {
+		ChevronDown,
+		ChevronRight,
+		File,
+		FilePlus,
+		FileText,
+		Sparkles
+	} from 'lucide-svelte';
 	import { aiAwareStore } from '$lib/stores/aiAware.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { getFileName } from '$lib/utils/path';
+	import { isMarkdownFile } from '$lib/utils/fileType';
 
 	let {
 		onOpenFile,
@@ -79,6 +87,7 @@
 			{:else}
 				<ul class="ai-ctx-list">
 					{#each entries as entry (entry.path)}
+						{@const name = getFileName(entry.path) || entry.path}
 						<li>
 							<button
 								type="button"
@@ -86,13 +95,22 @@
 								onclick={() => onOpenFile(entry.path)}
 								title={`${entry.info.label} — ${entry.path}`}
 							>
-								<Sparkles size={11} aria-hidden="true" focusable="false" />
-								<span class="ai-ctx-item-name"
-									>{getFileName(entry.path) || entry.path}</span
-								>
-								{#if getFileName(entry.path) !== entry.path}
-									<span class="ai-ctx-item-path">{entry.path}</span>
-								{/if}
+								<span class="ai-ctx-item-icon">
+									{#if isMarkdownFile(name)}
+										<FileText size={14} aria-hidden="true" focusable="false" />
+									{:else}
+										<File size={14} aria-hidden="true" focusable="false" />
+									{/if}
+								</span>
+								<span class="ai-ctx-item-name">{name}</span>
+								<span class="ai-ctx-item-star">
+									<Sparkles
+										size={12}
+										strokeWidth={2}
+										aria-hidden="true"
+										focusable="false"
+									/>
+								</span>
 							</button>
 						</li>
 					{/each}
@@ -203,23 +221,26 @@
 		color: var(--color-text-primary);
 	}
 
-	.ai-ctx-item :global(svg) {
+	.ai-ctx-item-icon {
+		display: inline-flex;
+		align-items: center;
 		flex-shrink: 0;
 		color: var(--color-text-secondary);
 	}
 
 	.ai-ctx-item-name {
-		flex-shrink: 0;
-		white-space: nowrap;
-	}
-
-	.ai-ctx-item-path {
 		min-width: 0;
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
-		color: var(--color-text-muted);
-		font-size: var(--text-label);
+	}
+
+	/* Trailing AI marker — same accent treatment as the sidebar tree badge. */
+	.ai-ctx-item-star {
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+		color: color-mix(in srgb, var(--color-accent) 70%, transparent);
 	}
 
 	.ai-ctx-create {
