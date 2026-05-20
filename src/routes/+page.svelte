@@ -503,7 +503,10 @@
 						onChange={onContentChange}
 					/>
 				{/key}
-				{#if findStore.isOpen}
+				<!-- The FindBar popover is only the vertical FloatingBar's search
+				     surface; in horizontal mode the search lives inline in the
+				     bar itself, so the popover would be redundant. -->
+				{#if findStore.isOpen && settingsStore.current.appearance.editorFloatingBarPosition === 'right'}
 					<FindBar />
 				{/if}
 				<FloatingBar

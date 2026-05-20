@@ -14,12 +14,15 @@
 	 * Tokens follow the active theme — never hardcoded color literals.
 	 */
 	import {
+		ChevronDown,
+		ChevronUp,
 		Code2,
 		Copy,
 		Download,
 		Eye,
 		List,
-		Search
+		Search,
+		X
 	} from 'lucide-svelte';
 	import { findStore } from '$lib/stores/find.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
@@ -42,8 +45,47 @@
 
 	const isVertical = $derived(position === 'right');
 
+	// Vertical mode keeps a compact icon that opens the FindBar popover.
 	function openFind(): void {
 		findStore.open();
+	}
+
+	// Horizontal mode hosts the search inline — typing drives the find
+	// engine directly, no separate popover.
+	let searchInput: HTMLInputElement | null = $state(null);
+	let lastFocusSeq = findStore.focusSeq;
+
+	// Cmd+F (and the FloatingBar's own focus pulses) refocus the inline
+	// field. Guarded against the initial run so the editor doesn't steal
+	// focus on mount.
+	$effect(() => {
+		const seq = findStore.focusSeq;
+		if (seq !== lastFocusSeq) {
+			lastFocusSeq = seq;
+			if (!isVertical) searchInput?.focus();
+		}
+	});
+
+	function counterText(): string {
+		if (findStore.matchCount === 0) return findStore.query ? '0' : '';
+		return `${findStore.activeIndex + 1}/${findStore.matchCount}`;
+	}
+
+	function clearSearch(): void {
+		findStore.setQuery('');
+		searchInput?.focus();
+	}
+
+	function onSearchKeydown(e: KeyboardEvent): void {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			if (e.shiftKey) findStore.previous();
+			else findStore.next();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			if (findStore.query) findStore.setQuery('');
+			else searchInput?.blur();
+		}
 	}
 
 	// Active segment position for the sliding indicator (0/1 across
@@ -60,9 +102,9 @@
 	data-testid="floating-bar"
 	data-position={position}
 >
-	<!-- Search — full input with placeholder in horizontal mode (180×24),
-	     collapses to a square icon button in vertical (the placeholder
-	     text would be too wide for the right-edge column). -->
+	<!-- Search — a real inline find field in horizontal mode (type, count,
+	     prev/next, clear). In vertical mode the column is too narrow for a
+	     field, so it collapses to an icon that opens the FindBar popover. -->
 	{#if isVertical}
 		<button
 			type="button"
@@ -75,17 +117,58 @@
 			<Search size={14} aria-hidden="true" focusable="false" />
 		</button>
 	{:else}
-		<button
-			type="button"
-			class="filter-row"
-			onclick={openFind}
-			data-testid="floating-bar-search"
-			aria-label="Rechercher dans le document"
-			title="Rechercher dans le document (⌘F)"
-		>
+		<div class="search-field" class:has-query={findStore.query.length > 0}>
 			<Search size={12} aria-hidden="true" focusable="false" />
-			<span class="filter-placeholder">Search in doc</span>
-		</button>
+			<input
+				bind:this={searchInput}
+				type="text"
+				class="search-input"
+				placeholder="Search in doc"
+				value={findStore.query}
+				autocomplete="off"
+				autocorrect="off"
+				autocapitalize="off"
+				spellcheck="false"
+				aria-label="Rechercher dans le document"
+				data-testid="floating-bar-search-input"
+				oninput={(e) => findStore.setQuery(e.currentTarget.value)}
+				onkeydown={onSearchKeydown}
+			/>
+			{#if findStore.query.length > 0}
+				<span class="search-count" data-testid="floating-bar-search-count">
+					{counterText()}
+				</span>
+				<button
+					type="button"
+					class="search-nav"
+					onclick={() => findStore.previous()}
+					disabled={findStore.matchCount === 0}
+					aria-label="Résultat précédent"
+					title="Précédent (⇧⏎)"
+				>
+					<ChevronUp size={12} aria-hidden="true" focusable="false" />
+				</button>
+				<button
+					type="button"
+					class="search-nav"
+					onclick={() => findStore.next()}
+					disabled={findStore.matchCount === 0}
+					aria-label="Résultat suivant"
+					title="Suivant (⏎)"
+				>
+					<ChevronDown size={12} aria-hidden="true" focusable="false" />
+				</button>
+				<button
+					type="button"
+					class="search-nav"
+					onclick={clearSearch}
+					aria-label="Effacer la recherche"
+					title="Effacer (⎋)"
+				>
+					<X size={12} aria-hidden="true" focusable="false" />
+				</button>
+			{/if}
+		</div>
 	{/if}
 
 	<!-- Export current doc as markdown. Duplicates the StatusBar action —
@@ -255,45 +338,88 @@
 		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
 	}
 
-	/* Search input — looks like an input, behaves like a button (opens
-	   the find bar). 180×24 per Figma. */
-	.filter-row {
+	/* Inline find field — search icon + input; the match count and the
+	   prev / next / clear controls reveal once a query is present, and
+	   the field grows to fit them. */
+	.search-field {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		width: 180px;
 		height: 24px;
-		padding: 6px 12px;
+		padding: 0 6px 0 12px;
 
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
 		border-radius: 6px;
 
 		color: var(--color-text-secondary);
+		transition: border-color var(--duration-base) var(--easing-standard);
+	}
+
+	.search-field:focus-within {
+		border-color: var(--color-accent);
+	}
+
+	.search-field :global(svg) {
+		flex-shrink: 0;
+	}
+
+	.search-input {
+		width: 138px;
+		min-width: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--color-text-primary);
 		font-family: inherit;
 		font-size: 13px;
-		text-align: left;
-		cursor: text;
+		line-height: 1.3;
+		outline: none;
+	}
+
+	.search-input::placeholder {
+		color: var(--color-text-muted);
+	}
+
+	.search-count {
+		flex-shrink: 0;
+		font-size: var(--text-label);
+		font-variant-numeric: tabular-nums;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+
+	.search-nav {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		flex-shrink: 0;
+		padding: 0;
+		border: 0;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--color-text-secondary);
+		cursor: pointer;
 		transition:
 			background var(--duration-base) var(--easing-standard),
-			border-color var(--duration-base) var(--easing-standard);
+			color var(--duration-base) var(--easing-standard);
 	}
 
-	.filter-row:hover {
+	.search-nav:hover:not(:disabled) {
 		background: var(--color-surface-hover);
-		border-color: var(--color-border);
+		color: var(--color-text-primary);
 	}
 
-	.filter-row:focus-visible {
+	.search-nav:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.search-nav:focus-visible {
 		outline: none;
-		border-color: var(--color-accent);
 		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
-	}
-
-	.filter-placeholder {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	/* Single icon button — download / copy / list. 30×24 outer, 20px inner

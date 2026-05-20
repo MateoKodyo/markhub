@@ -1,23 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-const flags = vi.hoisted(() => ({ readonly: false }));
-
-vi.mock('$lib/tauri/api', () => ({
-	fileRead: vi.fn().mockResolvedValue('hello world hello universe HELLO'),
-	fileWrite: vi.fn().mockResolvedValue(undefined)
-}));
-
-vi.mock('../../src/lib/stores/vaults.svelte', () => ({
-	vaultsStore: {
-		get isActiveVaultReadonly() {
-			return flags.readonly;
-		},
-		setLastOpenedFile: vi.fn().mockResolvedValue(undefined)
-	}
-}));
-
+import { describe, it, expect, beforeEach } from 'vitest';
 import { findStore, computeMatches } from '../../src/lib/stores/find.svelte';
-import { activeFileStore } from '../../src/lib/stores/activeFile.svelte';
 
 describe('computeMatches', () => {
 	it('returns empty on empty query', () => {
@@ -44,36 +26,64 @@ describe('computeMatches', () => {
 describe('findStore', () => {
 	beforeEach(() => {
 		findStore.close();
-		activeFileStore.close();
 	});
 
 	it('starts closed with empty state', () => {
 		expect(findStore.isOpen).toBe(false);
 		expect(findStore.query).toBe('');
-		expect(findStore.matches).toEqual([]);
+		expect(findStore.matchCount).toBe(0);
 		expect(findStore.activeIndex).toBe(-1);
 	});
 
-	it('open() flips visibility and computes matches against active tab', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
+	it('open() flips visibility and pulses the focus signal', () => {
+		const before = findStore.focusSeq;
 		findStore.open();
 		expect(findStore.isOpen).toBe(true);
-		// Initial query empty → no matches yet.
-		expect(findStore.matches).toEqual([]);
+		expect(findStore.focusSeq).toBe(before + 1);
 	});
 
-	it('setQuery computes matches and lands the cursor on the first one', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
-		findStore.open();
+	it('requestFocus() pulses the focus signal without opening', () => {
+		const before = findStore.focusSeq;
+		findStore.requestFocus();
+		expect(findStore.focusSeq).toBe(before + 1);
+		expect(findStore.isOpen).toBe(false);
+	});
+
+	it('setQuery() stores the query and drops the active match', () => {
 		findStore.setQuery('hello');
-		expect(findStore.matches).toEqual([0, 12, 27]);
+		expect(findStore.query).toBe('hello');
+		expect(findStore.activeIndex).toBe(-1);
+	});
+
+	it('reportMatches() lands the cursor on the first hit', () => {
+		findStore.setQuery('hello');
+		findStore.reportMatches(3);
+		expect(findStore.matchCount).toBe(3);
 		expect(findStore.activeIndex).toBe(0);
 	});
 
-	it('next() cycles through matches and wraps at the end', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
-		findStore.open();
+	it('reportMatches(0) clears the active match', () => {
 		findStore.setQuery('hello');
+		findStore.reportMatches(3);
+		findStore.reportMatches(0);
+		expect(findStore.matchCount).toBe(0);
+		expect(findStore.activeIndex).toBe(-1);
+	});
+
+	it('reportMatches() clamps an out-of-range active index', () => {
+		findStore.setQuery('hello');
+		findStore.reportMatches(5);
+		findStore.next();
+		findStore.next();
+		expect(findStore.activeIndex).toBe(2);
+		// The document shrank — only 2 matches left now.
+		findStore.reportMatches(2);
+		expect(findStore.activeIndex).toBe(0);
+	});
+
+	it('next() cycles through matches and wraps at the end', () => {
+		findStore.setQuery('hello');
+		findStore.reportMatches(3);
 		expect(findStore.activeIndex).toBe(0);
 		findStore.next();
 		expect(findStore.activeIndex).toBe(1);
@@ -83,47 +93,30 @@ describe('findStore', () => {
 		expect(findStore.activeIndex).toBe(0); // wrapped
 	});
 
-	it('previous() cycles backwards and wraps at the start', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
-		findStore.open();
+	it('previous() cycles backwards and wraps at the start', () => {
 		findStore.setQuery('hello');
+		findStore.reportMatches(3);
 		findStore.previous();
 		expect(findStore.activeIndex).toBe(2); // wrapped from 0 to last
 		findStore.previous();
 		expect(findStore.activeIndex).toBe(1);
 	});
 
-	it('close() resets the query + matches + active index', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
-		findStore.open();
-		findStore.setQuery('hello');
-		findStore.close();
-		expect(findStore.isOpen).toBe(false);
-		expect(findStore.query).toBe('');
-		expect(findStore.matches).toEqual([]);
-		expect(findStore.activeIndex).toBe(-1);
-	});
-
-	it('next/previous are no-ops with zero matches', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
-		findStore.open();
+	it('next/previous are no-ops with zero matches', () => {
 		findStore.setQuery('xyz');
-		expect(findStore.matches).toEqual([]);
+		findStore.reportMatches(0);
 		expect(() => findStore.next()).not.toThrow();
 		expect(() => findStore.previous()).not.toThrow();
 		expect(findStore.activeIndex).toBe(-1);
 	});
 
-	it('refresh() picks up content changes from the active tab', async () => {
-		await activeFileStore.openFile('v1', 'note.md');
-		findStore.open();
+	it('close() resets query, count and active index', () => {
 		findStore.setQuery('hello');
-		expect(findStore.matches.length).toBe(3);
-		// Simulate the user editing the active tab — drop two of the
-		// three hellos.
-		activeFileStore.updateContent('one hello two');
-		findStore.refresh();
-		expect(findStore.matches).toEqual([4]);
-		expect(findStore.activeIndex).toBe(0);
+		findStore.reportMatches(3);
+		findStore.close();
+		expect(findStore.isOpen).toBe(false);
+		expect(findStore.query).toBe('');
+		expect(findStore.matchCount).toBe(0);
+		expect(findStore.activeIndex).toBe(-1);
 	});
 });

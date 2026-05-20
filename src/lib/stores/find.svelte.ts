@@ -1,76 +1,74 @@
 /**
- * In-document find state — driver for Cmd+F. Lives at the store level
- * (not inside `<FindBar>`) so the keybinding (which sits in the global
- * keymap registry) and the consumer Editor can both reach it.
+ * In-document find state.
  *
- * One bar at a time, always against the active tab's content. The
- * Editor listens to the active match offsets and applies the visual
- * cue (source-mode textarea selection for V1).
+ * The store is a thin state holder — query, active match index, total
+ * match count, focus pulse. It does NOT do the matching itself: the
+ * Editor runs a per-mode engine (markdown-string offsets in source mode,
+ * rendered-DOM ranges in preview mode) and reports the count back via
+ * `reportMatches`. This keeps the count honest to what the user actually
+ * sees highlighted in the current mode.
+ *
+ * The horizontal FloatingBar hosts an always-present inline search field;
+ * `isOpen` only gates the vertical-mode `FindBar` popover.
  */
 
-import { activeFileStore } from './activeFile.svelte';
-
 class FindStore {
-	/** Bar visibility — toggled by Cmd+F. */
+	/** Vertical-mode `FindBar` visibility. The inline search is always
+	 *  present, so it does not depend on this flag. */
 	isOpen = $state(false);
-	/** Current query (raw — case-insensitive matching). */
+	/** Current query — case-insensitive matching. */
 	query = $state('');
-	/** Zero-based byte/char offsets of every match in the active tab's
-	 *  content. Recomputed on `setQuery` or on tab/content change. */
-	matches = $state<number[]>([]);
-	/** Index into `matches` of the currently-focused hit. -1 means no
-	 *  active match (empty query or no hits). */
+	/** Index of the focused match within the active mode's match set,
+	 *  or -1 when there is none. */
 	activeIndex = $state(-1);
+	/** Total matches reported by the active editor mode's engine. */
+	matchCount = $state(0);
+	/** Bumped to ask the visible search input to take focus (Cmd+F). */
+	focusSeq = $state(0);
 
 	open(): void {
 		this.isOpen = true;
-		// Recompute against the current active tab so the bar opens with
-		// a fresh count even if the tab changed since last close.
-		this.#recompute();
+		this.focusSeq++;
 	}
 
 	close(): void {
 		this.isOpen = false;
 		this.query = '';
-		this.matches = [];
 		this.activeIndex = -1;
+		this.matchCount = 0;
+	}
+
+	/** Cmd+F when the inline search is already visible — refocus it. */
+	requestFocus(): void {
+		this.focusSeq++;
 	}
 
 	setQuery(q: string): void {
 		this.query = q;
-		this.#recompute();
+		// New query — drop the active match; the engine's `reportMatches`
+		// lands it back on the first hit.
+		this.activeIndex = -1;
+	}
+
+	/** Called by the active editor mode after (re)scanning for matches. */
+	reportMatches(count: number): void {
+		this.matchCount = count;
+		if (count === 0) {
+			this.activeIndex = -1;
+		} else if (this.activeIndex < 0 || this.activeIndex >= count) {
+			this.activeIndex = 0;
+		}
 	}
 
 	next(): void {
-		if (this.matches.length === 0) return;
-		this.activeIndex = (this.activeIndex + 1) % this.matches.length;
+		if (this.matchCount === 0) return;
+		this.activeIndex = (this.activeIndex + 1) % this.matchCount;
 	}
 
 	previous(): void {
-		if (this.matches.length === 0) return;
+		if (this.matchCount === 0) return;
 		this.activeIndex =
-			this.activeIndex <= 0 ? this.matches.length - 1 : this.activeIndex - 1;
-	}
-
-	/** Re-run the match scan — called when the underlying content
-	 *  changes (caller's responsibility) or when the query is updated. */
-	#recompute(): void {
-		const q = this.query;
-		if (q.length === 0) {
-			this.matches = [];
-			this.activeIndex = -1;
-			return;
-		}
-		const content = activeFileStore.content;
-		this.matches = computeMatches(content, q);
-		this.activeIndex = this.matches.length > 0 ? 0 : -1;
-	}
-
-	/** Public for the Editor to recompute when the active tab changes
-	 *  (the store can't observe that itself without coupling reactively
-	 *  to the tabs store). */
-	refresh(): void {
-		this.#recompute();
+			this.activeIndex <= 0 ? this.matchCount - 1 : this.activeIndex - 1;
 	}
 }
 
@@ -78,7 +76,7 @@ class FindStore {
  * Pure helper: return every starting offset of `query` in `content`
  * using a case-insensitive scan. Overlapping matches are NOT returned
  * — we advance past each hit so "aa" in "aaaa" yields 2 matches
- * (positions 0 and 2), not 3.
+ * (positions 0 and 2), not 3. Used by the source-mode find engine.
  */
 export function computeMatches(content: string, query: string): number[] {
 	if (!query) return [];

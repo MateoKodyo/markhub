@@ -308,3 +308,17 @@
  * section 3 above, which uses --color-text-muted via the same
  * !important. All light themes inherit the fix through the generic
  * rule. Dead code dropped 2026-05-18.) */
+
+/* === In-document find — CSS Custom Highlight API ===
+ * The preview-mode find engine registers two highlights: `mk-find` for
+ * every match (a soft accent wash) and `mk-find-active` for the focused
+ * one (solid accent). `mk-find-active` is registered after `mk-find`, so
+ * it paints on top on the active range. */
+::highlight(mk-find) {
+	background-color: color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+::highlight(mk-find-active) {
+	background-color: var(--color-accent);
+	color: var(--color-accent-fg);
+}

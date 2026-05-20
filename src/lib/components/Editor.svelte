@@ -9,7 +9,8 @@
 	import { parseFrontmatter, serializeFrontmatter } from '$lib/frontmatter/parser';
 	import FrontmatterBlock from './FrontmatterBlock.svelte';
 	import { urlOpen } from '$lib/tauri/api';
-	import { findStore } from '$lib/stores/find.svelte';
+	import { findStore, computeMatches } from '$lib/stores/find.svelte';
+	import { findRangesInElement } from '$lib/utils/domFind';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	// CSS pulled in statically so Vite HMR reloads the stylesheets on every
 	// edit. Previously these lived inside an `await Promise.all([...])` block
@@ -184,39 +185,99 @@
 		return () => window.removeEventListener('editor:jumpToLine', onJump);
 	});
 
-	// Cmd+F find — react to the active match. Preview mode auto-switches
-	// to source (BlockNote-internal scroll is unreliable, see BACKLOG).
-	// Source mode focuses + selects + scrolls so the textarea's native
-	// blue selection lands on the match.
+	// ---- In-document find ----
+	// Two engines, one per mode. Source mode keeps markdown-string offsets
+	// and drives the textarea's native (unfocused) selection; preview mode
+	// keeps rendered-DOM Ranges painted via the CSS Custom Highlight API.
+	// Neither steals focus — the user stays in the FloatingBar search field.
+	let sourceMatchOffsets: number[] = [];
+	let previewRanges: Range[] = [];
+
+	const FIND_HIGHLIGHT = 'mk-find';
+	const FIND_HIGHLIGHT_ACTIVE = 'mk-find-active';
+
+	function clearFindHighlights(): void {
+		if (typeof CSS !== 'undefined' && CSS.highlights) {
+			CSS.highlights.delete(FIND_HIGHLIGHT);
+			CSS.highlights.delete(FIND_HIGHLIGHT_ACTIVE);
+		}
+	}
+
+	// Match-compute — re-scan on query / content / mode change.
 	$effect(() => {
-		if (!findStore.isOpen) return;
-		const idx = findStore.activeIndex;
-		if (idx < 0 || findStore.matches.length === 0) return;
-		const offset = findStore.matches[idx];
-		const queryLen = findStore.query.length;
-		if (mode !== 'source') {
-			window.dispatchEvent(new CustomEvent('app:toggleEditorMode'));
+		const q = findStore.query;
+		const _content = content;
+		const m = mode;
+
+		if (!q) {
+			sourceMatchOffsets = [];
+			previewRanges = [];
+			clearFindHighlights();
+			findStore.reportMatches(0);
 			return;
 		}
-		if (!sourceTextarea) return;
-		const before = content.slice(0, offset);
-		const linesBefore = before.split('\n').length;
-		sourceTextarea.focus();
-		sourceTextarea.setSelectionRange(offset, offset + queryLen);
-		const lh = parseFloat(getComputedStyle(sourceTextarea).lineHeight);
-		const lineHeight = Number.isFinite(lh) ? lh : 20;
-		sourceTextarea.scrollTop = Math.max(
-			0,
-			(linesBefore - 1) * lineHeight - sourceTextarea.clientHeight / 3
-		);
+
+		if (m === 'source') {
+			clearFindHighlights();
+			previewRanges = [];
+			sourceMatchOffsets = computeMatches(_content, q);
+			findStore.reportMatches(sourceMatchOffsets.length);
+			return;
+		}
+
+		// Preview — walk the rendered DOM after the frame so BlockNote's
+		// own DOM update for `content` has landed.
+		sourceMatchOffsets = [];
+		const raf = requestAnimationFrame(() => {
+			const root = container?.querySelector('.ProseMirror') ?? container;
+			previewRanges = root ? findRangesInElement(root, q) : [];
+			if (
+				typeof CSS !== 'undefined' &&
+				CSS.highlights &&
+				previewRanges.length > 0
+			) {
+				CSS.highlights.set(FIND_HIGHLIGHT, new Highlight(...previewRanges));
+			} else {
+				clearFindHighlights();
+			}
+			findStore.reportMatches(previewRanges.length);
+		});
+		return () => cancelAnimationFrame(raf);
 	});
 
-	// When the user edits the content, the match offsets we stored go
-	// stale — recompute on every content change while the bar is open.
+	// Active-match — surface the current hit without taking focus.
 	$effect(() => {
-		// `content` is a prop; read it to track changes.
-		const _ = content;
-		if (findStore.isOpen) findStore.refresh();
+		const idx = findStore.activeIndex;
+		const m = mode;
+		if (idx < 0) return;
+
+		if (m === 'source') {
+			const offset = sourceMatchOffsets[idx];
+			if (offset == null || !sourceTextarea) return;
+			const linesBefore = content.slice(0, offset).split('\n').length;
+			sourceTextarea.setSelectionRange(offset, offset + findStore.query.length);
+			const lh = parseFloat(getComputedStyle(sourceTextarea).lineHeight);
+			const lineHeight = Number.isFinite(lh) ? lh : 20;
+			sourceTextarea.scrollTop = Math.max(
+				0,
+				(linesBefore - 1) * lineHeight - sourceTextarea.clientHeight / 3
+			);
+			return;
+		}
+
+		// Preview — paint the active range distinctly and scroll to it.
+		const range = previewRanges[idx];
+		if (!range) return;
+		if (typeof CSS !== 'undefined' && CSS.highlights) {
+			CSS.highlights.set(FIND_HIGHLIGHT_ACTIVE, new Highlight(range));
+		}
+		const anchor = range.startContainer.parentElement;
+		anchor?.scrollIntoView({ block: 'center', behavior: 'auto' });
+	});
+
+	// Drop highlights when the editor unmounts.
+	$effect(() => {
+		return () => clearFindHighlights();
 	});
 
 	// Outline-panel clicks dispatch `outline:jumpToHeading` with a line

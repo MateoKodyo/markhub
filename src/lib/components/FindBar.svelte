@@ -44,8 +44,8 @@
 
 	function counterText(): string {
 		if (findStore.query.length === 0) return '';
-		if (findStore.matches.length === 0) return 'Aucun résultat';
-		return `${findStore.activeIndex + 1} / ${findStore.matches.length}`;
+		if (findStore.matchCount === 0) return 'Aucun résultat';
+		return `${findStore.activeIndex + 1} / ${findStore.matchCount}`;
 	}
 </script>
 
@@ -74,7 +74,7 @@
 		aria-label="Résultat précédent"
 		title="Précédent (⇧⏎)"
 		onclick={() => findStore.previous()}
-		disabled={findStore.matches.length === 0}
+		disabled={findStore.matchCount === 0}
 		data-testid="find-prev"
 	>
 		<ChevronUp size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />
@@ -85,7 +85,7 @@
 		aria-label="Résultat suivant"
 		title="Suivant (⏎)"
 		onclick={() => findStore.next()}
-		disabled={findStore.matches.length === 0}
+		disabled={findStore.matchCount === 0}
 		data-testid="find-next"
 	>
 		<ChevronDown size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />

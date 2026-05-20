@@ -206,7 +206,7 @@ export function registerAppCommands(): void {
 		group: 'View',
 		shortcut: '⌘G',
 		hidden: true,
-		when: () => findStore.isOpen,
+		when: () => findStore.query.length > 0,
 		handler: () => findStore.next()
 	});
 	commandRegistry.register({
@@ -215,7 +215,7 @@ export function registerAppCommands(): void {
 		group: 'View',
 		shortcut: '⇧⌘G',
 		hidden: true,
-		when: () => findStore.isOpen,
+		when: () => findStore.query.length > 0,
 		handler: () => findStore.previous()
 	});
 
