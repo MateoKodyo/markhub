@@ -126,14 +126,6 @@
 		root.setProperty('--content-max-width', `${a.editorContentWidth}%`);
 		root.setProperty('--editor-body-font-size', `${a.editorFontSize}px`);
 		root.setProperty('--editor-body-line-height', String(a.editorLineHeight));
-		// TEMP diagnostic — remove once typography apply is confirmed working.
-		console.log('[appearance bridge]', {
-			editorFontSize: a.editorFontSize,
-			editorLineHeight: a.editorLineHeight,
-			rootFontSize: getComputedStyle(document.documentElement).getPropertyValue(
-				'--editor-body-font-size'
-			)
-		});
 	});
 
 	// --- Command palette wiring -------------------------------------------
