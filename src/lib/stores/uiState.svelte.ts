@@ -64,6 +64,10 @@ function readWidth(key: string, defaultValue: number, min: number, max: number):
 
 class UiStateStore {
 	sidebarCollapsed = $state(false);
+	/** "Show AI files" sidebar filter — session-only (a transient view
+	 *  filter). Driven by the sidebar switch and the `ai.show-aware-files`
+	 *  command, which are two surfaces onto this one flag. */
+	aiFilesOnly = $state(false);
 	outlineOpen = $state<boolean>(readOutlineInitial());
 	sidebarWidth = $state<number>(
 		readWidth(LS_SIDEBAR_W_KEY, DEFAULT_SIDEBAR_WIDTH, SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH)

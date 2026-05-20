@@ -18,6 +18,8 @@
  */
 
 import {
+	Bot,
+	ClipboardCopy,
 	Code2,
 	Download,
 	ExternalLink,
@@ -32,13 +34,16 @@ import {
 	Save,
 	Search,
 	Settings,
+	Sparkles,
 	X
 } from 'lucide-svelte';
 import { activeFileStore } from '$lib/stores/activeFile.svelte';
+import { aiAwareStore } from '$lib/stores/aiAware.svelte';
 import { findStore } from '$lib/stores/find.svelte';
 import { paletteStore } from '$lib/stores/palette.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { themeManager } from '$lib/theming/manager.svelte';
+import { toast } from '$lib/stores/toast.svelte';
 import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { vaultsStore } from '$lib/stores/vaults.svelte';
 import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
@@ -51,6 +56,24 @@ import { commandRegistry } from './registry.svelte';
 function dispatchSidebar(action: string): void {
 	if (typeof window === 'undefined') return;
 	window.dispatchEvent(new CustomEvent('palette:action', { detail: { action } }));
+}
+
+/** Copy the active file to the clipboard as an AI prompt — the content
+ *  prefixed with a source-path header (and the AI-aware category when
+ *  the file is recognized as one). PLAN-AI-READY STEP 6. */
+async function copyFileAsPrompt(): Promise<void> {
+	const active = activeFileStore.activeFile;
+	if (!active) return;
+	const info = aiAwareStore.getForFile(active.relativePath);
+	const header = info
+		? `# Source: ${active.relativePath}\n# Type: ${info.label}\n\n`
+		: `# Source: ${active.relativePath}\n\n`;
+	try {
+		await navigator.clipboard.writeText(header + activeFileStore.content);
+		toast.success('Copié comme prompt IA');
+	} catch (e) {
+		toast.error('Copie impossible', { details: String(e) });
+	}
 }
 
 /** Toggle event for the editor preview/source switch — owned by +page. */
@@ -217,6 +240,35 @@ export function registerAppCommands(): void {
 		hidden: true,
 		when: () => findStore.query.length > 0,
 		handler: () => findStore.previous()
+	});
+
+	// ----- AI-aware files (PLAN-AI-READY STEP 6) -----
+	commandRegistry.register({
+		id: 'ai.show-aware-files',
+		label: 'Show AI-aware Files in Vault',
+		group: 'AI',
+		icon: Sparkles,
+		when: () => vaultsStore.activeVaultId !== null,
+		// Toggles the sidebar "Show AI files" filter (shared state).
+		handler: () => {
+			uiStateStore.aiFilesOnly = !uiStateStore.aiFilesOnly;
+		}
+	});
+	commandRegistry.register({
+		id: 'ai.copy-as-prompt',
+		label: 'Copy File as AI Prompt',
+		group: 'AI',
+		icon: ClipboardCopy,
+		when: () => activeFileStore.activeTabId !== null,
+		handler: () => void copyFileAsPrompt()
+	});
+	commandRegistry.register({
+		id: 'ai.open-claude-md',
+		label: 'Open Project CLAUDE.md',
+		group: 'AI',
+		icon: Bot,
+		when: () => vaultsStore.activeVaultId !== null,
+		handler: () => dispatchSidebar('openClaudeMd')
 	});
 
 	// ----- Tabs -----

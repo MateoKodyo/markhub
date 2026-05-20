@@ -51,7 +51,7 @@
 		filterTreeToMarkdown,
 		filterTreeToAiAware
 	} from '$lib/utils/fileType';
-	import { createClaudeMd } from '$lib/ai-ready/claudeMd';
+	import { createClaudeMd, CLAUDE_MD_PATH } from '$lib/ai-ready/claudeMd';
 	import {
 		findInsertionTarget,
 		pruneExpandedFolders
@@ -80,16 +80,14 @@
 		});
 	}
 
-	// "Show AI files" filter — session-only (a transient view filter, not
-	// a persisted preference). When on, the tree shows only AI-aware files.
-	let aiFilesOnly = $state(false);
-
+	// "Show AI files" filter lives in uiStateStore — shared with the
+	// `ai.show-aware-files` command (PLAN-AI-READY STEP 6).
 	// Two independent, composable filters: markdown-only and AI-only.
 	const displayScanRoot = $derived.by(() => {
 		if (!scanRoot) return null;
 		let tree = scanRoot;
 		if (hideNonMarkdown) tree = filterTreeToMarkdown(tree);
-		if (aiFilesOnly) {
+		if (uiStateStore.aiFilesOnly) {
 			tree = filterTreeToAiAware(
 				tree,
 				(path) => aiAwareStore.getForFile(path) !== null
@@ -163,6 +161,7 @@
 			if (detail?.action === 'newFile') startCreate('file');
 			else if (detail?.action === 'newFolder') startCreate('folder');
 			else if (detail?.action === 'importFile') void handleImport();
+			else if (detail?.action === 'openClaudeMd') void handleOpenOrCreateClaudeMd();
 		};
 		window.addEventListener('palette:action', onPaletteAction);
 		return () => window.removeEventListener('palette:action', onPaletteAction);
@@ -238,6 +237,22 @@
 			toast.success('CLAUDE.md créé');
 		} catch (e) {
 			toast.error('Création CLAUDE.md impossible', { details: String(e) });
+		}
+	}
+
+	// `ai.open-claude-md` command — open the vault-root CLAUDE.md, or
+	// create it from the template when it doesn't exist yet.
+	async function handleOpenOrCreateClaudeMd() {
+		const id = vaultsStore.activeVaultId;
+		if (!id) return;
+		const exists =
+			scanRoot?.children?.some(
+				(c) => !c.isDirectory && c.relativePath === CLAUDE_MD_PATH
+			) ?? false;
+		if (exists) {
+			void activeFileStore.openFile(id, CLAUDE_MD_PATH);
+		} else {
+			await handleCreateClaudeMd();
 		}
 	}
 
@@ -1031,9 +1046,9 @@
 					onchange={() => toggleHideNonMarkdown()}
 				/>
 				<Switch
-					checked={aiFilesOnly}
+					checked={uiStateStore.aiFilesOnly}
 					label="Show AI files"
-					onchange={(v) => (aiFilesOnly = v)}
+					onchange={(v) => (uiStateStore.aiFilesOnly = v)}
 				/>
 			</div>
 
