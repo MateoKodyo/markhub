@@ -185,8 +185,8 @@ Three new commands added to the command registry (via PLAN-COMMAND-SYSTEM's `Com
 
 | Step | Status | Commit | Matheo validation |
 |------|--------|--------|-------------------|
-| 1. Detection module + tests | ⏳ | — | — |
-| 2. aiAwareStore + integration with vault scan | ⏳ | — | — |
+| 1. Detection module + tests | ✅ | `4bbf517` | ✅ |
+| 2. aiAwareStore + integration with vault scan | ✅ | (this commit) | ⏳ |
 | 3. Sidebar badge + Settings toggle | ⏳ | — | — |
 | 4. Editor header chip | ⏳ | — | — |
 | 5. AI Context panel in sidebar | ⏳ | — | — |
@@ -282,6 +282,26 @@ Three new commands added to the command registry (via PLAN-COMMAND-SYSTEM's `Com
 ### Expected commit
 
 `feat(ai-ready): aiAwareStore with vault scan integration`
+
+### Known limitation — hidden-path patterns deferred (decided 2026-05-20)
+
+The Rust `vault_scan` ignores every entry whose name starts with `.`
+(deliberate — keeps `.git`, `.svelte-kit`, etc. out of the sidebar). As
+a result the three dot-path detector patterns are **never fed a file**:
+
+- `.cursor/rules` / `.cursor/rules/*`
+- `.github/copilot-instructions.md`
+- `.aider.conf.yml` / `.yaml`
+
+The detector (STEP 1) already handles all three — its code and tests
+stay in place — but STEP 2 ships detection only for the **visible**
+surface: `CLAUDE.md`, `AGENTS.md`, `AGENT.md`, `GEMINI.md`, `CODEX.md`,
+and the `audience:` frontmatter markers.
+
+Revealing the hidden patterns means deciding whether `.cursor/` and
+`.github/` show up in the sidebar tree (a UX decision, not a detail).
+Deferred to a dedicated mini-chantier — nothing in STEP 1's detector is
+wasted.
 
 ---
 

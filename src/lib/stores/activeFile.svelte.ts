@@ -1,4 +1,5 @@
 import * as api from '$lib/tauri/api';
+import { aiAwareStore } from './aiAware.svelte';
 import { settingsStore } from './settings.svelte';
 import { toast } from './toast.svelte';
 import { vaultsStore } from './vaults.svelte';
@@ -245,6 +246,12 @@ class TabsStore {
 		try {
 			await api.fileWrite(t.vaultId, t.relativePath, t.content);
 			this.#updateTab(id, { status: 'saved', lastSavedAt: Date.now() });
+			// A save mutates content without re-scanning the tree — re-detect
+			// this file so an added/removed `audience:` marker is reflected.
+			// Guarded to the active vault: aiAwareStore tracks one vault's scan.
+			if (t.vaultId === vaultsStore.activeVaultId) {
+				aiAwareStore.updateForFile(t.relativePath, t.content);
+			}
 		} catch (e) {
 			this.#updateTab(id, { status: 'error' });
 			// Sticky toast — auto-dismiss is too quiet for a write failure.

@@ -27,6 +27,7 @@
 	import ResizeHandle from './ResizeHandle.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
+	import { aiAwareStore } from '$lib/stores/aiAware.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
@@ -119,6 +120,7 @@
 			scanRoot = null;
 			selectedEntry = null;
 			creatingAt = null;
+			aiAwareStore.clear();
 			return;
 		}
 		scanError = null;
@@ -163,6 +165,10 @@
 			scanError = String(e);
 			scanRoot = null;
 		}
+		// Sidebar's scan is the authoritative file tree — it re-runs on
+		// every mutation (create / rename / delete / import). Drive the
+		// AI-aware cache off it so badges stay in sync (PLAN-AI-READY).
+		aiAwareStore.syncFromTree(scanRoot);
 	}
 
 	const expandedSet = $derived.by(() => {

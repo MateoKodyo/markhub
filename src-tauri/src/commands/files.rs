@@ -348,7 +348,47 @@ pub fn scan_vault(vault: &Vault) -> Result<FileEntry, String> {
         relative_path: String::new(),
         is_directory: true,
         children: Some(children),
+        frontmatter: None,
     })
+}
+
+/// True for files Markus treats as markdown (`.md` / `.markdown`).
+fn is_markdown_name(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.ends_with(".md") || lower.ends_with(".markdown")
+}
+
+/// Best-effort read of a markdown file's leading YAML frontmatter block.
+/// Returns the raw block or `None` when the file has none or can't be
+/// read — a single unreadable file must never abort the whole scan.
+fn read_frontmatter(path: &Path) -> Option<String> {
+    let content = fs::read_to_string(path).ok()?;
+    extract_frontmatter(&content)
+}
+
+/// Pull the raw YAML frontmatter block from markdown `content`.
+/// Recognized only when the first line is exactly `---` and a later line
+/// is exactly `---`. Mirrors the frontend `splitFrontmatter` contract
+/// (`src/lib/utils/markdown.ts`): fences excluded, no trailing newline.
+fn extract_frontmatter(content: &str) -> Option<String> {
+    let mut lines = content.lines();
+    if lines.next()? != "---" {
+        return None;
+    }
+    let mut block = String::new();
+    let mut first = true;
+    for line in lines {
+        if line == "---" {
+            return Some(block);
+        }
+        if first {
+            first = false;
+        } else {
+            block.push('\n');
+        }
+        block.push_str(line);
+    }
+    None
 }
 
 fn scan_dir(absolute: &Path, relative: &str) -> Result<Vec<FileEntry>, String> {
@@ -377,13 +417,20 @@ fn scan_dir(absolute: &Path, relative: &str) -> Result<Vec<FileEntry>, String> {
                 relative_path: child_rel,
                 is_directory: true,
                 children: Some(nested),
+                frontmatter: None,
             });
         } else if metadata.is_file() {
+            let frontmatter = if is_markdown_name(&name) {
+                read_frontmatter(&entry.path())
+            } else {
+                None
+            };
             files.push(FileEntry {
                 name,
                 relative_path: child_rel,
                 is_directory: false,
                 children: None,
+                frontmatter,
             });
         }
     }
@@ -753,6 +800,51 @@ mod tests {
             .map(|c| c.name.as_str())
             .collect();
         assert_eq!(names, vec!["visible.md"]);
+    }
+
+    #[test]
+    fn scan_extracts_frontmatter_for_markdown_files() {
+        let (g, v) = make_vault(VaultMode::Edit);
+        write_fixture(
+            g.path(),
+            "tagged.md",
+            "---\naudience: ai\ntitle: Notes\n---\n\n# Body\n",
+        );
+        write_fixture(g.path(), "plain.md", "# Just a heading\n");
+        write_fixture(g.path(), "config.yml", "---\naudience: ai\n---\n");
+
+        let root = scan_vault(&v).unwrap();
+        let children = root.children.unwrap();
+        let find = |n: &str| children.iter().find(|c| c.name == n).unwrap();
+
+        assert_eq!(
+            find("tagged.md").frontmatter.as_deref(),
+            Some("audience: ai\ntitle: Notes"),
+            "markdown frontmatter block is extracted without fences"
+        );
+        assert_eq!(
+            find("plain.md").frontmatter, None,
+            "markdown file without frontmatter has None"
+        );
+        assert_eq!(
+            find("config.yml").frontmatter, None,
+            "non-markdown files are never scanned for frontmatter"
+        );
+    }
+
+    #[test]
+    fn extract_frontmatter_handles_edges() {
+        assert_eq!(
+            extract_frontmatter("---\nkey: val\n---\nbody"),
+            Some("key: val".to_string())
+        );
+        assert_eq!(extract_frontmatter("---\n---\n"), Some(String::new()));
+        assert_eq!(extract_frontmatter("no frontmatter here"), None);
+        assert_eq!(
+            extract_frontmatter("---\nunterminated\nbody"),
+            None,
+            "missing closing fence is not valid frontmatter"
+        );
     }
 
     #[test]

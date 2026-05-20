@@ -228,6 +228,13 @@ pub struct FileEntry {
     pub is_directory: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children: Option<Vec<FileEntry>>,
+    /// Raw YAML frontmatter block (between the leading `---` fences,
+    /// fences excluded), extracted at scan time for `.md` / `.markdown`
+    /// files only. `None` for directories, non-markdown files, and
+    /// markdown files without frontmatter. Consumed by the AI-aware
+    /// detector (PLAN-AI-READY) so badges are correct at vault open.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frontmatter: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

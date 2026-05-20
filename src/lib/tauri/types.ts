@@ -16,6 +16,13 @@ export type FileEntry = {
 	relativePath: string;
 	isDirectory: boolean;
 	children?: FileEntry[];
+	/**
+	 * Raw YAML frontmatter block (fences excluded), extracted by the Rust
+	 * scan for `.md` / `.markdown` files only. Absent for directories,
+	 * non-markdown files, and markdown files without frontmatter.
+	 * Consumed by the AI-aware detector (PLAN-AI-READY).
+	 */
+	frontmatter?: string;
 };
 
 export type LastOpenedFile = {
