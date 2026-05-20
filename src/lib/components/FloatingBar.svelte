@@ -363,7 +363,9 @@
 		left: 1px;
 		width: calc((100% - 3px) / 2);
 		height: 20px;
-		background: var(--color-button-bg);
+		/* High-contrast inverted surface — white pill in dark themes,
+		   near-black in light ones — so the active mode reads at a glance. */
+		background: var(--color-text-primary);
 		border-radius: 4px;
 		pointer-events: none;
 		transform: translateX(calc(var(--seg-index, 0) * (100% + 1px)));
@@ -399,7 +401,8 @@
 	}
 
 	.seg.active {
-		color: var(--color-text-primary);
+		/* Icon sits on the inverted indicator — flip it to the bg colour. */
+		color: var(--color-bg);
 	}
 
 	.seg:disabled {
