@@ -3,14 +3,18 @@
  * of a composite `vaultId::relativePath` key. Powers File mode's
  * "recent first when query is empty" ranking.
  *
- * Storage: a single JSON array under `markhub.files.recent.v1`. Cap 20.
+ * Storage: a single JSON array under `markus.files.recent.v1`. Cap 20.
  * Dedupes on re-record. Hydration is tolerant — non-array payloads and
  * entries missing fields are silently dropped.
  */
 
 import type { LastOpenedFile } from '$lib/tauri/types';
+import { migrateLsKey } from '$lib/utils/migrateLsKey';
 
-const LS_KEY = 'markhub.files.recent.v1';
+const LS_KEY = 'markus.files.recent.v1';
+
+// Markhub → Markus rename (2026-05-20): carry the MRU forward.
+migrateLsKey('markhub.files.recent.v1', LS_KEY);
 const CAP = 20;
 
 const keyOf = (e: LastOpenedFile) => `${e.vaultId}::${e.relativePath}`;

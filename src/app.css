@@ -1,4 +1,4 @@
-/* Markhub — design tokens
+/* Markus — design tokens
  * Source: design.md (warm-dark IDE aesthetic, Warp-inspired).
  * SPEC.md §2 anchors this file as the canonical design system.
  *
@@ -24,7 +24,7 @@
 @import './styles/themes/markhub-light.css';
 @import './styles/themes/forest.css';
 @import './styles/themes/kodyo.css';
-@import './styles/themes/markus.css';
+@import './styles/themes/sage.css';
 @import './styles/themes/terminal.css';
 @import './styles/themes/editor.css';
 /* PLAN-LIGHT-THEMES §STEP 1 — sage signature + 5 sibling light themes. */
@@ -162,7 +162,7 @@
 	--space-9: 64px;
 
 	/* === Editor content layout === */
-	/* Markhub edits technical docs (specs, CLAUDE.md, briefs, journals) with
+	/* Markus edits technical docs (specs, CLAUDE.md, briefs, journals) with
 	   wide code blocks, tables, deep lists — full-width is the right call.
 	   Aligned with VS Code / Cursor / GitHub readme rendering. */
 	--content-max-width: 60%;
@@ -192,7 +192,7 @@
 
 	/* === Motion (plan §8) ===
 	 * Custom durations + Material-standard easing. Never longer than 300ms
-	 * in Markhub chrome — animations that drag are perceived as lag. */
+	 * in Markus chrome — animations that drag are perceived as lag. */
 	--duration-fast: 100ms;
 	--duration-base: 150ms;
 	--duration-slow: 200ms;

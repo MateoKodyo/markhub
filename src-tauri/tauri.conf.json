@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Markhub",
+  "productName": "Markus",
   "version": "0.1.0-alpha.1",
-  "identifier": "com.kodyo.markhub",
+  "identifier": "com.kodyo.markus",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Markhub",
+        "title": "Markus",
         "width": 1200,
         "height": 800,
         "resizable": true,

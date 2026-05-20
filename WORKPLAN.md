@@ -1,6 +1,6 @@
-# Markhub — Plan de Développement (Index global)
+# Markus — Plan de Développement (Index global)
 
-> **Document maître** : pilotage haut niveau des chantiers Markhub.
+> **Document maître** : pilotage haut niveau des chantiers Markus.
 > À lire en début de chaque session Claude Code.
 > Ordre d'exécution strict : un chantier à la fois, terminé avant le suivant.
 
@@ -93,7 +93,7 @@ git checkout -b feat/toast-system
 import { toast } from '$lib/stores/toast.svelte';
 
 toast.success('Fichier sauvegardé');
-toast.success('Chemin copié', { details: '/Users/lkid/Projects/markhub/SPEC.md' });
+toast.success('Chemin copié', { details: '/Users/lkid/Projects/markus/SPEC.md' });
 toast.error('Suppression échouée', { details: err.message });
 toast.info('Vault déplacé');
 toast.warning('Conflit de nom', { duration: 5000 });
@@ -267,7 +267,7 @@ Avant d'attaquer un chantier, lire les skills pertinents dans `~/Ressources/Skil
 - `CLAUDE.md` — méthodologie permanente
 - `WORKPLAN.md` — **CE FICHIER** (index global des chantiers)
 - `PLAN-BLOCKNOTE.md` — plan détaillé du chantier ACTIF (migration BlockNote)
-- `SPEC.md` — spec fonctionnelle Markhub
+- `SPEC.md` — spec fonctionnelle Markus
 - `PLAN.md` — plan global du projet par phases (historique, phases 0-6)
 - `TESTS.md` — catalogue des tests
 - `JOURNAL.md` — journal de session (append-only)

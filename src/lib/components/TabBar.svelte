@@ -31,7 +31,7 @@
 
 	let { trailing }: Props = $props();
 
-	const DRAG_MIME = 'application/x-markhub-tab';
+	const DRAG_MIME = 'application/x-markus-tab';
 	let dragSourceId = $state<string | null>(null);
 	let dragOverId = $state<string | null>(null);
 

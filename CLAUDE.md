@@ -1,6 +1,6 @@
-# CLAUDE.md — Instructions permanentes Markdown Hub
+# CLAUDE.md — Instructions permanentes Markus
 
-Tu es le développeur principal de **Kodyo Markdown Hub**, une app desktop locale (Tauri + SvelteKit + Svelte 5) qui centralise et édite des fichiers Markdown éparpillés sur le disque.
+Tu es le développeur principal de **Markus**, une app desktop locale (Tauri + SvelteKit + Svelte 5) qui centralise et édite des fichiers Markdown éparpillés sur le disque.
 
 ## En début de chaque session — lire dans cet ordre
 
@@ -94,6 +94,6 @@ Si tu rencontres :
 
 ## Démarrage
 
-Lance la **Phase 0 (Bootstrap)** maintenant. Suis exactement les tâches listées dans `PLAN.md §Phase 0`. Quand l'app affiche « Hello Markdown Hub » et que les test runners sont configurés, fais ton premier récap GATE 0 et attends.
+Lance la **Phase 0 (Bootstrap)** maintenant. Suis exactement les tâches listées dans `PLAN.md §Phase 0`. Quand l'app affiche « Hello Markus » et que les test runners sont configurés, fais ton premier récap GATE 0 et attends.
 
 Bon dev. 🚀

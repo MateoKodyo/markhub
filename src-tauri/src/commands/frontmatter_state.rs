@@ -8,7 +8,7 @@ const FILE_NAME: &str = "frontmatter-state.json";
 
 /// Resolve the on-disk path for the per-file frontmatter collapse map via
 /// Tauri's platform-aware `app_config_dir` (e.g. `~/Library/Application
-/// Support/com.kodyo.markhub/frontmatter-state.json`).
+/// Support/com.kodyo.markus/frontmatter-state.json`).
 pub fn resolve_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()

@@ -1962,7 +1962,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "markhub"
+name = "markup5ever"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8983d30f2915feeaaab2d6babdd6bc7e9ed1a00b66b5e6d74df19aa9c0e91862"
+dependencies = [
+ "log",
+ "tendril",
+ "web_atoms",
+]
+
+[[package]]
+name = "markus"
 version = "0.1.0-alpha.1"
 dependencies = [
  "grep-matcher",
@@ -1979,17 +1990,6 @@ dependencies = [
  "tauri-plugin-log",
  "tempfile",
  "uuid",
-]
-
-[[package]]
-name = "markup5ever"
-version = "0.38.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8983d30f2915feeaaab2d6babdd6bc7e9ed1a00b66b5e6d74df19aa9c0e91862"
-dependencies = [
- "log",
- "tendril",
- "web_atoms",
 ]
 
 [[package]]

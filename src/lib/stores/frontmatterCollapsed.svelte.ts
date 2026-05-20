@@ -18,6 +18,10 @@
 
 import * as api from '$lib/tauri/api';
 
+// Legacy localStorage key from BEFORE the disk-backed migration
+// (PLAN-FRONTMATTER-UI STEP 6). Deliberately keeps the `markhub.` prefix
+// — it is a historical key read once to drain pre-disk data; renaming it
+// would break that one-way bridge. Not an active storage key.
 const LEGACY_LOCALSTORAGE_KEY = 'markhub.frontmatter.collapsed.v1';
 const PERSIST_DEBOUNCE_MS = 300;
 

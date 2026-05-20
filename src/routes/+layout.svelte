@@ -36,7 +36,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Markhub</title>
+	<title>Markus</title>
 </svelte:head>
 
 {@render children()}

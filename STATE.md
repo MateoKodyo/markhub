@@ -146,7 +146,7 @@ Plus en amont : closure frontmatter v1 (7469dc8), 4 commits frontmatter (ff96807
 - `⌘1..9` active le N-ième tab
 - `⌘S` save manuel — `⌘,` settings
 
-**4 thèmes** (depuis PLAN-THEMING) : Markhub Light, Markhub Dark, Cocoa (warm browns), Forest (kaki). Picker à 2 slots dans Settings → Apparence.
+**4 thèmes** (depuis PLAN-THEMING) : Markus Light, Markus Dark, Cocoa (warm browns), Forest (kaki). Picker à 2 slots dans Settings → Apparence.
 
 **Frontmatter custom UI** (depuis PLAN-FRONTMATTER-UI) : block au-dessus de BlockNote avec read collapsed + structured edit (controls typés date/tags/toggle/number) + raw YAML edit + collapsed state sur disque (`frontmatter-state.json`).
 
@@ -178,6 +178,6 @@ Voir `BACKLOG.md` :
 ## Prochaine session — checklist de démarrage
 
 1. **Push origin/main** (6 commits ahead à pousser).
-2. **Smoke test interactif** du toggle sidebar visibility dans les 4 thèmes (Markhub Light/Dark, Cocoa, Forest) : vérifier que `--opacity-muted: 0.4` est confortable, ajuster entre 0.35–0.5 si nécessaire (token unique dans `src/app.css`).
+2. **Smoke test interactif** du toggle sidebar visibility dans les 4 thèmes (Markus Light/Dark, Cocoa, Forest) : vérifier que `--opacity-muted: 0.4` est confortable, ajuster entre 0.35–0.5 si nécessaire (token unique dans `src/app.css`).
 3. **Inspecter les modifs non-staged restantes** : `src-tauri/Cargo.lock` / `Cargo.toml` / `tauri.conf.json` (héritées du début de session, pas touchées par cette session — à juger / commit / revert selon ce que c'est).
 4. **Reprendre selon priorité** : PLAN-UI-PAPER STEP 9 (export PNG) si budget MCP frais, ou retour sur `feat/editor-polish` pour résoudre les 2 bugs CSS cascade.

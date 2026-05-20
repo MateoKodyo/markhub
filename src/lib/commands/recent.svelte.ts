@@ -3,13 +3,18 @@
  * Command mode to surface frequently-invoked actions at the top when the
  * query is empty.
  *
- * Storage: a single JSON-encoded array under `markhub.commands.recent.v1`.
+ * Storage: a single JSON-encoded array under `markus.commands.recent.v1`.
  * Cap: 10. Dedupes on re-record so the same command bubbling back up
  * doesn't create duplicates. Hydration is tolerant — malformed payloads
  * silently reset to an empty list rather than throwing on boot.
  */
 
-const LS_KEY = 'markhub.commands.recent.v1';
+import { migrateLsKey } from '$lib/utils/migrateLsKey';
+
+const LS_KEY = 'markus.commands.recent.v1';
+
+// Markhub → Markus rename (2026-05-20): carry the MRU forward.
+migrateLsKey('markhub.commands.recent.v1', LS_KEY);
 const CAP = 10;
 
 class RecentCommandsStore {

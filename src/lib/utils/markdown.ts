@@ -75,7 +75,7 @@ export type Heading = {
  * the inside of fenced code blocks (``` or ~~~), since `#` chars in code
  * are not real headings. setext-style headings (underlined with `===`
  * or `---`) are intentionally NOT supported — BlockNote doesn't emit them
- * and Markhub's source view encourages the explicit ATX form.
+ * and Markus's source view encourages the explicit ATX form.
  */
 export function extractHeadings(content: string): Heading[] {
 	if (!content) return [];
@@ -151,7 +151,7 @@ export function extractHeadings(content: string): Heading[] {
  *   - Nested lists collapse into separate blocks per item, not per
  *     visual line. Should still land "close enough" for scroll.
  *   - HTML / setext headings are not the BlockNote convention; users
- *     who hit them on Markhub get a `null` jump (we'll toggle source
+ *     who hit them on Markus get a `null` jump (we'll toggle source
  *     mode as the fallback path).
  *
  * Returns `null` if the line falls outside the document, inside

@@ -1,20 +1,20 @@
 /* ============================================================
- * Markhub BlockNote design polish (PLAN-BLOCKNOTE étape 3).
+ * Markus BlockNote design polish (PLAN-BLOCKNOTE étape 3).
  * ============================================================
  *
- * Maps BlockNote's CSS surface onto the Markhub design system
+ * Maps BlockNote's CSS surface onto the Markus design system
  * (see design.md). Imported by Editor.svelte AFTER
  * @blocknote/core/style.css so we override BN defaults.
  *
  * Layers (top to bottom):
- *   1. --bn-* CSS variables (BN exposes 6, all mapped to Markhub tokens)
+ *   1. --bn-* CSS variables (BN exposes 6, all mapped to Markus tokens)
  *   2. Editor container typography (font, scale, color)
  *   3. Block-type-specific overrides for hardcoded hex in BN core
  *      (code blocks, blockquote, tables, file blocks, drop cursors)
  *   4. Light-mode adjustments for BN-rendered elements that hardcode
  *      a "light-mode" look (file block, etc.)
  *
- * Markhub's token system auto-inverts via :root[data-theme="light"]
+ * Markus's token system auto-inverts via :root[data-theme="light"]
  * in app.css, so most rules below don't need a light-mode duplicate —
  * they get the right value through var(--…). The exceptions are
  * elements where BN ships a hardcoded hex (e.g. code blocks always
@@ -22,7 +22,7 @@
  */
 
 /* ────────────────────────────────────────────────────────────
- *  1. Map BlockNote's exposed CSS variables onto Markhub tokens.
+ *  1. Map BlockNote's exposed CSS variables onto Markus tokens.
  * ──────────────────────────────────────────────────────────── */
 .bn-editor {
 	--bn-colors-editor-text: var(--color-text-primary);
@@ -38,11 +38,11 @@
  *  jump (search hit, outline click). 1.5s fade out, accent at 18%.
  * ──────────────────────────────────────────────────────────── */
 .preview .is-search-flash {
-	animation: markhub-search-flash 1500ms var(--easing-standard, ease-out);
+	animation: markus-search-flash 1500ms var(--easing-standard, ease-out);
 	border-radius: var(--radius-sm, 4px);
 }
 
-@keyframes markhub-search-flash {
+@keyframes markus-search-flash {
 	0% {
 		background: color-mix(in oklab, var(--color-accent) 18%, transparent);
 	}
@@ -251,7 +251,7 @@
 }
 
 /* Selected block outline — BN default is #64a0ff (sky blue), we want
- * the Markhub accent for consistency. */
+ * the Markus accent for consistency. */
 .preview .bn-block-content.ProseMirror-selectednode > *,
 .preview .ProseMirror-selectednode > .bn-block-content > * {
 	outline-color: var(--color-accent) !important;
@@ -285,7 +285,7 @@
  *  5. File block adjustments — BN hardcodes a light-mode look that
  *  reads as "disabled" on the warm-dark canvas. Map to surface
  *  tokens that auto-invert with the theme.
- *  Markhub doesn't ship file/image blocks today (markdown-only),
+ *  Markus doesn't ship file/image blocks today (markdown-only),
  *  but the rules are tiny and future-proof the design system.
  * ──────────────────────────────────────────────────────────── */
 .preview [data-file-block] .bn-add-file-button {

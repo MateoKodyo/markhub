@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod migration;
 pub mod models;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -6,6 +7,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            // Rename Markhub → Markus (2026-05-20): pull forward any
+            // config/settings files left in the legacy data directory
+            // before the rest of the app reads them.
+            migration::migrate_legacy_data_dir(app.handle());
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()

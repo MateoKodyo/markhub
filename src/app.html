@@ -9,17 +9,22 @@
 			// Runs synchronously before the first paint so the user never sees a
 			// flash of the wrong theme. Reads the last resolved theme from
 			// localStorage (written by themeManager on every change); falls back
-			// to the OS preference; final fallback is markhub-dark (Markhub's
-			// default identity).
+			// to the OS preference; final fallback is markhub-dark (the default
+			// signature theme — the `markhub-*` ids are kept on purpose).
 			(function () {
 				try {
-					var cached = localStorage.getItem('markhub.theme.cache');
+					// New key is `markus.theme.cache`; fall back to the legacy
+					// `markhub.theme.cache` so the first boot after the rename
+					// doesn't flash the wrong theme before the store migrates it.
+					var cached =
+						localStorage.getItem('markus.theme.cache') ||
+						localStorage.getItem('markhub.theme.cache');
 					var known = [
 						'markhub-light',
 						'markhub-dark',
 						'forest',
 						'kodyo',
-						'markus',
+						'sage',
 						'terminal',
 						'editor',
 						'terracotta',

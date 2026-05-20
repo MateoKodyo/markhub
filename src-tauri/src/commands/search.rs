@@ -61,7 +61,7 @@ pub struct SearchMatch {
 const MAX_HITS_PER_FILE: usize = 100;
 const MAX_FILES_WITH_HITS: usize = 200;
 
-/// Recognise the file extensions we care to search. Markhub is a
+/// Recognise the file extensions we care to search. Markus is a
 /// markdown app, so we skip everything else even if it lives in the
 /// vault (PNG screenshots, .json sidecar files, …).
 fn is_markdown(path: &Path) -> bool {
@@ -157,7 +157,7 @@ pub fn search(
     let walker = WalkBuilder::new(vault_root)
         .standard_filters(true)
         // Honor .gitignore files even when the vault is not a git repo —
-        // Markhub vaults are often plain folders, but a .gitignore (or
+        // Markus vaults are often plain folders, but a .gitignore (or
         // its sibling .ignore) is still the canonical way to tell us
         // what to leave out of the search index.
         .require_git(false)

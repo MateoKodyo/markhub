@@ -3,16 +3,25 @@
  * command palette, status bar) needs to read or mutate.
  *
  *   - `sidebarCollapsed` is session-only (no persistence yet).
- *   - `outlineOpen` IS persisted under `markhub.ui.outlineOpen.v1` so
+ *   - `outlineOpen` IS persisted under `markus.ui.outlineOpen.v1` so
  *     the panel state survives reloads. Default: closed.
  *   - `sidebarWidth` / `outlineWidth` IS persisted (user dragged values
- *     under `markhub.ui.sidebarWidth.v1` / `…outlineWidth.v1`).
+ *     under `markus.ui.sidebarWidth.v1` / `…outlineWidth.v1`).
  */
 
-const LS_OUTLINE_KEY = 'markhub.ui.outlineOpen.v1';
-const LS_SIDEBAR_W_KEY = 'markhub.ui.sidebarWidth.v1';
-const LS_OUTLINE_W_KEY = 'markhub.ui.outlineWidth.v1';
-const LS_VAULTS_H_KEY = 'markhub.ui.vaultsHeight.v1';
+import { migrateLsKey } from '$lib/utils/migrateLsKey';
+
+const LS_OUTLINE_KEY = 'markus.ui.outlineOpen.v1';
+const LS_SIDEBAR_W_KEY = 'markus.ui.sidebarWidth.v1';
+const LS_OUTLINE_W_KEY = 'markus.ui.outlineWidth.v1';
+const LS_VAULTS_H_KEY = 'markus.ui.vaultsHeight.v1';
+
+// Markhub → Markus rename (2026-05-20): pull the persisted UI state
+// forward from the legacy `markhub.ui.*` keys before the first read.
+migrateLsKey('markhub.ui.outlineOpen.v1', LS_OUTLINE_KEY);
+migrateLsKey('markhub.ui.sidebarWidth.v1', LS_SIDEBAR_W_KEY);
+migrateLsKey('markhub.ui.outlineWidth.v1', LS_OUTLINE_W_KEY);
+migrateLsKey('markhub.ui.vaultsHeight.v1', LS_VAULTS_H_KEY);
 
 const DEFAULT_SIDEBAR_WIDTH = 240;
 const DEFAULT_OUTLINE_WIDTH = 260;

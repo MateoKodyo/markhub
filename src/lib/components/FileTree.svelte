@@ -71,7 +71,7 @@
 		onMoveFile?: (sourcePath: string, targetParentPath: string) => void | Promise<void>;
 	} = $props();
 
-	const DRAG_MIME = 'application/x-markhub-path';
+	const DRAG_MIME = 'application/x-markus-path';
 	let dragOverPath = $state<string | null>(null);
 	let dragSourcePath = $state<string | null>(null);
 	/** True while a drag is hovering the wrap *outside* a folder row —

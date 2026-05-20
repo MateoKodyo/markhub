@@ -346,7 +346,7 @@
 	function confirmRemoveVault(vault: Vault) {
 		confirmTitle = `Supprimer le vault « ${vault.name} » ?`;
 		confirmMessage =
-			'Le vault sera retiré de Markhub. Les fichiers sur disque ne sont pas supprimés.';
+			'Le vault sera retiré de Markus. Les fichiers sur disque ne sont pas supprimés.';
 		confirmHandler = async () => {
 			const wasActive = vaultsStore.activeVaultId === vault.id;
 			try {

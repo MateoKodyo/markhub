@@ -7,8 +7,8 @@ use crate::models::UserSettings;
 
 const SETTINGS_FILE_NAME: &str = "settings.json";
 
-/// Resolve the on-disk path for the Markhub user settings file via Tauri's
-/// platform-aware `app_config_dir` (e.g. `~/Library/Application Support/com.kodyo.markhub/`).
+/// Resolve the on-disk path for the Markus user settings file via Tauri's
+/// platform-aware `app_config_dir` (e.g. `~/Library/Application Support/com.kodyo.markus/`).
 ///
 /// This lives next to `config.json` but is a separate file by design — it
 /// is what the user exports/imports in the Advanced section (STEP 6).
@@ -32,7 +32,7 @@ pub fn settings_write(app: AppHandle, settings: UserSettings) -> Result<(), Stri
 }
 
 /// Return the app version baked into the binary at compile time. Used by
-/// the Settings → Advanced section to display "Markhub vX.Y.Z".
+/// the Settings → Advanced section to display "Markus vX.Y.Z".
 #[tauri::command]
 pub fn app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()

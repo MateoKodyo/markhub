@@ -115,6 +115,13 @@ function migrateAppearance(input: LegacyAppearance): AppearanceSettings {
 		merged.themeMode = 'system';
 	}
 
+	// Renamed-theme remap: the dark theme `markus` was renamed `sage` when
+	// the app itself took the name "Markus" (2026-05-20). Preserve a user's
+	// existing choice instead of letting the orphan-fallback below drop it.
+	if ((merged.darkTheme as string) === 'markus') {
+		merged.darkTheme = 'sage';
+	}
+
 	// Validate slot ids against the current catalog. A previously-valid id
 	// can become orphaned when the catalog changes between releases (e.g.,
 	// retired themes like `cocoa` from PLAN-LIGHT-THEMES STEP 1). Orphaned

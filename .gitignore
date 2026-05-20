@@ -35,3 +35,6 @@ vite.config.ts.timestamp-*
 # Local UI screenshots (marketing / scratch captures — not repo assets)
 /screenshots-ui/
 
+# Local test builds (DMG artefacts — regenerated, not repo assets)
+/Test-Builds/
+

@@ -8,9 +8,9 @@ use crate::models::{Config, Vault, VaultMode};
 
 /// Hard-coded welcome content shipped with `create_sample_vault`.
 /// Kept short and in French to match the app's primary locale.
-const SAMPLE_WELCOME_MD: &str = "# Bienvenue dans Markhub
+const SAMPLE_WELCOME_MD: &str = "# Bienvenue dans Markus
 
-Markhub est un éditeur Markdown pour développeurs : portable, lisible par les IA, ami du `git`.
+Markus est un éditeur Markdown pour développeurs : portable, lisible par les IA, ami du `git`.
 
 ## Quelques points clés
 
@@ -52,11 +52,11 @@ const x = 42;
 ";
 
 const SAMPLE_TIPS_MD: &str = "---
-title: Astuces Markhub
-tags: [tips, markhub]
+title: Astuces Markus
+tags: [tips, markus]
 ---
 
-# Astuces Markhub
+# Astuces Markus
 
 ## Raccourcis dans l'éditeur
 
@@ -66,7 +66,7 @@ tags: [tips, markhub]
 
 ## Frontmatter
 
-Markhub respecte le YAML en haut des fichiers — ce fichier en a un (les trois tirets ci-dessus). Il est rendu dans un bloc rétractable au-dessus du contenu.
+Markus respecte le YAML en haut des fichiers — ce fichier en a un (les trois tirets ci-dessus). Il est rendu dans un bloc rétractable au-dessus du contenu.
 ";
 
 /// Add a vault entry to the config. Validates that the path exists and is a directory.
@@ -146,7 +146,7 @@ fn write_sample_files(root: &Path) -> Result<(), String> {
     let files = [
         ("Bienvenue.md", SAMPLE_WELCOME_MD),
         ("Syntaxe markdown.md", SAMPLE_SYNTAX_MD),
-        ("Astuces Markhub.md", SAMPLE_TIPS_MD),
+        ("Astuces Markus.md", SAMPLE_TIPS_MD),
     ];
     for (name, content) in files {
         std::fs::write(root.join(name), content)
@@ -577,20 +577,20 @@ mod tests {
         let root = Path::new(&v.path);
         assert!(root.join("Bienvenue.md").is_file());
         assert!(root.join("Syntaxe markdown.md").is_file());
-        assert!(root.join("Astuces Markhub.md").is_file());
+        assert!(root.join("Astuces Markus.md").is_file());
     }
 
     // ------ derive_vault_name_from_git_url ------
     #[test]
     fn derive_name_from_https_with_dot_git() {
-        let n = derive_vault_name_from_git_url("https://github.com/org/markhub-plugin.git").unwrap();
-        assert_eq!(n, "markhub-plugin");
+        let n = derive_vault_name_from_git_url("https://github.com/org/markus-plugin.git").unwrap();
+        assert_eq!(n, "markus-plugin");
     }
 
     #[test]
     fn derive_name_from_ssh_form() {
-        let n = derive_vault_name_from_git_url("git@github.com:org/markhub-plugin.git").unwrap();
-        assert_eq!(n, "markhub-plugin");
+        let n = derive_vault_name_from_git_url("git@github.com:org/markus-plugin.git").unwrap();
+        assert_eq!(n, "markus-plugin");
     }
 
     #[test]

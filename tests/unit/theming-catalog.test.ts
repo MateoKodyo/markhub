@@ -20,9 +20,9 @@ describe('theming catalog', () => {
 			'kodyo',
 			'markhub-dark',
 			'markhub-light',
-			'markus',
 			'plum',
 			'rose',
+			'sage',
 			'terminal',
 			'terracotta'
 		]);
@@ -64,8 +64,8 @@ describe('theming catalog', () => {
 		expect(light.every((t) => t.family === 'light')).toBe(true);
 		expect(dark.every((t) => t.family === 'dark')).toBe(true);
 		// Light family: 6 themes (PLAN-LIGHT-THEMES STEP 1 — markhub-light
-		// sage + 5 siblings). Dark family: 6 themes (markhub-dark, forest,
-		// kodyo, markus, terminal, editor).
+		// sage signature + 5 siblings). Dark family: 6 themes (markhub-dark,
+		// forest, kodyo, sage, terminal, editor).
 		expect(light.map((t) => t.id).sort()).toEqual([
 			'amber',
 			'ink',
@@ -79,7 +79,7 @@ describe('theming catalog', () => {
 			'forest',
 			'kodyo',
 			'markhub-dark',
-			'markus',
+			'sage',
 			'terminal'
 		]);
 	});
@@ -90,7 +90,7 @@ describe('theming catalog', () => {
 		expect(isThemeId('markhub-dark')).toBe(true);
 		expect(isThemeId('forest')).toBe(true);
 		expect(isThemeId('kodyo')).toBe(true);
-		expect(isThemeId('markus')).toBe(true);
+		expect(isThemeId('sage')).toBe(true);
 		expect(isThemeId('terminal')).toBe(true);
 		expect(isThemeId('editor')).toBe(true);
 		expect(isThemeId('terracotta')).toBe(true); // PLAN-LIGHT-THEMES STEP 1

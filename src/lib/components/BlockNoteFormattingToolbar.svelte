@@ -309,7 +309,7 @@
 		font-family: var(--font-ui);
 	}
 
-	/* Step-2.5 minimal styling on Markhub tokens. Polish lands at step 3. */
+	/* Step-2.5 minimal styling on Markus tokens. Polish lands at step 3. */
 	.bn-formatting-toolbar,
 	.bn-actions-toolbar {
 		display: inline-flex;

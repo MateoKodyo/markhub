@@ -6,7 +6,7 @@
 	 *   - Open config folder → reveals the on-disk config dir in Finder.
 	 *   - Export settings    → native save dialog, then atomic JSON write.
 	 *   - Import settings    → native open dialog, parse + validate, apply.
-	 *   - App version        → "Markhub vX.Y.Z" (compile-time, from Cargo).
+	 *   - App version        → "Markus vX.Y.Z" (compile-time, from Cargo).
 	 *
 	 * Status messages stay inline so the modal can confirm / surface
 	 * errors without piping through a toast system we don't have yet.
@@ -59,8 +59,8 @@
 		busy = true;
 		try {
 			const target = await save({
-				title: 'Exporter les réglages Markhub',
-				defaultPath: 'markhub-settings.json',
+				title: 'Exporter les réglages Markus',
+				defaultPath: 'markus-settings.json',
 				filters: [{ name: 'JSON', extensions: ['json'] }]
 			});
 			if (!target) {
@@ -81,7 +81,7 @@
 		busy = true;
 		try {
 			const source = await open({
-				title: 'Importer des réglages Markhub',
+				title: 'Importer des réglages Markus',
 				multiple: false,
 				filters: [{ name: 'JSON', extensions: ['json'] }]
 			});
@@ -108,7 +108,7 @@
 			<div class="settings-row-info">
 				<span class="settings-row-label">Dossier de configuration</span>
 				<span class="settings-row-desc"
-					>Ouvrir l'emplacement où Markhub stocke ses fichiers de réglages et de
+					>Ouvrir l'emplacement où Markus stocke ses fichiers de réglages et de
 					vaults.</span
 				>
 			</div>
@@ -183,7 +183,7 @@
 				<span class="settings-row-label">Version</span>
 			</div>
 			<span class="settings-version" data-testid="advanced-version"
-				>Markhub v{version}</span
+				>Markus v{version}</span
 			>
 		</div>
 	</section>

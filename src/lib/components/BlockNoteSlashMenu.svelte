@@ -202,7 +202,7 @@
 {/if}
 
 <style>
-	/* Minimal step-2.5 styling: sober Markhub tokens, polish lands at step 3. */
+	/* Minimal step-2.5 styling: sober Markus tokens, polish lands at step 3. */
 	.bn-slash-menu {
 		position: fixed;
 		z-index: 80;

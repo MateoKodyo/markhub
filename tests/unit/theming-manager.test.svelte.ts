@@ -114,11 +114,11 @@ describe('theming manager — applyTheme', () => {
 
 	// ------ TM.A2 — applyTheme caches the id to localStorage (anti-flash) ------
 	it('caches the applied theme to localStorage for the pre-hydration script', () => {
-		localStorage.removeItem('markhub.theme.cache');
+		localStorage.removeItem('markus.theme.cache');
 		applyTheme('terracotta');
-		expect(localStorage.getItem('markhub.theme.cache')).toBe('terracotta');
+		expect(localStorage.getItem('markus.theme.cache')).toBe('terracotta');
 		applyTheme('forest');
-		expect(localStorage.getItem('markhub.theme.cache')).toBe('forest');
+		expect(localStorage.getItem('markus.theme.cache')).toBe('forest');
 	});
 });
 

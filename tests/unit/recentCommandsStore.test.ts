@@ -8,7 +8,7 @@ import { recentCommandsStore } from '../../src/lib/commands/recent.svelte';
  * command bubbling back up does not create duplicates.
  */
 
-const LS_KEY = 'markhub.commands.recent.v1';
+const LS_KEY = 'markus.commands.recent.v1';
 
 describe('recentCommandsStore', () => {
 	beforeEach(() => {

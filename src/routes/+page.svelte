@@ -729,7 +729,7 @@
 	 * Relocated from the status bar (PLAN-BLOCKNOTE step 4): sits at the
 	 * top-right of the editor area, inside the existing content header.
 	 * Reuses the pill tokens so the visual treatment stays consistent
-	 * with the rest of Markhub's chrome. */
+	 * with the rest of Markus's chrome. */
 	.mode-toggle {
 		display: inline-flex;
 		align-items: center;

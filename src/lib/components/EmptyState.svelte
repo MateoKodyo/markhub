@@ -40,7 +40,7 @@
 <div class="empty-state" data-testid="empty-state">
 	<div class="content">
 		<header class="brand">
-			<h1>Markhub</h1>
+			<h1>Markus</h1>
 		</header>
 
 		<div class="actions" role="group" aria-label="Démarrer">

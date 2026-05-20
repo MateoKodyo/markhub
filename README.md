@@ -2,7 +2,7 @@
 
 ---
 
-# Markdown Hub — Pack de spec pour Claude Code
+# Markus — Pack de spec pour Claude Code
 
 ## Comment utiliser ce pack
 

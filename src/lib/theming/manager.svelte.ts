@@ -17,6 +17,7 @@
  */
 
 import type { ThemeId, ThemePreference } from '$lib/tauri/types';
+import { migrateLsKey } from '$lib/utils/migrateLsKey';
 
 function safeMatchMedia(query: string): MediaQueryList | null {
 	if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -41,7 +42,13 @@ export function resolveActiveTheme(
 }
 
 /** localStorage key used by the pre-hydration script in `app.html`. */
-const THEME_CACHE_KEY = 'markhub.theme.cache';
+const THEME_CACHE_KEY = 'markus.theme.cache';
+
+// Markhub → Markus rename (2026-05-20): carry the cached theme id
+// forward from the legacy key. The `app.html` pre-hydration script
+// reads both keys directly so first paint is covered even before this
+// module loads; this call cleans up the legacy entry once the app runs.
+migrateLsKey('markhub.theme.cache', THEME_CACHE_KEY);
 
 /**
  * Write the theme id to `<html data-theme>` AND cache it in localStorage so

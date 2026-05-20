@@ -7,8 +7,8 @@ use crate::models::Config;
 
 const CONFIG_FILE_NAME: &str = "config.json";
 
-/// Resolve the on-disk path for the Markhub config file via Tauri's
-/// platform-aware `app_config_dir` (e.g. `~/Library/Application Support/com.kodyo.markhub/`).
+/// Resolve the on-disk path for the Markus config file via Tauri's
+/// platform-aware `app_config_dir` (e.g. `~/Library/Application Support/com.kodyo.markus/`).
 pub fn resolve_config_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()

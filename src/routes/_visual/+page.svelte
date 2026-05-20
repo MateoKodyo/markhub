@@ -124,7 +124,7 @@ Mixed sub-list:
 	const FAKE_RECENT_VAULTS: Vault[] = [
 		{ id: 'r1', name: 'Notes perso', path: '/Users/demo/Notes', mode: 'edit', color: '#A78BFA' },
 		{ id: 'r2', name: 'Skills Claude', path: '/Users/demo/skills', mode: 'edit', color: '#F472B6' },
-		{ id: 'r3', name: 'Markhub spec', path: '/Users/demo/projects/markhub', mode: 'readonly', color: '#60A5FA' },
+		{ id: 'r3', name: 'Markus spec', path: '/Users/demo/projects/markus', mode: 'readonly', color: '#60A5FA' },
 		{
 			id: 'r4',
 			name: 'Knowledge base',
@@ -285,7 +285,7 @@ Inspired by Warp / VS Code / Cursor — keep the chrome quiet, push contextual i
 		{:else if fixture === 'editor-overflow'}
 			<Editor content={FIXTURES['long-doc']} mode="preview" readonly={false} />
 		{:else if fixture === 'empty-state'}
-			<!-- Launch screen: Markhub wordmark, 4 action cards, recent vaults
+			<!-- Launch screen: Markus wordmark, 4 action cards, recent vaults
 			     list. Action callbacks are no-ops since we only capture paint. -->
 			<EmptyState vaults={FAKE_RECENT_VAULTS} />
 		{:else if fixture === 'empty-state-no-recents'}

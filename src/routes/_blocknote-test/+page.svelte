@@ -119,7 +119,7 @@
 	async function runRoundtrip(): Promise<void> {
 		const { BlockNoteEditor } = await import('@blocknote/core');
 		// We rely on default style.css so the editor is at least visible during
-		// the smoke pass. Step 3 will replace it with Markhub tokens.
+		// the smoke pass. Step 3 will replace it with Markus tokens.
 		await import('@blocknote/core/style.css').catch(() => {
 			/* fine if missing */
 		});

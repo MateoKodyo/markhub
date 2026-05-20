@@ -1,10 +1,15 @@
 /**
- * Theme catalog — the curated set of Markhub themes (12 total: 6 light + 6 dark).
+ * Theme catalog — the curated set of Markus themes (12 total: 6 light + 6 dark).
  *
  * Light family (PLAN-LIGHT-THEMES STEP 1, May 2026):
  *   markhub-light (sage signature), terracotta, rose, amber, ink, plum.
  * Dark family:
- *   markhub-dark, forest, kodyo, markus, terminal, editor.
+ *   markhub-dark, forest, kodyo, sage, terminal, editor.
+ *
+ * Note: the two default themes keep the `markhub-light` / `markhub-dark`
+ * ids (and "Markhub Light/Dark" display names) deliberately — the
+ * original product name lives on in the signature themes even though
+ * the app itself is now Markus.
  *
  * The CSS for each theme lives in `src/styles/themes/<id>.css`, scoped to
  * `[data-theme="<id>"]`. The manager (`./manager.svelte`) writes the
@@ -21,7 +26,7 @@ export type ThemeId =
 	| 'markhub-dark'
 	| 'forest'
 	| 'kodyo'
-	| 'markus'
+	| 'sage'
 	| 'terminal'
 	| 'editor'
 	| 'terracotta'
@@ -74,8 +79,8 @@ export const THEMES: readonly ThemeMeta[] = [
 		accentName: 'Kodyo Orange'
 	},
 	{
-		id: 'markus',
-		name: 'Markus',
+		id: 'sage',
+		name: 'Sage',
 		family: 'dark',
 		description: 'Landing-page palette: neutral near-black with a sage accent.',
 		accentName: 'Sage'

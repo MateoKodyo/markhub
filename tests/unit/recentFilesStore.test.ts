@@ -4,11 +4,11 @@ import { recentFilesStore } from '../../src/lib/stores/recentFiles.svelte';
 /**
  * MRU of {vaultId, relativePath} entries used by File mode to surface
  * recently-opened files first when the palette is opened with no query.
- * Persisted under `markhub.files.recent.v1`. Cap 20. Dedupe by composite
+ * Persisted under `markus.files.recent.v1`. Cap 20. Dedupe by composite
  * `vaultId::relativePath` key.
  */
 
-const LS_KEY = 'markhub.files.recent.v1';
+const LS_KEY = 'markus.files.recent.v1';
 
 const F = (vaultId: string, relativePath: string) => ({ vaultId, relativePath });
 

@@ -18,7 +18,7 @@ describe('EmptyState', () => {
 	it('renders the brand block + 4 action cards with no vaults', () => {
 		render(EmptyState);
 		expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-		expect(screen.getByRole('heading', { name: /markhub/i, level: 1 })).toBeInTheDocument();
+		expect(screen.getByRole('heading', { name: /markus/i, level: 1 })).toBeInTheDocument();
 		expect(screen.getByTestId('action-open')).toBeInTheDocument();
 		expect(screen.getByTestId('action-create')).toBeInTheDocument();
 		expect(screen.getByTestId('action-clone')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-# Kodyo Markdown Hub — SPEC
+# Markus — SPEC
 
 ## 1. Vision
 
@@ -204,7 +204,7 @@ type FileEntry = {
 
 - **Zone éditeur** (à droite de la sidebar, occupe le reste de la largeur) :
   - **Header** (étalé full-width de la zone éditeur, hauteur ~44px) : breadcrumb à gauche, toolbar styles + toggle Preview/Source + statut de sauvegarde à droite.
-  - **Corps** : zone scrollable centrale (full-width). Markhub édite des docs techniques (specs, briefs, CLAUDE.md, journaux) avec blocs de code, tableaux, listes imbriquées profondes — full-width est le bon choix, pas le centrage 760px style Linear/Notion. Référence : VS Code / Cursor / GitHub readme.
+  - **Corps** : zone scrollable centrale (full-width). Markus édite des docs techniques (specs, briefs, CLAUDE.md, journaux) avec blocs de code, tableaux, listes imbriquées profondes — full-width est le bon choix, pas le centrage 760px style Linear/Notion. Référence : VS Code / Cursor / GitHub readme.
     - largeur max **`--content-max-width: 1280px`** (centré seulement sur écrans ultra-wide)
     - padding horizontal **`--content-padding-x: 64px`** de chaque côté
   - **Footer** : aucun footer dédié pour l'instant — le statut de sauvegarde vit dans le header.
