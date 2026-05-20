@@ -8,6 +8,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import OutlinePanel from '$lib/components/OutlinePanel.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
+	import AiAwareChip from '$lib/components/AiAwareChip.svelte';
 	import FindBar from '$lib/components/FindBar.svelte';
 	import FloatingBar from '$lib/components/FloatingBar.svelte';
 	import ResizeHandle from '$lib/components/ResizeHandle.svelte';
@@ -22,6 +23,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { recentFilesStore } from '$lib/stores/recentFiles.svelte';
 	import { vaultTreeStore } from '$lib/stores/vaultTree.svelte';
+	import { aiAwareStore } from '$lib/stores/aiAware.svelte';
 	import { init as initFrontmatterCollapsed } from '$lib/stores/frontmatterCollapsed.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import CommandMode from '$lib/components/palette/CommandMode.svelte';
@@ -41,6 +43,13 @@
 
 	let loadError = $state<string | null>(null);
 	let editorMode = $state<EditorMode>('preview');
+
+	// AI-aware info for the file in the active tab — drives the editor
+	// header chip (PLAN-AI-READY STEP 4).
+	const activeAiInfo = $derived.by(() => {
+		const f = activeFileStore.activeFile;
+		return f ? aiAwareStore.getForFile(f.relativePath) : null;
+	});
 
 	// EmptyState → pick directory → in-app modal flow.
 	let pendingAction = $state<PendingAction | null>(null);
@@ -470,6 +479,9 @@
 		{:else if activeFileStore.activeFile}
 			<TabBar>
 				{#snippet trailing()}
+					{#if activeAiInfo}
+						<AiAwareChip info={activeAiInfo} />
+					{/if}
 					{#if vaultsStore.isActiveVaultReadonly}
 						<span class="badge-readonly" aria-label="Lecture seule">
 							<Lock size={11} aria-hidden="true" focusable="false" />
