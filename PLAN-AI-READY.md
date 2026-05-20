@@ -189,9 +189,9 @@ Three new commands added to the command registry (via PLAN-COMMAND-SYSTEM's `Com
 | 2. aiAwareStore + integration with vault scan | ✅ | `812d1ec` | ✅ |
 | 3. Sidebar badge + Settings toggle | ✅ | `7adbf99` | ✅ |
 | 4. Editor header chip | ✅ | `f8f3225` | ✅ |
-| 5. AI Context panel in sidebar | ✅ | (this commit) | ⏳ |
-| 6. Command palette commands | ⏳ | — | — |
-| 7. Full audit + closure | ⏳ | — | — |
+| 5. AI Context panel in sidebar | ✅ | `3dd950f` | ✅ |
+| 6. Command palette commands | ✅ | `1137473` | ⏳ |
+| 7. Full audit + closure | ✅ (code+docs) | (this commit) | ⏳ interactive |
 
 ---
 

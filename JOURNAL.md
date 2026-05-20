@@ -3418,3 +3418,58 @@ Les 2 thèmes par défaut **"Markhub Light"** et **"Markhub Dark"** gardent leur
 1. **Phase H** : Matheo renomme le repo GitHub, puis `git remote set-url`. Dossier local renommé hors session.
 2. **Smoke test du rename** : lancer le DMG `Markus`, vérifier le titre fenêtre "Markus", vérifier que la migration data dir a recopié les settings depuis l'ancien `com.kodyo.markhub/`, vérifier qu'aucune clé `markhub.*` orpheline ne traîne dans localStorage.
 3. Les 3 plans tiers `PLAN-AI-*` / `PLAN-CLI` déposés par Matheo — à traiter quand il les priorise.
+
+---
+
+# Session 2026-05-21 (nuit, autonome yolo) — PLAN-AI-READY STEPS 2-7 + batch UI polish
+
+> Longue session : clôture de PLAN-AI-READY (STEPS 2→7) entrecoupée de 7 petits chantiers UI parallèles demandés au fil de l'eau, puis exécution autonome ("mode yolo") du backlog accumulé pendant que Matheo dormait.
+
+## PLAN-AI-READY — chantier clôturé (STEPS 1-7)
+
+- **STEP 2** (`812d1ec`) : le `vault_scan` Rust extrait le bloc frontmatter de chaque `.md` ; nouveau `aiAwareStore` (cache réactif des fichiers AI-aware du vault courant). Découverte documentée dans le plan : le scan ignore les dotfiles, donc les 3 patterns cachés (`.cursor`, `.github`, `.aider`) ne sont jamais détectés — **différés** (le détecteur les gère, mais le scan ne les remonte pas). Surface livrée : `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CODEX.md`, frontmatter `audience:`.
+- **STEP 3** (`7adbf99` + fix `d5b36c6`) : badge étincelle dans la sidebar, schéma settings bumpé en **v3** (`appearance.highlightAiAware`), toggle dans Apparence. Bug corrigé : `$state(new Map())` n'est pas réactif en Svelte 5 → `SvelteMap`.
+- **STEP 4** (`f8f3225`) : chip AI-aware dans l'en-tête éditeur (zone trailing de la TabBar — pas de breadcrumb dans Markus).
+- **STEP 5** (`3dd950f` + `7571d08`) : panneau "AI Context" repliable en bas de sidebar. Items présentés comme des lignes d'arbre (icône fichier + nom + étoile).
+- **STEP 6** (`1137473`) : 3 commandes ⌘K groupe "AI" — show-aware-files (toggle le filtre sidebar), copy-as-prompt, open-claude-md.
+- **STEP 7** : audit code (zéro debug résiduel, a11y `aria`/`role` posés) + docs. Smoke test interactif complet à faire par Matheo.
+
+## Batch UI polish parallèle
+
+- Toggles preview/source + outline retirés de l'en-tête éditeur (redondants avec la FloatingBar) — `31d7ba9`.
+- Switch preview/source contrasté (pill blanche, icône sombre) — `a48a1c4`.
+- Ombre portée de la FloatingBar retirée — `237900b`.
+- En-tête "Fichiers" fixe (ne scrolle plus), loupe → icône filtre, 2 switches "Show all files" / "Show AI files" — `83b79b2`.
+- Setting Apparence : dossiers colorés à la tonique du thème — `94af7e8`.
+- FloatingBar : surface unifiée (le bg horizontal s'aligne sur le vertical, `--color-bg`) — `83e808d`.
+- **Refonte recherche** (`ceb659d`) : champ inline dans la FloatingBar (compteur + flèches), popup top-right supprimée. Highlight in-text en mode preview via la **CSS Custom Highlight API**. Le find store devient un simple state holder ; chaque mode éditeur a son moteur de matching.
+
+## Décisions prises (en autonomie)
+
+- **Switches "Show all files" / "Show AI files"** indépendants et composables (deux passes de filtrage), pas exclusifs. "Show AI files" session-only, porté dans `uiStateStore` pour être partagé avec la commande ⌘K.
+- **`ai.show-aware-files`** : le plan prévoyait un filtre sur la palette ; branché sur le filtre sidebar "Show AI files" (même intention, surface déjà existante) — toggle d'un état unique.
+- **Pas de bump de schéma pour `colorFolders`** : champ additif, `#[serde(default)]` + merge suffisent. v3 maintenu.
+- **Recherche — mode source garde sa sélection simple** ; le multi-highlight in-textarea est différé.
+- `DESIGN-PRINCIPLES.md` référencé par le plan n'existe pas (fichier réel : `design.md`) — note AI-aware non ajoutée.
+
+## Tests en fin de session
+
+cargo **158/158** · vitest **580/580** · svelte-check **0/0**.
+
+## Hors-scope / différé
+
+- **Patterns AI cachés** (`.cursor/rules`, `.github/copilot-instructions.md`, `.aider.conf.*`) : le scan ignore les dotfiles. Mini-chantier dédié (décision UX).
+- **Highlight recherche mode source** : sélection simple seulement ; multi-highlight différé.
+- **Smoke test interactif PLAN-AI-READY STEP 7** : parcours des cas de détection, lecteur d'écran, perf 1000+ fichiers — non fait (autonome).
+
+## État repo en fin de session
+
+- `main` à `1137473` + cette entrée et la clôture docs. 13 commits cette session.
+- Working tree : `TESTS.md` modifié par Matheo, non commité, laissé tel quel.
+- **Non push** — `git push` reste à Matheo.
+
+## Prochaine session
+
+1. Smoke test interactif de PLAN-AI-READY (badges, chip, panneau, 3 commandes).
+2. La refonte recherche (highlight Highlight API) n'a **pas pu être vérifiée visuellement** — à valider en priorité.
+3. `PLAN-CLI` toujours non démarré.

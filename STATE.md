@@ -5,41 +5,39 @@
 
 ## Date de mise à jour
 
-**2026-05-20** — **Rename Markhub → Markus livré et push.** L'app porte
-désormais son nom définitif **Markus**. Rename complet : productName,
-bundle id `com.kodyo.markus`, crate Rust `markus`, package npm,
-data dir, clés localStorage `markus.*`, docs vivants. Exception
-délibérée : les 2 thèmes signature gardent le nom "Markhub Light/Dark"
-et les ids `markhub-light`/`markhub-dark`. Repo GitHub renommé
-`Kodyo-studio/markus`, remote local à jour. DMG `Markus_0.1.0-alpha.1`
-buildé et testé OK par Matheo.
+**2026-05-21** — **PLAN-AI-READY clôturé (STEPS 1-7) + gros batch de
+polish UI.** Markus reconnaît désormais les fichiers de collaboration IA
+(`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CODEX.md`, frontmatter
+`audience:`) — badge sidebar, chip éditeur, panneau "AI Context", 3
+commandes ⌘K. En parallèle : refonte de la recherche in-document (champ
+inline + highlight in-text), en-tête sidebar fixe + 2 switches de
+filtrage, dossiers colorés, FloatingBar unifiée. Session autonome —
+**la recherche/highlight n'a PAS été vérifiée visuellement**.
 
 ## Branche courante
 
-`main` — **sync avec `origin/main`** à `6095de4`. Tout est push.
+`main` à `1137473` **+ le commit docs de clôture qui suit cette mise à
+jour**. **NON push** — `git push` reste à faire par Matheo.
 Repo : `https://github.com/Kodyo-studio/markus`.
 
 Dernière séquence de commits (récent → ancien) :
 
 ```
-6095de4 docs(journal): session 2026-05-20 — Markhub → Markus rename
-5589e1e feat(rename): Markhub → Markus — complete app rename
-8d0d89c chore: gitignore local screenshots-ui directory
-ba551fa chore(release): bump version to 0.1.0-alpha.1
-817bdfa docs(backlog): refresh export note — drop stale puppeteer plan
-662b030 chore(editor): consolidate table-handle coalesce
-a3207d9 fix(editor): table handles add-row/add-col now work
-fae2f0b refactor(editor): FloatingBar polish — vertical discreet + drop split
-8bc740a fix(editor): vertical FloatingBar shows all actions
-c583862 feat(editor): FloatingBar vertical/right mode + position setting
-e0b3f89 feat(editor): copy-selection pill next to formatting toolbar
-bd23bf6 docs(journal): session 2026-05-18
-e891e22 feat(dev): debug shortcut Cmd+Shift+T to cycle the 6 light themes
-70a4317 feat(themes): PLAN-LIGHT-THEMES STEP 2 — BlockNote bridging
-bf9bc1f chore(themes): post-review cleanup
-826f960 feat(themes): six light theme palettes with sage signature
-08306f6 feat(editor): floating action bar + Settings Apparence refonte
-66c22de feat(theming): add Terminal (Warp) + Editor (Cursor) dark themes
+1137473 feat(ai-ready): command palette integration            (STEP 6)
+ceb659d feat(editor): inline document search with in-text highlighting
+83e808d style(editor): unify FloatingBar surface across orientations
+94af7e8 feat(sidebar): optional accent-tinted folder icons
+83b79b2 feat(sidebar): fixed files header + filter switches
+237900b style(editor): drop the FloatingBar drop shadow in bottom position
+a48a1c4 style(editor): high-contrast active segment in FloatingBar mode picker
+31d7ba9 refactor(editor): drop redundant mode + outline toggles from header
+7571d08 fix(ai-ready): AI Context items mirror the file tree row
+3dd950f feat(ai-ready): AI Context panel in sidebar             (STEP 5)
+f8f3225 feat(ai-ready): editor header chip for AI-aware files   (STEP 4)
+d5b36c6 fix(ai-ready): reactive aiAwareStore via SvelteMap
+7adbf99 feat(ai-ready): sidebar badge with Settings toggle      (STEP 3)
+812d1ec feat(ai-ready): aiAwareStore with vault scan integration (STEP 2)
+4bbf517 feat(ai-ready): deterministic detector for AI-aware files (STEP 1)
 ```
 
 ## Branches actives (non mergées)
@@ -50,8 +48,8 @@ bf9bc1f chore(themes): post-review cleanup
 
 ## Tests (état actuel sur main)
 
-- cargo : **156/156 ✅**
-- vitest : **543/543 ✅**
+- cargo : **158/158 ✅**
+- vitest : **580/580 ✅**
 - svelte-check : **0 erreur / 0 warning ✅**
 - Aucun test désactivé.
 
@@ -96,8 +94,30 @@ en number fields + bouton "Appliquer" (draft → commit).
 **Export Markdown** : 3 entrées UI (Cmd+K, bouton Download status bar +
 FloatingBar, context menu sidebar). Pipeline de normalisation Rust.
 
-**Sidebar file visibility** : toggle Eye/EyeOff, non-markdown mutés ou
-filtrés selon `sidebar.hideNonMarkdown`.
+**Sidebar files header** (2026-05-21) : en-tête "Fichiers" fixe (ne
+scrolle plus — seul l'arbre scrolle), icône de filtre, et 2 switches
+sous le champ de filtre : "Show all files" (= `sidebar.hideNonMarkdown`,
+remplace l'ancien toggle œil) et "Show AI files" (filtre session-only,
+arbre réduit aux fichiers AI-aware). Filtres indépendants et composables.
+
+**AI-READY** (2026-05-21, PLAN-AI-READY clôturé) : reconnaissance
+déterministe (zéro LLM) des fichiers de collaboration IA — `CLAUDE.md`,
+`AGENTS.md`/`AGENT.md`, `GEMINI.md`, `CODEX.md`, frontmatter
+`audience: ai|<agent>`. Badge étincelle dans la sidebar, chip dans
+l'en-tête éditeur, panneau "AI Context" repliable en bas de sidebar,
+3 commandes ⌘K (groupe "AI"). Réglage `appearance.highlightAiAware`
+(défaut ON) dans Apparence. Patterns cachés (`.cursor`, `.github`,
+`.aider`) différés — le scan ignore les dotfiles (cf. Dettes).
+
+**Recherche in-document** (2026-05-21, refonte) : champ de recherche
+inline dans la FloatingBar horizontale (compteur + flèches prev/next +
+clear ; ⌘F le focus). Highlight in-text de tous les résultats en mode
+preview via la CSS Custom Highlight API. Mode source = sélection
+textarea simple. La popup top-right est conservée uniquement pour la
+FloatingBar verticale. **Non vérifié visuellement** (session autonome).
+
+**Apparence — dossiers colorés** : réglage `appearance.colorFolders`
+(défaut OFF) — teinte les icônes de dossier de la sidebar à l'accent.
 
 ## Chantiers
 
@@ -116,6 +136,9 @@ filtrés selon `sidebar.hideNonMarkdown`.
 | **PLAN-LIGHT-THEMES (6 light themes)** | **✅ STEPS 1-3 MERGÉS 2026-05-18. STEP 4 (Playwright baselines) abandonné par décision Matheo.** |
 | Table handles fix | ✅ MERGÉ 2026-05-20 |
 | **Rename Markhub → Markus** | **✅ MERGÉ 2026-05-20. Phase H (dossier local) reste à faire.** |
+| **PLAN-AI-READY (7 steps)** | **✅ STEPS 1-7 sur `main` 2026-05-21. Smoke test interactif STEP 7 à faire par Matheo.** |
+| **Refonte recherche + batch UI polish** | **✅ sur `main` 2026-05-21 (7 items). Recherche/highlight non vérifiée visuellement.** |
+| PLAN-CLI | ⏳ déposé, non démarré |
 | PLAN-EDITOR-POLISH | ⏸ PAUSÉ — `feat/editor-polish`, 2 bugs CSS cascade |
 | Body typography (font-size/line-height) | ⚠️ voir Dettes ci-dessous |
 
@@ -131,6 +154,18 @@ filtrés selon `sidebar.hideNonMarkdown`.
   color). Branche pausée.
 - **Split view BlockNote** : non développé. Segment retiré du FloatingBar
   mode picker. Estimé 2-3 sessions si repris.
+- **Recherche / highlight non vérifiée** : la refonte recherche du
+  2026-05-21 (champ inline + CSS Custom Highlight API en preview) a été
+  faite en session autonome — tests verts (`find` + `domFind`) mais
+  **aucune vérification visuelle**. À smoke-tester en priorité : le
+  highlight in-text en mode preview, le scroll vers le match actif, le
+  compteur, le focus ⌘F.
+- **Patterns AI cachés non détectés** : `.cursor/rules`,
+  `.github/copilot-instructions.md`, `.aider.conf.*` — le `vault_scan`
+  Rust ignore les dotfiles, donc le détecteur ne les voit jamais. Le
+  code détecteur les gère (testé). Révéler ces fichiers = décision UX
+  (montrer `.cursor`/`.github` dans l'arbre). Cf. `BACKLOG.md`
+  PLAN-AI-READY v2.
 
 ## Distribution / DMG
 
@@ -159,27 +194,28 @@ filtrés selon `sidebar.hideNonMarkdown`.
   chemins absolus d'une session Claude Code active — à faire à la main
   hors session (`mv markhub markus`).
 
-## Fichiers untracked (déposés par Matheo, non traités)
+## Fichiers untracked / non traités
 
-`PLAN-AI-COMMANDS.md`, `PLAN-AI-READY.md`, `PLAN-CLI.md` — 3 plans
-déposés à la racine pendant le chantier rename. Pas encore priorisés ni
-traités. Untracked, hors de tout commit.
+- `PLAN-CLI.md` — déposé à la racine, non démarré, non commité.
+- `TESTS.md` — modifié par Matheo (working tree), laissé tel quel.
+- `PLAN-AI-COMMANDS.md` a été supprimé (décision : pas de LLM).
+  `PLAN-AI-READY.md` est désormais commité (plan clôturé).
 
 ## Fichiers à relire en début de prochaine session
 
 1. **`STATE.md`** (ce fichier — porte d'entrée)
 2. **`CLAUDE.md`**
 3. **`WORKPLAN.md`**
-4. **`JOURNAL.md`** (dernière entrée 2026-05-20 — rename Markus)
-5. **`BACKLOG.md`**
-6. `PLAN-LIGHT-THEMES.md` si reprise du theming
-7. `PLAN-POLISH-EDIT.md` si reprise de `feat/editor-polish` (voir PAUSE NOTE)
+4. **`JOURNAL.md`** (dernière entrée 2026-05-21 — AI-READY + batch polish)
+5. **`BACKLOG.md`** (section PLAN-AI-READY v2)
+6. `PLAN-AI-READY.md` si reprise (table de progression, STEP 7)
 
 ## Prochaine session — checklist de démarrage
 
-1. **Renommer le dossier local** `markhub` → `markus` (hors session).
-2. **Body typography** : décider — soit confirmer que le fix du 18 mai
-   marche (via le diagnostic log déjà en place) et retirer le
-   `console.log`, soit reprendre le diagnostic.
-3. **Plans `PLAN-AI-*` / `PLAN-CLI`** : Matheo les priorise quand il veut.
-4. Reprise possible : PLAN-UI-PAPER STEP 9, ou `feat/editor-polish`.
+1. **`git push`** des 14 commits de la session 2026-05-21 (non push).
+2. **Smoke test PLAN-AI-READY** : badges sidebar, chip éditeur, panneau
+   "AI Context", les 3 commandes ⌘K, le toggle Apparence.
+3. **Smoke test refonte recherche** (PRIORITÉ — non vérifié) : champ
+   inline FloatingBar, highlight in-text en preview, scroll match actif.
+4. **Renommer le dossier local** `markhub` → `markus` (hors session).
+5. `PLAN-CLI` : Matheo le priorise quand il veut.
