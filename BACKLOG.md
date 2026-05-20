@@ -57,10 +57,15 @@ Catalog v1 est **closed** par décision design (4 thèmes curated, pas d'extensi
 - **Double scan vaultTreeStore ↔ Sidebar** — chaque switch de vault déclenche deux walks indépendants (Sidebar pour son arbre interne, vaultTreeStore pour Cmd+P). Coût ~50ms gaspillé par switch. Factorisable : Sidebar consomme vaultTreeStore.root + diffuse via les mêmes API.
 - **`SearchOptions` UI hardcodée** — `DEFAULT_SEARCH_OPTIONS` (case off, whole-word off, regex off) passé en dur. À exposer : 3 toggles compacts en footer de SearchMode, persistés en localStorage.
 
-### Export du fichier courant (idée 2026-05-13, hors scope MVP)
-- **Export as Markdown** — commande palette qui propose un export "Save As…" du fichier courant (utilisable pour copier hors-vault). Comportement attendu : dialog natif Tauri `save` filtré `.md`, écrit le contenu actuel à l'emplacement choisi. Triviale techniquement.
-- **Export as PDF** — commande palette qui rend le markdown courant en PDF. Plus de travail : pipeline de rendu (puppeteer ? wkhtmltopdf ? `printable_web_view` Tauri ?). Décision techno à instruire en propre.
-- **UI shells déjà posés** dans la debug palette de STEP 2 (commandes désactivées avec badge "Soon"). Les retirer / les câbler en vrai dans un chantier dédié post-MVP.
+### Export PDF / DOCX (différé — décision techno à trancher)
+**Export Markdown : livré** — bouton download dans la StatusBar et la FloatingBar (`runExportWithToast`, dialog natif Tauri `save`). L'export PDF / DOCX reste ouvert.
+
+Options évaluées (2026-05-20) :
+- **BlockNote `xl-pdf-exporter` / `xl-docx-exporter`** — solution native BlockNote, rendu fidèle à l'éditeur. Open-source sous copyleft GPL-3.0 (force l'app entière en open-source) OU licence commerciale "Business" à **$2 340/an, per-app**, pour un usage closed-source. Pas de lifetime. Voir blocknotejs.org/pricing.
+- **Tauri WebView print-to-PDF** — gratuit. La WebView sait imprimer en PDF nativement : render le markdown en HTML stylé puis trigger `print`. Qualité bonne, texte sélectionnable. ~1 session.
+- **Pandoc en sidecar Rust** — gratuit, qualité pro (PDF / DOCX / ODT / EPUB / LaTeX), mais ~100 MB ajoutés au bundle. ~1.5 session.
+
+Décision différée jusqu'à un business model Markhub clair qui justifie (ou non) le coût BlockNote Business. L'ancienne piste puppeteer / wkhtmltopdf est abandonnée — lourde et dépassée par les options ci-dessus.
 
 ### Settings v1 — wiring différé
 - **Appliquer `appearance.editorFontSize` + `editorLineHeight` au body de l'éditeur** — TOUJOURS NON RÉSOLU. Quatrième tentative (2026-05-14, commit `a8bbc41` puis revert `e95f058`) : pattern "apply on commit" via `settingsStore.appliedRevision` + remount BlockNote. CSS overrides simples puis renforcés avec `!important` sur `.preview .bn-editor`, `.bn-default-styles`, `.bn-block-content` et `.bn-block-outer`. Aucun des deux niveaux n'a déplacé la taille du body en réel. Hypothèse non vérifiée : BlockNote a un autre point d'injection (style inline ProseMirror ? `--bn-*` vars internes ? font-size sur `.ProseMirror` ?). **Chemin propre identifié et toujours non emprunté : BlockNote theming/styling API**. Le preview live dans le modal Settings continue de marcher (lit les CSS vars directement). Décision Matheo 2026-05-14 : laisser tomber, ne pas y retraîner — éventuel return quand on aura un focus dédié sur la theming API.
