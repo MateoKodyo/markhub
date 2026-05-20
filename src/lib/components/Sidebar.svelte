@@ -6,15 +6,14 @@
 		Download,
 		ExternalLink,
 		Eye,
-		EyeOff,
 		FileInput,
 		FilePlus,
+		Filter,
 		FolderOpen,
 		FolderPlus,
 		Lock,
 		Pencil,
 		Plus,
-		Search,
 		Trash2
 	} from 'lucide-svelte';
 	import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
@@ -25,6 +24,7 @@
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import FolderPickerDialog from './FolderPickerDialog.svelte';
 	import AiContextPanel from './AiContextPanel.svelte';
+	import Switch from './Switch.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import { vaultsStore } from '$lib/stores/vaults.svelte';
 	import { activeFileStore } from '$lib/stores/activeFile.svelte';
@@ -46,7 +46,11 @@
 	} from '$lib/tauri/api';
 	import { defaultExportFilename, runExportWithToast } from '$lib/utils/export';
 	import { joinPath, getFileName, getParentPath } from '$lib/utils/path';
-	import { isMarkdownFile, filterTreeToMarkdown } from '$lib/utils/fileType';
+	import {
+		isMarkdownFile,
+		filterTreeToMarkdown,
+		filterTreeToAiAware
+	} from '$lib/utils/fileType';
 	import { createClaudeMd } from '$lib/ai-ready/claudeMd';
 	import {
 		findInsertionTarget,
@@ -76,9 +80,22 @@
 		});
 	}
 
+	// "Show AI files" filter — session-only (a transient view filter, not
+	// a persisted preference). When on, the tree shows only AI-aware files.
+	let aiFilesOnly = $state(false);
+
+	// Two independent, composable filters: markdown-only and AI-only.
 	const displayScanRoot = $derived.by(() => {
 		if (!scanRoot) return null;
-		return hideNonMarkdown ? filterTreeToMarkdown(scanRoot) : scanRoot;
+		let tree = scanRoot;
+		if (hideNonMarkdown) tree = filterTreeToMarkdown(tree);
+		if (aiFilesOnly) {
+			tree = filterTreeToAiAware(
+				tree,
+				(path) => aiAwareStore.getForFile(path) !== null
+			);
+		}
+		return tree;
 	});
 
 	// Selection in the file tree (drives contextual creation + visual highlight).
@@ -964,22 +981,6 @@
 				<div class="header-actions">
 					<button
 						type="button"
-						class="icon-btn visibility-toggle"
-						class:is-active={hideNonMarkdown}
-						title={hideNonMarkdown ? 'Show all files' : 'Markdown only'}
-						aria-label={hideNonMarkdown ? 'Show all files' : 'Markdown only'}
-						aria-pressed={hideNonMarkdown}
-						data-testid="sidebar-visibility-toggle"
-						onclick={toggleHideNonMarkdown}
-					>
-						{#if hideNonMarkdown}
-							<EyeOff size={14} />
-						{:else}
-							<Eye size={14} />
-						{/if}
-					</button>
-					<button
-						type="button"
 						class="icon-btn"
 						title="Nouveau fichier"
 						aria-label="Nouveau fichier"
@@ -1013,7 +1014,7 @@
 
 			<div class="filter-row">
 				<span class="filter-icon">
-					<Search size={12} />
+					<Filter size={12} />
 				</span>
 				<input
 					type="search"
@@ -1023,29 +1024,44 @@
 				/>
 			</div>
 
-			{#if scanError}
-				<p class="scan-error">{scanError}</p>
-			{:else}
-				<FileTree
-					root={displayScanRoot}
-					filter={fileFilter}
-					expanded={expandedSet}
-					selectedPath={selectedPath}
-					{creatingAt}
-					{renamingPath}
-					readonly={vaultsStore.isActiveVaultReadonly}
-					onFileClick={handleOpenFile}
-					onToggle={handleToggleFolder}
-					onContextMenu={openFileContextMenu}
-					onSelectionChange={(entry) => (selectedEntry = entry)}
-					onCreateSubmit={commitCreate}
-					onCreateCancel={cancelCreate}
-					onStartRename={startRenameEntry}
-					onRenameSubmit={commitRename}
-					onRenameCancel={cancelRename}
-					onMoveFile={handleMoveFile}
+			<div class="files-filters">
+				<Switch
+					checked={!hideNonMarkdown}
+					label="Show all files"
+					onchange={() => toggleHideNonMarkdown()}
 				/>
-			{/if}
+				<Switch
+					checked={aiFilesOnly}
+					label="Show AI files"
+					onchange={(v) => (aiFilesOnly = v)}
+				/>
+			</div>
+
+			<div class="files-scroll">
+				{#if scanError}
+					<p class="scan-error">{scanError}</p>
+				{:else}
+					<FileTree
+						root={displayScanRoot}
+						filter={fileFilter}
+						expanded={expandedSet}
+						selectedPath={selectedPath}
+						{creatingAt}
+						{renamingPath}
+						readonly={vaultsStore.isActiveVaultReadonly}
+						onFileClick={handleOpenFile}
+						onToggle={handleToggleFolder}
+						onContextMenu={openFileContextMenu}
+						onSelectionChange={(entry) => (selectedEntry = entry)}
+						onCreateSubmit={commitCreate}
+						onCreateCancel={cancelCreate}
+						onStartRename={startRenameEntry}
+						onRenameSubmit={commitRename}
+						onRenameCancel={cancelRename}
+						onMoveFile={handleMoveFile}
+					/>
+				{/if}
+			</div>
 		</section>
 		<AiContextPanel
 			onOpenFile={handleOpenFile}
@@ -1135,10 +1151,12 @@
 		border-bottom: 1px solid var(--color-border-subtle);
 	}
 
+	/* The files section is a fixed frame: header, filter and switches stay
+	   put while only `.files-scroll` (the tree) scrolls underneath. */
 	.files-section {
 		flex: 1 1 auto;
 		min-height: 0;
-		overflow: auto;
+		overflow: hidden;
 		border-bottom: none;
 	}
 
@@ -1146,6 +1164,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		flex-shrink: 0;
 		padding: 0 var(--space-2);
 		min-height: 18px;
 	}
@@ -1194,7 +1213,8 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		margin: 0 var(--space-2) var(--space-2);
+		flex-shrink: 0;
+		margin: 0 var(--space-2);
 		padding: 6px var(--space-3);
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
@@ -1202,6 +1222,21 @@
 		transition:
 			border-color var(--duration-base) var(--easing-standard),
 			box-shadow var(--duration-base) var(--easing-standard);
+	}
+
+	/* Filter switches — sit below the filter box, fixed (don't scroll). */
+	.files-filters {
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
+		margin: 0 var(--space-2);
+	}
+
+	/* The only scrolling region of the files section — the tree. */
+	.files-scroll {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow: auto;
 	}
 
 	.filter-row:focus-within {
@@ -1231,17 +1266,5 @@
 		padding: var(--space-3);
 		font-size: var(--text-caption);
 		color: var(--color-status-error);
-	}
-
-	/* Visibility toggle — when active (filtering on), the button gets an
-	 * accent-tinted background so the state is legible at a glance. */
-	.icon-btn.visibility-toggle.is-active {
-		background: color-mix(in oklab, var(--color-accent) 14%, transparent);
-		color: var(--color-accent);
-	}
-
-	.icon-btn.visibility-toggle.is-active:hover {
-		background: color-mix(in oklab, var(--color-accent) 22%, transparent);
-		color: var(--color-accent);
 	}
 </style>
