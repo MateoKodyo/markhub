@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Code2, Eye, Lock, PanelLeft, PanelRight } from 'lucide-svelte';
+	import { Lock, PanelLeft } from 'lucide-svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Editor, { type EditorMode } from '$lib/components/Editor.svelte';
@@ -488,52 +488,6 @@
 							<span>Lecture seule</span>
 						</span>
 					{/if}
-					<div
-						class="mode-toggle"
-						role="group"
-						aria-label="Mode éditeur"
-						data-testid="mode-toggle"
-					>
-						<button
-							type="button"
-							class="seg-btn"
-							class:is-active={editorMode === 'preview'}
-							onclick={() => (editorMode = 'preview')}
-							aria-pressed={editorMode === 'preview'}
-							aria-label="Mode preview"
-							title="Preview"
-						>
-							<Eye size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />
-						</button>
-						<button
-							type="button"
-							class="seg-btn"
-							class:is-active={editorMode === 'source'}
-							onclick={() => (editorMode = 'source')}
-							aria-pressed={editorMode === 'source'}
-							aria-label="Mode source"
-							title="Source"
-						>
-							<Code2 size={14} strokeWidth={1.5} aria-hidden="true" focusable="false" />
-						</button>
-					</div>
-					<button
-						type="button"
-						class="icon-toggle"
-						class:is-active={uiStateStore.outlineOpen}
-						onclick={() => uiStateStore.toggleOutline()}
-						aria-pressed={uiStateStore.outlineOpen}
-						aria-label="Afficher le sommaire"
-						title="Sommaire (⌘\\)"
-						data-testid="outline-toggle"
-					>
-						<PanelRight
-							size={14}
-							strokeWidth={1.5}
-							aria-hidden="true"
-							focusable="false"
-						/>
-					</button>
 				{/snippet}
 			</TabBar>
 
@@ -727,90 +681,6 @@
 		background: var(--color-surface-veil);
 		border: 1px solid var(--color-border-subtle);
 		border-radius: var(--radius-sm);
-	}
-
-	/* === Preview / Source mode toggle ===
-	 * Relocated from the status bar (PLAN-BLOCKNOTE step 4): sits at the
-	 * top-right of the editor area, inside the existing content header.
-	 * Reuses the pill tokens so the visual treatment stays consistent
-	 * with the rest of Markus's chrome. */
-	.mode-toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: 1px;
-		height: var(--pill-height);
-		padding: 1px;
-		background: var(--pill-bg);
-		border-radius: var(--pill-radius);
-	}
-
-	.seg-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: calc(var(--pill-height) - 4px);
-		height: calc(var(--pill-height) - 4px);
-		padding: 0;
-		border: 0;
-		border-radius: calc(var(--pill-radius) - 2px);
-		background: transparent;
-		color: var(--color-text-secondary);
-		font-family: var(--font-ui);
-		font-size: var(--text-label);
-		line-height: 1;
-		cursor: pointer;
-		transition:
-			background-color var(--duration-base) var(--easing-standard),
-			color var(--duration-base) var(--easing-standard);
-	}
-
-	.seg-btn:hover {
-		color: var(--color-text-primary);
-	}
-
-	.seg-btn.is-active {
-		background: var(--color-bg-raised);
-		color: var(--color-text-primary);
-	}
-
-	.seg-btn:focus-visible {
-		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
-		outline-offset: 1px;
-	}
-
-	/* Outline toggle — standalone (no mutex). Same vertical size as the
-	 * mode-toggle pill so the two groups line up; smaller padding so it
-	 * reads as a single icon button rather than a segmented control. */
-	.icon-toggle {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: var(--pill-height);
-		height: var(--pill-height);
-		padding: 0;
-		border: 0;
-		border-radius: var(--pill-radius);
-		background: transparent;
-		color: var(--color-text-secondary);
-		cursor: pointer;
-		transition:
-			background-color var(--duration-base) var(--easing-standard),
-			color var(--duration-base) var(--easing-standard);
-	}
-
-	.icon-toggle:hover {
-		background: var(--pill-bg);
-		color: var(--color-text-primary);
-	}
-
-	.icon-toggle.is-active {
-		background: var(--pill-bg);
-		color: var(--color-text-primary);
-	}
-
-	.icon-toggle:focus-visible {
-		outline: 2px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
-		outline-offset: 1px;
 	}
 
 	.content-body {
