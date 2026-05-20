@@ -13,6 +13,7 @@
  * Detection is deterministic and offline (see `ai-ready/detector.ts`):
  * no file content ever leaves the machine.
  */
+import { SvelteMap } from 'svelte/reactivity';
 import { detectAiAware, type AiAwareInfo } from '$lib/ai-ready/detector';
 import { parseFrontmatter } from '$lib/frontmatter/parser';
 import { splitFrontmatter } from '$lib/utils/markdown';
@@ -29,7 +30,10 @@ function frontmatterRecord(raw: string | null): Record<string, unknown> | null {
 }
 
 class AiAwareStore {
-	#entries = $state(new Map<string, AiAwareInfo>());
+	// SvelteMap (not `$state(new Map())`) — `$state` does not make a Map's
+	// contents reactive, so `.get()` reads in components would never re-run
+	// when `.set()` / `.clear()` mutate it.
+	#entries = new SvelteMap<string, AiAwareInfo>();
 
 	/** Detection result for one file, or `null` for ordinary files. */
 	getForFile(relativePath: string): AiAwareInfo | null {

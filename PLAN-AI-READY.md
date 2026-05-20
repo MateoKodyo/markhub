@@ -186,8 +186,8 @@ Three new commands added to the command registry (via PLAN-COMMAND-SYSTEM's `Com
 | Step | Status | Commit | Matheo validation |
 |------|--------|--------|-------------------|
 | 1. Detection module + tests | ✅ | `4bbf517` | ✅ |
-| 2. aiAwareStore + integration with vault scan | ✅ | `812d1ec` | ⏳ |
-| 3. Sidebar badge + Settings toggle | ✅ | (this commit) | ⏳ |
+| 2. aiAwareStore + integration with vault scan | ✅ | `812d1ec` | ✅ |
+| 3. Sidebar badge + Settings toggle | ✅ | `7adbf99` | ✅ |
 | 4. Editor header chip | ⏳ | — | — |
 | 5. AI Context panel in sidebar | ⏳ | — | — |
 | 6. Command palette commands | ⏳ | — | — |
