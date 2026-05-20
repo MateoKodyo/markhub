@@ -32,3 +32,6 @@ vite.config.ts.timestamp-*
 /src-tauri/gen/schemas/
 /src-tauri/.svelte-kit/
 
+# Local UI screenshots (marketing / scratch captures — not repo assets)
+/screenshots-ui/
+
