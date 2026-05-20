@@ -3336,3 +3336,85 @@ PLAN-LIGHT-THEMES STEP 3. Press Cmd+Shift+T (Ctrl+Shift+T elsewhere) pour avance
 5. **STEP 4 (Playwright baselines)** à attaquer en session supervisée — 18-24 screenshots × 6 themes.
 6. **Cocoa migration smoke** : si tu avais `lightTheme: 'cocoa'` dans ton settings.json avant cette session, vérifie que le launch a écrit `'markhub-light'` à disque (et pas juste in-memory).
 7. **Hygiène** : décider du sort des fichiers untracked (`PLAN-THEMING-UDPATE.md` à archiver/supprimer, `screenshots-ui/` à committer ou .gitignore, `src-tauri/*` dirty depuis longtemps à juger).
+---
+
+# Session 2026-05-20 — Rename Markhub → Markus
+
+> Mission : renommer l'app de "Markhub" vers son nom définitif "Markus". Rename produit complet (nom affiché, identifiants techniques, stockage persistant, data dir, docs) avec une exception délibérée.
+
+## Contexte
+
+Le nom définitif du produit est **Markus**. L'app est en `0.1.0-alpha.1`, mono-utilisateur. Décisions actées avec Matheo via le plan `PLAN — Rename Markhub → Markus` : ampleur TOTALE, thème `markus` existant renommé `sage`, thèmes signature gardent "Markhub", repo + dossier renommés.
+
+## Livré — commit `5589e1e feat(rename): Markhub → Markus`
+
+52 fichiers, 7 phases.
+
+### Phase A — thème `markus` → `sage`
+Le thème dark `markus` (accent sage, landing-page palette) entrait en collision avec le nom de l'app. Renommé `sage` : fichier `markus.css` → `sage.css`, `ThemeId` union, entrée catalog (`id`/`name`), import `app.css`, whitelist `app.html`, tests `theming-catalog`. Remap `markus`→`sage` ajouté dans `mergeWithDefaults` (`settings.svelte.ts`) pour préserver le choix d'un user qui avait `darkTheme: 'markus'`.
+
+### Phase B — identifiants techniques
+- `Cargo.toml` : crate `markhub`/`markhub_lib` → `markus`/`markus_lib` + description
+- `main.rs` : `markus_lib::run()`
+- `tauri.conf.json` : productName, title, identifier `com.kodyo.markhub` → `com.kodyo.markus`
+- `package.json` + `package-lock.json` : name `markus`
+- `Cargo.lock` régénéré par le build
+
+### Phase C — migration data directory
+Le changement de bundle id déplace `~/Library/Application Support/com.kodyo.markhub/` → `com.kodyo.markus/`. Nouveau module `src-tauri/src/migration.rs` : migration one-shot au boot (`.setup()` de `lib.rs`) qui copie config.json / settings.json / frontmatter-state.json de l'ancien dir vers le nouveau si absents. Idempotent, ne fait jamais échouer le boot.
+
+### Phase D — clés localStorage `markhub.*` → `markus.*`
+Nouveau helper `src/lib/utils/migrateLsKey.ts` (lit l'ancienne clé, écrit la nouvelle, supprime l'ancienne). 7 clés migrées : `theme.cache`, `ui.*` ×4, `files.recent.v1`, `commands.recent.v1`. Le script pre-hydration de `app.html` lit la nouvelle ET l'ancienne clé theme-cache (pas de flash au 1er boot post-rename). La clé legacy `markhub.frontmatter.collapsed.v1` est **gardée telle quelle** — c'est une clé historique figée d'une ancienne migration localStorage→disque, la renommer casserait ce pont.
+
+### Phase E+F — commentaires, CSS, icônes
+sed `Markhub`→`Markus` sur les commentaires/noms affichés (~18 fichiers). Identifiants CSS/MIME minuscules ciblés : `markhub-search-flash` → `markus-search-flash`, `markhub-settings.json` → `markus-settings.json`, `x-markhub-path`/`x-markhub-tab` → `x-markus-*`. Sample vault welcome content (`vaults.rs`) entièrement renommé. Icône source `icon/markhub-icon-*.png` → `markus-icon-*.png`.
+
+### Phase G — docs vivants
+`CLAUDE.md` ("Kodyo Markdown Hub" → "Markus"), `SPEC.md`, `STATE.md`, `WORKPLAN.md`, `README.md`. `JOURNAL.md` : append-only, les 64 occurrences historiques NON modifiées. Plans archivés (`plan-110526/`, `PLAN-*.md` clôturés) laissés en l'état.
+
+## L'exception signature
+
+Les 2 thèmes par défaut **"Markhub Light"** et **"Markhub Dark"** gardent leur nom affiché, leur id technique `markhub-light`/`markhub-dark`, et leurs fichiers `markhub-*.css`. Le mot "Markhub" survit délibérément dans les thèmes signature — décision de Matheo. Conséquence : les 51 occurrences de theme IDs `markhub-light/dark` ne sont PAS touchées, pas de migration du champ `lightTheme`/`darkTheme` des settings.
+
+## Tests
+
+| Suite | Résultat |
+|---|---|
+| svelte-check | 0 erreur / 0 warning (4370 fichiers) |
+| vitest | 543/543 (1 test EmptyState ajusté : heading `/markhub/i` → `/markus/i`) |
+| cargo test --lib | 156/156 |
+| `npm run tauri build` | crate `markus` compile, `Markus.app` bundlé |
+
+## Build / DMG
+
+`npm run tauri build` : compilation Rust release OK, `Markus.app` bundlé. Le `bundle_dmg.sh` (styling AppleScript) échoue comme d'habitude sans accès GUI Finder → DMG packagé via `hdiutil` depuis le `.app`. Livré : `Test-Builds/Markus_0.1.0-alpha.1_aarch64.dmg` (5.2 MB, checksum valide). `Test-Builds/` ajouté au `.gitignore` (artefact, pas asset de repo). Ancien `Markhub.app` / `Markhub_*.dmg` nettoyés.
+
+## Grep de contrôle final
+
+`grep -ri markhub src src-tauri/src` ne retourne QUE des occurrences légitimes : theme IDs signature `markhub-light/dark` (exception), références de migration (anciennes clés localStorage, ancien bundle id `com.kodyo.markhub`), et commentaires documentant le rename. Zéro parasite.
+
+## Décisions prises (en autonomie)
+
+- **Exception signature confirmée** : tension entre "ampleur TOTALE" (Q1) et "garder Markhub Light/Dark" (Q3) tranchée — les thèmes signature sont une exception complète (nom + id + fichiers). Cohérent : garder le nom affiché "Markhub Light" impose de garder l'id `markhub-light`.
+- **Clé legacy `markhub.frontmatter.collapsed.v1` non renommée** : c'est une clé d'une migration antérieure (localStorage→disque), pas une clé de stockage active. La renommer casserait le pont de drain des très vieilles données.
+- **`Test-Builds/` gitignoré** : cohérent avec `screenshots-ui/` — pas de binaires dans le repo.
+- **Commit unique** : un rename est un changement atomique cohérent ; les fichiers se chevauchent entre phases, un découpage en 3 produirait des commits intermédiaires non-compilables.
+
+## Hors-scope / différé
+
+- **Phase H — repo + dossier local** : Matheo renomme le repo GitHub `Kodyo-studio/markhub` → `markus` côté GitHub (action manuelle). Une fois fait : `git remote set-url origin https://github.com/Kodyo-studio/markus.git`. Le dossier local `/Users/lkid/Projects/products/markhub` → `/markus` casse les chemins de la session Claude Code active — à faire en tout dernier, hors session.
+- **Fichiers untracked tiers** : `PLAN-AI-COMMANDS.md`, `PLAN-AI-READY.md`, `PLAN-CLI.md` déposés par Matheo pendant le chantier — hors scope du rename, non commités.
+- **SPEC.md** : le chemin config `~/.kodyo-md-hub/` mentionné dans la spec est probablement obsolète (le vrai est `~/Library/Application Support/com.kodyo.markus/`) — non corrigé, hors scope rename.
+- **DMG stylé** : le `bundle_dmg.sh` de Tauri échoue toujours sans accès GUI ; le DMG `hdiutil` n'a pas le décor (background, lien /Applications). Suffisant pour un test-build.
+
+## État repo en fin de session
+
+- `main` à **`5589e1e`** + l'entrée JOURNAL qui suit.
+- Working tree propre côté rename. Untracked restants : 3 plans tiers de Matheo (`PLAN-AI-*`, `PLAN-CLI`).
+- Repo encore nommé `markhub` sur GitHub et en local — Phase H à faire par Matheo.
+
+## Prochaine session
+
+1. **Phase H** : Matheo renomme le repo GitHub, puis `git remote set-url`. Dossier local renommé hors session.
+2. **Smoke test du rename** : lancer le DMG `Markus`, vérifier le titre fenêtre "Markus", vérifier que la migration data dir a recopié les settings depuis l'ancien `com.kodyo.markhub/`, vérifier qu'aucune clé `markhub.*` orpheline ne traîne dans localStorage.
+3. Les 3 plans tiers `PLAN-AI-*` / `PLAN-CLI` déposés par Matheo — à traiter quand il les priorise.
